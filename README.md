@@ -1,1 +1,2 @@
-# dataflow-genomics
+# genomics-dataflow-core
+genomics-dataflow-core

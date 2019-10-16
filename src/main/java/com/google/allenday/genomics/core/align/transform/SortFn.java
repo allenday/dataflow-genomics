@@ -1,11 +1,11 @@
-package com.google.allenday.genomics.core.transform.fn;
+package com.google.allenday.genomics.core.align.transform;
 
 import com.google.allenday.genomics.core.align.SamBamManipulationService;
 import com.google.allenday.genomics.core.gene.GeneData;
 import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
-import com.google.allenday.genomics.core.io.IoHandler;
+import com.google.allenday.genomics.core.io.TransformIoHandler;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
@@ -18,12 +18,12 @@ public class SortFn extends DoFn<KV<GeneExampleMetaData, GeneData>, KV<GeneExamp
     private Logger LOG = LoggerFactory.getLogger(SortFn.class);
     private GCSService gcsService;
 
-    private IoHandler ioHandler;
+    private TransformIoHandler transformIoHandler;
     private FileUtils fileUtils;
     private SamBamManipulationService samBamManipulationService;
 
-    public SortFn(IoHandler ioHandler, FileUtils fileUtils, SamBamManipulationService samBamManipulationService) {
-        this.ioHandler = ioHandler;
+    public SortFn(TransformIoHandler transformIoHandler, FileUtils fileUtils, SamBamManipulationService samBamManipulationService) {
+        this.transformIoHandler = transformIoHandler;
         this.fileUtils = fileUtils;
         this.samBamManipulationService = samBamManipulationService;
     }
@@ -48,13 +48,13 @@ public class SortFn extends DoFn<KV<GeneExampleMetaData, GeneData>, KV<GeneExamp
             return;
         }
         try {
-            String workingDir = fileUtils.makeUniqueDirWithTimestampAndSuffix(geneExampleMetaData.getRun());
+            String workingDir = fileUtils.makeUniqueDirWithTimestampAndSuffix(geneExampleMetaData.getRunId());
             try {
-                String inputFilePath = ioHandler.handleInputAsLocalFile(gcsService, geneData, workingDir);
+                String inputFilePath = transformIoHandler.handleInputAsLocalFile(gcsService, geneData, workingDir);
                 String alignedSortedBamPath = samBamManipulationService.sortSam(
-                        inputFilePath, workingDir, geneExampleMetaData.getRun(), geneData.getReferenceName());
+                        inputFilePath, workingDir, geneExampleMetaData.getRunId(), geneData.getReferenceName());
 
-                c.output(KV.of(geneExampleMetaData, ioHandler.handleFileOutput(gcsService, alignedSortedBamPath, geneData.getReferenceName())));
+                c.output(KV.of(geneExampleMetaData, transformIoHandler.handleFileOutput(gcsService, alignedSortedBamPath, geneData.getReferenceName())));
             } catch (IOException e) {
                 LOG.error(e.getMessage());
                 e.printStackTrace();

@@ -10,16 +10,16 @@ import java.io.IOException;
 import java.io.Serializable;
 
 
-public class IoHandler implements Serializable {
+public class TransformIoHandler implements Serializable {
 
-    private static Logger LOG = LoggerFactory.getLogger(IoHandler.class);
+    private static Logger LOG = LoggerFactory.getLogger(TransformIoHandler.class);
 
     private String resultsBucket;
     private String destGcsPrefix;
     private long memoryOutputLimitMb;
     private FileUtils fileUtils;
 
-    public IoHandler(String resultsBucket, String destGcsPrefix, long memoryOutputLimitMb, FileUtils fileUtils) {
+    public TransformIoHandler(String resultsBucket, String destGcsPrefix, long memoryOutputLimitMb, FileUtils fileUtils) {
         this.resultsBucket = resultsBucket;
         this.destGcsPrefix = destGcsPrefix;
         this.memoryOutputLimitMb = memoryOutputLimitMb;

@@ -12,14 +12,15 @@ public class ReferencesProvider implements Serializable {
     private static Logger LOG = LoggerFactory.getLogger(ReferencesProvider.class);
 
     private static final String DEFAULT_REFERENCE_FILE_EXTENSION = ".fa";
+    private static final String DEFAULT_ALL_REFERENCE_LOCAL_DIR = "reference/";
 
     private FileUtils fileUtils;
     private String allReferencesDirGcsUri;
     private String allReferencesLocalDir;
     private String referenceFileExtension;
 
-    public ReferencesProvider(FileUtils fileUtils, String allReferencesDirGcsUri, String allReferencesLocalDir) {
-        this(fileUtils, allReferencesDirGcsUri, allReferencesLocalDir, DEFAULT_REFERENCE_FILE_EXTENSION);
+    public ReferencesProvider(FileUtils fileUtils, String allReferencesDirGcsUri) {
+        this(fileUtils, allReferencesDirGcsUri, DEFAULT_ALL_REFERENCE_LOCAL_DIR, DEFAULT_REFERENCE_FILE_EXTENSION);
     }
 
     public ReferencesProvider(FileUtils fileUtils, String allReferencesDirGcsUri, String allReferencesLocalDir, String referenceFileExtension) {

@@ -1,18 +1,17 @@
-package com.google.allenday.genomics.core.transform;
+package com.google.allenday.genomics.core.align.transform;
 
 import com.google.allenday.genomics.core.gene.GeneData;
 import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
 import com.google.allenday.genomics.core.gene.GeneReadGroupMetaData;
-import com.google.allenday.genomics.core.transform.fn.AlignFn;
-import com.google.allenday.genomics.core.transform.fn.MergeFn;
-import com.google.allenday.genomics.core.transform.fn.SortFn;
+import com.google.allenday.genomics.core.utils.ValueIterableToValueListTransform;
 import org.apache.beam.sdk.transforms.*;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
-public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExampleMetaData, Iterable<GeneData>>>,
+public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExampleMetaData, List<GeneData>>>,
         PCollection<KV<GeneReadGroupMetaData, GeneData>>> {
 
     public AlignFn alignFn;
@@ -27,9 +26,8 @@ public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExamp
     }
 
     @Override
-    public PCollection<KV<GeneReadGroupMetaData, GeneData>> expand(PCollection<KV<GeneExampleMetaData, Iterable<GeneData>>> input) {
+    public PCollection<KV<GeneReadGroupMetaData, GeneData>> expand(PCollection<KV<GeneExampleMetaData, List<GeneData>>> input) {
         return input
-                .apply("IterToList transform 1", new ValueIterableToValueListTransform<>())
                 .apply(ParDo.of(alignFn))
                 .apply(ParDo.of(sortFn))
                 .apply(MapElements.via(new SimpleFunction<KV<GeneExampleMetaData, GeneData>, KV<KV<GeneReadGroupMetaData, String>, GeneData>>() {
@@ -41,7 +39,7 @@ public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExamp
                     }
                 }))
                 .apply(GroupByKey.create())
-                .apply("IterToList transform 2", new ValueIterableToValueListTransform<>())
+                .apply("IterToList utils 2", new ValueIterableToValueListTransform<>())
                 .apply(ParDo.of(mergeFn));
     }
 }

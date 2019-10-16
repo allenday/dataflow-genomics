@@ -1,11 +1,11 @@
-package com.google.allenday.genomics.core.transform.fn;
+package com.google.allenday.genomics.core.align.transform;
 
 import com.google.allenday.genomics.core.align.AlignService;
 import com.google.allenday.genomics.core.gene.GeneData;
 import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
-import com.google.allenday.genomics.core.io.IoHandler;
+import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
@@ -24,18 +24,18 @@ public class AlignFn extends DoFn<KV<GeneExampleMetaData, List<GeneData>>, KV<Ge
     private AlignService alignService;
     private ReferencesProvider referencesProvider;
     private List<String> referenceNames;
-    private IoHandler ioHandler;
+    private TransformIoHandler transformIoHandler;
     private FileUtils fileUtils;
 
     public AlignFn(AlignService alignService,
                    ReferencesProvider referencesProvider,
                    List<String> referenceNames,
-                   IoHandler ioHandler,
+                   TransformIoHandler transformIoHandler,
                    FileUtils fileUtils) {
         this.alignService = alignService;
         this.referencesProvider = referencesProvider;
         this.referenceNames = referenceNames;
-        this.ioHandler = ioHandler;
+        this.transformIoHandler = transformIoHandler;
         this.fileUtils = fileUtils;
     }
 
@@ -59,24 +59,24 @@ public class AlignFn extends DoFn<KV<GeneExampleMetaData, List<GeneData>>, KV<Ge
             return;
         }
         try {
-            String workingDir = fileUtils.makeUniqueDirWithTimestampAndSuffix(geneExampleMetaData.getRun());
+            String workingDir = fileUtils.makeUniqueDirWithTimestampAndSuffix(geneExampleMetaData.getRunId());
             try {
                 List<String> srcFilesPaths = geneDataList.stream()
-                        .map(geneData -> ioHandler.handleInputAsLocalFile(gcsService, geneData, workingDir))
+                        .map(geneData -> transformIoHandler.handleInputAsLocalFile(gcsService, geneData, workingDir))
                         .collect(Collectors.toList());
 
                 for (String referenceName : referenceNames) {
                     String referencePath = referencesProvider.findReference(gcsService, referenceName);
 
                     //TODO temp
-                    String alignedSamName = workingDir + "_" + geneExampleMetaData.getRun() + ".sam";
+                    String alignedSamName = workingDir + "_" + geneExampleMetaData.getRunId() + ".sam";
                     String alignedSamPath = workingDir + alignedSamName;
-                    boolean exists = IoHandler.tryToFindInPrevious(gcsService, alignedSamName, alignedSamPath, "", "");
+                    boolean exists = TransformIoHandler.tryToFindInPrevious(gcsService, alignedSamName, alignedSamPath, "", "");
 
                     if (!exists) {
-                        alignedSamPath = alignService.alignFastq(referencePath, srcFilesPaths, workingDir, geneExampleMetaData.getRun(), referenceName);
+                        alignedSamPath = alignService.alignFastq(referencePath, srcFilesPaths, workingDir, geneExampleMetaData.getRunId(), referenceName);
                     }
-                    c.output(KV.of(geneExampleMetaData, ioHandler.handleFileOutput(gcsService, alignedSamPath, referenceName)));
+                    c.output(KV.of(geneExampleMetaData, transformIoHandler.handleFileOutput(gcsService, alignedSamPath, referenceName)));
                 }
             } catch (IOException e) {
                 LOG.error(e.getMessage());

@@ -45,6 +45,9 @@ public class AlignService implements Serializable {
         this.fileUtils = fileUtils;
     }
 
+    /**
+     * Method to setup Minimap2 software    
+     **/
     public void setupMinimap2() {
         workerSetupService.setupByCommands(new String[]{
                 CMD_APT_UPDATE,

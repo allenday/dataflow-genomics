@@ -1,11 +1,11 @@
-package com.google.allenday.genomics.core.transform.fn;
+package com.google.allenday.genomics.core.align.transform;
 
 import com.google.allenday.genomics.core.align.SamBamManipulationService;
 import com.google.allenday.genomics.core.gene.GeneData;
 import com.google.allenday.genomics.core.gene.GeneReadGroupMetaData;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
-import com.google.allenday.genomics.core.io.IoHandler;
+import com.google.allenday.genomics.core.io.TransformIoHandler;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
@@ -21,12 +21,12 @@ public class MergeFn extends DoFn<KV<KV<GeneReadGroupMetaData, String>, List<Gen
     private Logger LOG = LoggerFactory.getLogger(MergeFn.class);
     private GCSService gcsService;
 
-    private IoHandler ioHandler;
+    private TransformIoHandler transformIoHandler;
     private SamBamManipulationService samBamManipulationService;
     private FileUtils fileUtils;
 
-    public MergeFn(IoHandler ioHandler, SamBamManipulationService samBamManipulationService, FileUtils fileUtils) {
-        this.ioHandler = ioHandler;
+    public MergeFn(TransformIoHandler transformIoHandler, SamBamManipulationService samBamManipulationService, FileUtils fileUtils) {
+        this.transformIoHandler = transformIoHandler;
         this.samBamManipulationService = samBamManipulationService;
         this.fileUtils = fileUtils;
     }
@@ -68,7 +68,7 @@ public class MergeFn extends DoFn<KV<KV<GeneReadGroupMetaData, String>, List<Gen
             try {
                 if (isNothingToMerge(geneDataList)) {
                     geneDataList.stream().findFirst().ifPresent(inputGeneData -> {
-                                GeneData geneData = ioHandler.handleInputAndCopyToGcs(inputGeneData, gcsService,
+                                GeneData geneData = transformIoHandler.handleInputAndCopyToGcs(inputGeneData, gcsService,
                                         samBamManipulationService.generateMergedFileName(geneReadGroupMetaData.getSraSample(), reference),
                                         reference, workDir);
                                 c.output(KV.of(geneReadGroupMetaData, geneData));
@@ -76,11 +76,11 @@ public class MergeFn extends DoFn<KV<KV<GeneReadGroupMetaData, String>, List<Gen
                     );
                 } else {
                     List<String> localBamPaths = geneDataList.stream()
-                            .map(geneData -> ioHandler.handleInputAsLocalFile(gcsService, geneData, workDir))
+                            .map(geneData -> transformIoHandler.handleInputAsLocalFile(gcsService, geneData, workDir))
                             .collect(Collectors.toList());
 
                     String mergedFileName = samBamManipulationService.mergeBamFiles(localBamPaths, workDir, geneReadGroupMetaData.getSraSample(), reference);
-                    GeneData geneData = ioHandler.saveFileToGcsOutput(gcsService, mergedFileName, reference);
+                    GeneData geneData = transformIoHandler.saveFileToGcsOutput(gcsService, mergedFileName, reference);
                     c.output(KV.of(geneReadGroupMetaData, geneData));
 
                 }

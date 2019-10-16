@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.transform;
+package com.google.allenday.genomics.core.utils;
 
 import org.apache.beam.sdk.transforms.MapElements;
 import org.apache.beam.sdk.transforms.PTransform;

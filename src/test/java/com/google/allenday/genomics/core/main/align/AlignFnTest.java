@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.utils.fn;
+package com.google.allenday.genomics.core.main.align;
 
 import com.google.allenday.genomics.core.align.transform.AlignFn;
 import com.google.allenday.genomics.core.align.AlignService;

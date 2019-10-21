@@ -5,6 +5,7 @@ import org.apache.beam.sdk.coders.DefaultCoder;
 
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.UUID;
 
 //TODO
 
@@ -62,6 +63,18 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
 
     public static GeneExampleMetaData fromCsvLine(Parser parser, String csvLine) {
         return parser.parse(csvLine);
+    }
+
+    public static GeneExampleMetaData createSingleEndUnique(String rawMetaData) {
+        String uniqueName = UUID.randomUUID().toString();
+        return new GeneExampleMetaData(
+                "projectName_" + uniqueName,
+                "projectId_" + uniqueName,
+                "bioSample_" + uniqueName,
+                "sraSample_" + uniqueName,
+                "runId_" + uniqueName,
+                false,
+                rawMetaData);
     }
 
     @Override

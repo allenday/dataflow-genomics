@@ -22,7 +22,11 @@ public class FileUtils implements Serializable {
 
     public String getCurrentPath(){
         Path currentRelativePath = Paths.get("");
-        return currentRelativePath.toAbsolutePath().toString() + "/";
+        String currentPath = currentRelativePath.toAbsolutePath().toString();
+        if (currentPath.charAt(currentPath.length() - 1) != '/'){
+            currentPath = currentPath + '/';
+        }
+        return currentPath;
     }
 
     public String makeUniqueDirWithTimestampAndSuffix(String suffix) throws RuntimeException{

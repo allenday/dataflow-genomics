@@ -16,12 +16,12 @@ public class CmdExecutor implements Serializable {
     public Pair<Boolean, Integer> executeCommand(String cmdCommand) {
         LOG.info(String.format("Executing command: %s", cmdCommand));
         ProcessBuilder processBuilder = new ProcessBuilder();
+        processBuilder.inheritIO();
         processBuilder.command("bash", "-c", cmdCommand);
 
         try {
 
             Process process = processBuilder.start();
-
             BufferedReader reader =
                     new BufferedReader(new InputStreamReader(process.getInputStream()));
 

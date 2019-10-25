@@ -1,6 +1,7 @@
 package com.google.allenday.genomics.core.pipeline;
 
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
+import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.Validation;
 
@@ -27,16 +28,19 @@ public interface AlignerPipelineOptions extends DataflowPipelineOptions {
     void setReferenceNamesList(List<String> value);
 
     @Description("GCS dir path with references")
+    @Validation.Required
     String getAllReferencesDirGcsUri();
 
     void setAllReferencesDirGcsUri(String value);
 
     @Description("GCS dir path for align output")
+    @Validation.Required
     String getAlignedOutputDir();
 
     void setAlignedOutputDir(String value);
 
-    @Description("Threshold to decide how to pass data between anomaly")
+    @Description("Threshold to decide how to pass data between transforms")
+    @Default.Long(0)
     long getMemoryOutputLimit();
 
     void setMemoryOutputLimit(long value);

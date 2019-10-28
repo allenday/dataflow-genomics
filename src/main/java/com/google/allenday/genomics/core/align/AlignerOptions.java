@@ -6,7 +6,6 @@ import java.util.List;
 
 public class AlignerOptions {
 
-    private String srcBucket;
     private String resultBucket;
     private List<String> geneReferences;
     private String allReferencesDirGcsUri;
@@ -16,9 +15,8 @@ public class AlignerOptions {
     private String sortedOutputDir;
     private String mergedOutputDir;
 
-    public AlignerOptions(String srcBucket, String resultBucket, List<String> geneReferences,
+    public AlignerOptions(String resultBucket, List<String> geneReferences,
                           String allReferencesDirGcsUri, String alignedOutputDir, long memoryOutputLimit) {
-        this.srcBucket = srcBucket;
         this.resultBucket = resultBucket;
         this.geneReferences = geneReferences;
         this.allReferencesDirGcsUri = allReferencesDirGcsUri;
@@ -28,7 +26,6 @@ public class AlignerOptions {
 
     public static AlignerOptions fromAlignerPipelineOptions(AlignerPipelineOptions alignerPipelineOptions){
         AlignerOptions alignerOptions = new AlignerOptions(
-                alignerPipelineOptions.getSrcBucket(),
                 alignerPipelineOptions.getResultBucket(),
                 alignerPipelineOptions.getReferenceNamesList(),
                 alignerPipelineOptions.getAllReferencesDirGcsUri(),
@@ -47,9 +44,6 @@ public class AlignerOptions {
         this.mergedOutputDir = mergedOutputDir;
     }
 
-    public String getSrcBucket() {
-        return srcBucket;
-    }
 
     public String getResultBucket() {
         return resultBucket;

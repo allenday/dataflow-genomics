@@ -107,4 +107,8 @@ public class FileUtils implements Serializable {
     public boolean contentEquals(File file1, File file2) throws IOException{
         return org.apache.commons.io.FileUtils.contentEquals(file1, file2);
     }
+
+    public InputStream getInputStreamFromFile(String filePath) throws FileNotFoundException {
+        return new FileInputStream(filePath);
+    }
 }

@@ -9,12 +9,6 @@ import java.util.List;
 
 public interface AlignerPipelineOptions extends DataflowPipelineOptions {
 
-    @Description("Name of GCS bucket with all source data")
-    @Validation.Required
-    String getSrcBucket();
-
-    void setSrcBucket(String value);
-
     @Description("Name of GCS bucket with all resuts data")
     @Validation.Required
     String getResultBucket();

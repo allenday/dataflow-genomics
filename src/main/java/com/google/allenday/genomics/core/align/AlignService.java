@@ -3,7 +3,7 @@ package com.google.allenday.genomics.core.align;
 import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.io.FileUtils;
-import org.javatuples.Pair;
+import org.javatuples.Triplet;
 
 import java.io.Serializable;
 import java.util.List;
@@ -63,7 +63,7 @@ public class AlignService implements Serializable {
         String minimapCommand = String.format(ALIGN_COMMAND_PATTERN, MINIMAP_NAME, referencePath,
                 joinedSrcFiles, alignedSamPath);
 
-        Pair<Boolean, Integer> result = cmdExecutor.executeCommand(minimapCommand);
+        Triplet<Boolean, Integer, String> result = cmdExecutor.executeCommand(minimapCommand);
         if (!result.getValue0()) {
             throw new AlignException(minimapCommand, result.getValue1());
         }

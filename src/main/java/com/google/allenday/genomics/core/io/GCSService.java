@@ -46,7 +46,7 @@ public class GCSService {
         return getBlob(BlobId.of(bucketName, blobName));
     }
 
-    public Blob saveToGcs(String bucketName, String blobName, byte[] content) {
+    public Blob saveContentToGcs(String bucketName, String blobName, byte[] content) {
         return storage.create(BlobInfo.newBuilder(bucketName, blobName).build(), content);
     }
 
@@ -142,7 +142,7 @@ public class GCSService {
         LOG.info(String.format("Free disk space: %d", fileUtils.getFreeDiskSpace()));
     }
 
-    public String readBlob(String bucketName, String blobName) throws IOException {
+    public String readBlob(IoUtils ioUtils, String bucketName, String blobName) throws IOException {
         Blob blob = getBlob(bucketName, blobName);
         ReadChannel reader = blob.reader();
 
@@ -150,7 +150,7 @@ public class GCSService {
         StringBuilder builder = new StringBuilder();
         while (reader.read(bytes) > 0) {
             bytes.flip();
-            builder.append(StandardCharsets.UTF_8.decode(bytes).toString());
+            builder.append(ioUtils.getStringContentFromByteBuffer(bytes));
             bytes.clear();
         }
         reader.close();

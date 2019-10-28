@@ -44,7 +44,7 @@ public class ReferencesProvider implements Serializable {
                     if (fileUtils.exists(filePath)) {
                         LOG.info(String.format("Reference %s already exists", blob.getName()));
                     } else {
-                        fileUtils.mkdir(filePath);
+                        fileUtils.mkdirFromUri(filePath);
                         gcsService.downloadBlobTo(blob, filePath);
                     }
                 });

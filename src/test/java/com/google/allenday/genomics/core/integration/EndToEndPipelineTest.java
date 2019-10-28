@@ -89,7 +89,7 @@ public class EndToEndPipelineTest implements Serializable {
         TransformIoHandler mergeTransformIoHandler = new TransformIoHandler(testBucket, String.format(MERGE_RESULT_GCS_DIR_PATH_PATTERN, jobTime), 300, fileUtils);
 
         AlignFn alignFn = new AlignFn(new AlignService(new WorkerSetupService(cmdExecutor), cmdExecutor, fileUtils),
-                new ReferencesProvider(fileUtils, allReferencesDirGcsUri, REFERENCE_LOCAL_DIR, TEST_REFERENCE_FILE_EXTENSION),
+                new ReferencesProvider(fileUtils, allReferencesDirGcsUri, TEST_REFERENCE_FILE_EXTENSION, REFERENCE_LOCAL_DIR),
                 Collections.singletonList(TEST_REFERENCE_NAME), alignTransformIoHandler, fileUtils);
         SortFn sortFn = new SortFn(sortTransformIoHandler, fileUtils, samBamManipulationService);
         MergeFn mergeFn = new MergeFn(mergeTransformIoHandler, samBamManipulationService, fileUtils);
@@ -138,7 +138,7 @@ public class EndToEndPipelineTest implements Serializable {
 
         String destFileName = TEMP_DIR + expectedResultBlob.getName();
 
-        fileUtils.mkdir(destFileName);
+        fileUtils.mkdirFromUri(destFileName);
         gcsService.downloadBlobTo(gcsService.getBlob(expectedResultBlob), destFileName);
 
         File expectedResultsFile = new File(getClass().getClassLoader().getResource(EXPECTED_SINGLE_END_RESULT_CONTENT_FILE).getFile());

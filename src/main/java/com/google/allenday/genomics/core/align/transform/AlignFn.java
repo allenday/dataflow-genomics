@@ -59,7 +59,7 @@ public class AlignFn extends DoFn<KV<GeneExampleMetaData, List<GeneData>>, KV<Ge
             return;
         }
         try {
-            String workingDir = fileUtils.makeUniqueDirWithTimestampAndSuffix(geneExampleMetaData.getRunId());
+            String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneExampleMetaData.getRunId());
             try {
                 List<String> srcFilesPaths = geneDataList.stream()
                         .map(geneData -> transformIoHandler.handleInputAsLocalFile(gcsService, geneData, workingDir))

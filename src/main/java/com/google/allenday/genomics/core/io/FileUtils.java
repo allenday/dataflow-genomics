@@ -29,13 +29,13 @@ public class FileUtils implements Serializable {
         return currentPath;
     }
 
-    public String makeUniqueDirWithTimestampAndSuffix(String suffix) throws RuntimeException{
+    public String makeDirByCurrentTimestampAndSuffix(String suffix) throws RuntimeException{
         String workingDir = getCurrentPath() + System.currentTimeMillis() + "_" + suffix + "/";
-        mkdir(workingDir);
+        mkdirFromUri(workingDir);
         return workingDir;
     }
 
-    public void mkdir(String path) throws RuntimeException{
+    public void mkdirFromUri(String path) throws RuntimeException{
         Path dir;
         if (path.charAt(path.length() - 1) != '/') {
             dir = Paths.get(path).getParent();
@@ -61,6 +61,9 @@ public class FileUtils implements Serializable {
     }
 
     public String getFilenameFromPath(String filePath) {
+        if (filePath.charAt(filePath.length() - 1) == '/'){
+            throw new RuntimeException("There is no file in path");
+        }
         if (filePath.contains("/")) {
             return filePath.split("/")[filePath.split("/").length - 1];
         } else {

@@ -2,8 +2,7 @@ package com.google.allenday.genomics.core.align;
 
 import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;
-import com.google.allenday.genomics.core.io.FileUtils;
-import org.javatuples.Pair;
+import org.javatuples.Triplet;
 
 import java.io.Serializable;
 
@@ -29,13 +28,13 @@ public class KAlignService implements Serializable {
     }
 
     public String kAlignFasta(String localFastaFilePath, String workDir,
-                             String outPrefix, String outSuffix) {
+                              String outPrefix, String outSuffix) {
         String kAlignedSamName = outPrefix + "_" + outSuffix + FASTA_FILE_EXTENSION;
         String kAlignedSamPath = workDir + kAlignedSamName;
 
         String kAlignCommand = String.format(KALIGN_COMMAND_PATTERN, localFastaFilePath, kAlignedSamPath);
 
-        Pair<Boolean, Integer> result = cmdExecutor.executeCommand(kAlignCommand);
+        Triplet<Boolean, Integer, String> result = cmdExecutor.executeCommand(kAlignCommand);
         if (!result.getValue0()) {
             throw new KAlignException(kAlignCommand, result.getValue1());
         }

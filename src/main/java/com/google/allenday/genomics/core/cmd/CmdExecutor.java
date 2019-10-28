@@ -1,6 +1,6 @@
 package com.google.allenday.genomics.core.cmd;
 
-import org.javatuples.Pair;
+import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,12 +13,19 @@ public class CmdExecutor implements Serializable {
 
     private Logger LOG = LoggerFactory.getLogger(CmdExecutor.class);
 
-    public Pair<Boolean, Integer> executeCommand(String cmdCommand) {
+    public Triplet<Boolean, Integer, String> executeCommand(String cmdCommand) {
+        return executeCommand(cmdCommand, true);
+    }
+
+    public Triplet<Boolean, Integer, String> executeCommand(String cmdCommand, boolean inheritIO) {
         LOG.info(String.format("Executing command: %s", cmdCommand));
         ProcessBuilder processBuilder = new ProcessBuilder();
-        processBuilder.inheritIO();
+        if (inheritIO) {
+            processBuilder.inheritIO();
+        }
         processBuilder.command("bash", "-c", cmdCommand);
 
+        StringBuilder response = new StringBuilder();
         try {
 
             Process process = processBuilder.start();
@@ -28,14 +35,16 @@ public class CmdExecutor implements Serializable {
             String line;
             while ((line = reader.readLine()) != null) {
                 LOG.info(line);
+                response.append(line);
             }
 
             int exitCode = process.waitFor();
             LOG.info("\nExited with error code : " + exitCode);
-            return Pair.with(exitCode == 0, exitCode);
+            return Triplet.with(exitCode == 0, exitCode, response.toString());
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
-            return Pair.with(false, -1);
+            return Triplet.with(false, -1, response.toString());
         }
     }
+
 }

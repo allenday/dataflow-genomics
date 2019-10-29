@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.utils.io;
+package com.google.allenday.genomics.core.main.io;
 
 import com.google.allenday.genomics.core.gene.GeneData;
 import com.google.allenday.genomics.core.io.FileUtils;
@@ -11,7 +11,7 @@ import org.mockito.Mockito;
 
 import java.io.IOException;
 
-public class TransformIoHandlerTest {
+public class TransformIoHandlerTests {
 
     private final static String RESULT_BUCKET = "resultsBucket";
     private final static String DEST_GCS_PREFIX = "destGcsPrefix";

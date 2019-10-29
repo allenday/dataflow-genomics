@@ -5,6 +5,7 @@ import org.apache.beam.sdk.coders.DefaultCoder;
 
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.UUID;
 
 //TODO
 
@@ -62,6 +63,18 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
 
     public static GeneExampleMetaData fromCsvLine(Parser parser, String csvLine) {
         return parser.parse(csvLine);
+    }
+
+    public static GeneExampleMetaData createSingleEndUnique(String rawMetaData) {
+        String uniqueName = UUID.randomUUID().toString();
+        return new GeneExampleMetaData(
+                "projectName_" + uniqueName,
+                "projectId_" + uniqueName,
+                "bioSample_" + uniqueName,
+                "sraSample_" + uniqueName,
+                "runId_" + uniqueName,
+                false,
+                rawMetaData);
     }
 
     @Override
@@ -124,6 +137,14 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
 
         public GeneExampleMetaData parse(String csvLine) {
             String[] parts = csvLine.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+            for (int i = 0; i < parts.length; i++) {
+                if (parts[i].length() > 0 && parts[i].charAt(0) == '"') {
+                    parts[i] = parts[i].substring(1);
+                }
+                if (parts[i].length() > 0 && parts[i].charAt(parts[i].length() - 1) == '"') {
+                    parts[i] = parts[i].substring(0, parts[i].length() - 1);
+                }
+            }
             boolean isPaired = parts[isPairedCoulumnNum].toLowerCase().equals(IS_PAIRED_FLAG.toLowerCase());
             return new GeneExampleMetaData(parts[projectNameCoulumnNum], parts[projectIdCoulumnNum],
                     parts[bioSampleCoulumnNum], parts[sraSampleCoulumnNum], parts[runIdCoulumnNum],

@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.utils.reference;
+package com.google.allenday.genomics.core.main.reference;
 
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;

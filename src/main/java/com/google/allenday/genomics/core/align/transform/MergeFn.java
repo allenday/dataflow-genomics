@@ -64,7 +64,7 @@ public class MergeFn extends DoFn<KV<KV<GeneReadGroupMetaData, String>, List<Gen
         }
 
         try {
-            String workDir = fileUtils.makeUniqueDirWithTimestampAndSuffix(geneReadGroupMetaData.getSraSample());
+            String workDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneReadGroupMetaData.getSraSample());
             try {
                 if (isNothingToMerge(geneDataList)) {
                     geneDataList.stream().findFirst().ifPresent(inputGeneData -> {

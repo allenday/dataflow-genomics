@@ -22,16 +22,20 @@ public class FileUtils implements Serializable {
 
     public String getCurrentPath(){
         Path currentRelativePath = Paths.get("");
-        return currentRelativePath.toAbsolutePath().toString() + "/";
+        String currentPath = currentRelativePath.toAbsolutePath().toString();
+        if (currentPath.charAt(currentPath.length() - 1) != '/'){
+            currentPath = currentPath + '/';
+        }
+        return currentPath;
     }
 
-    public String makeUniqueDirWithTimestampAndSuffix(String suffix) throws RuntimeException{
+    public String makeDirByCurrentTimestampAndSuffix(String suffix) throws RuntimeException{
         String workingDir = getCurrentPath() + System.currentTimeMillis() + "_" + suffix + "/";
-        mkdir(workingDir);
+        mkdirFromUri(workingDir);
         return workingDir;
     }
 
-    public void mkdir(String path) throws RuntimeException{
+    public void mkdirFromUri(String path) throws RuntimeException{
         Path dir;
         if (path.charAt(path.length() - 1) != '/') {
             dir = Paths.get(path).getParent();
@@ -57,6 +61,9 @@ public class FileUtils implements Serializable {
     }
 
     public String getFilenameFromPath(String filePath) {
+        if (filePath.charAt(filePath.length() - 1) == '/'){
+            throw new RuntimeException("There is no file in path");
+        }
         if (filePath.contains("/")) {
             return filePath.split("/")[filePath.split("/").length - 1];
         } else {
@@ -102,5 +109,9 @@ public class FileUtils implements Serializable {
 
     public boolean contentEquals(File file1, File file2) throws IOException{
         return org.apache.commons.io.FileUtils.contentEquals(file1, file2);
+    }
+
+    public InputStream getInputStreamFromFile(String filePath) throws FileNotFoundException {
+        return new FileInputStream(filePath);
     }
 }

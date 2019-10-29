@@ -54,18 +54,18 @@ public class SamBamManipulationService implements Serializable {
         return alignedSortedBamPath;
     }
 
-    public boolean isRecordsInBamEquals(File file1, File file2){
+    public boolean isRecordsInBamEquals(File file1, File file2) {
         final SamReader reader1 = SamReaderFactory.makeDefault().open(file1);
         final SamReader reader2 = SamReaderFactory.makeDefault().open(file1);
 
         SAMRecordIterator iterator1 = reader1.iterator();
         SAMRecordIterator iterator2 = reader2.iterator();
-        while (true){
-            if (iterator1.hasNext() != iterator2.hasNext()){
+        while (true) {
+            if (iterator1.hasNext() != iterator2.hasNext()) {
                 return false;
-            } else if (iterator1.hasNext()){
-                boolean recordsEquals= iterator1.next().equals(iterator2.next());
-                if (!recordsEquals){
+            } else if (iterator1.hasNext()) {
+                boolean recordsEquals = iterator1.next().equals(iterator2.next());
+                if (!recordsEquals) {
                     return false;
                 }
             } else {
@@ -76,6 +76,17 @@ public class SamBamManipulationService implements Serializable {
 
     public String generateMergedFileName(String outPrefix, String outSuffix) {
         return outPrefix + "_" + outSuffix + MERGE_SORTED_FILE_PREFIX;
+    }
+
+    public List<SAMRecord> samRecordsFromBamFile(String inputFilePath) throws IOException {
+        List<SAMRecord> samRecords = new ArrayList<>();
+
+        final SamReader reader = SamReaderFactory.makeDefault().open(new File(inputFilePath));
+        for (SAMRecord record : reader) {
+            samRecords.add(record);
+        }
+        reader.close();
+        return samRecords;
     }
 
     public String mergeBamFiles(List<String> localBamPaths, String workDir,

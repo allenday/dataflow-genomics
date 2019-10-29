@@ -20,14 +20,18 @@ public class ReferencesProvider implements Serializable {
     private String referenceFileExtension;
 
     public ReferencesProvider(FileUtils fileUtils, String allReferencesDirGcsUri) {
-        this(fileUtils, allReferencesDirGcsUri, DEFAULT_ALL_REFERENCE_LOCAL_DIR, DEFAULT_REFERENCE_FILE_EXTENSION);
+        this(fileUtils, allReferencesDirGcsUri, DEFAULT_REFERENCE_FILE_EXTENSION, DEFAULT_ALL_REFERENCE_LOCAL_DIR);
     }
 
-    public ReferencesProvider(FileUtils fileUtils, String allReferencesDirGcsUri, String allReferencesLocalDir, String referenceFileExtension) {
+    public ReferencesProvider(FileUtils fileUtils, String allReferencesDirGcsUri, String referenceFileExtension) {
+        this(fileUtils, allReferencesDirGcsUri, referenceFileExtension, DEFAULT_ALL_REFERENCE_LOCAL_DIR);
+    }
+
+    public ReferencesProvider(FileUtils fileUtils, String allReferencesDirGcsUri, String referenceFileExtension, String allReferencesLocalDir) {
         this.fileUtils = fileUtils;
         this.allReferencesDirGcsUri = allReferencesDirGcsUri;
-        this.allReferencesLocalDir = allReferencesLocalDir;
         this.referenceFileExtension = referenceFileExtension;
+        this.allReferencesLocalDir = allReferencesLocalDir;
     }
 
     public String findReference(GCSService gcsService, String referenceName) {
@@ -40,7 +44,7 @@ public class ReferencesProvider implements Serializable {
                     if (fileUtils.exists(filePath)) {
                         LOG.info(String.format("Reference %s already exists", blob.getName()));
                     } else {
-                        fileUtils.mkdir(filePath);
+                        fileUtils.mkdirFromUri(filePath);
                         gcsService.downloadBlobTo(blob, filePath);
                     }
                 });

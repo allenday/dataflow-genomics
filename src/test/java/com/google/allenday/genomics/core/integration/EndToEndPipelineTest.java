@@ -31,10 +31,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.channels.Channels;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.TimeZone;
+import java.util.*;
 
 /**
  * Tests full pipeline lifecycle in DataflowRunner mode
@@ -71,7 +68,9 @@ public class EndToEndPipelineTest implements Serializable {
         String jobTime = simpleDateFormat.format(new Date());
 
         FileUtils fileUtils = new FileUtils();
-        String testBucket = "cannabis-3k-results";
+        String testBucket = Optional
+                .ofNullable(System.getenv("TEST_BUCKET"))
+                .orElse("cannabis-3k-results");
 
         GeneExampleMetaData testGeneExampleMetaData =
                 new GeneExampleMetaData("TestProject", "TestProjectId", "TestBioSample",

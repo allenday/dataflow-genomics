@@ -1,6 +1,6 @@
-package com.google.allenday.genomics.core.main.gene;
+package com.google.allenday.genomics.core.main.model;
 
-import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
+import com.google.allenday.genomics.core.model.GeneExampleMetaData;
 import org.junit.Assert;
 import org.junit.Test;
 

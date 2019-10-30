@@ -15,7 +15,7 @@ public interface AlignerPipelineOptions extends DataflowPipelineOptions {
 
     void setResultBucket(String value);
 
-    @Description("Fasta gene reference names list")
+    @Description("Fasta model reference names list")
     @Validation.Required
     List<String> getReferenceNamesList();
 
@@ -27,25 +27,15 @@ public interface AlignerPipelineOptions extends DataflowPipelineOptions {
 
     void setAllReferencesDirGcsUri(String value);
 
-    @Description("GCS dir path for align output")
+    @Description("GCS dir path for processing output")
     @Validation.Required
-    String getAlignedOutputDir();
+    String getOutputDir();
 
-    void setAlignedOutputDir(String value);
+    void setOutputDir(String value);
 
     @Description("Threshold to decide how to pass data between transforms")
     @Default.Long(0)
     long getMemoryOutputLimit();
 
     void setMemoryOutputLimit(long value);
-
-    @Description("GCS dir path for sor output")
-    String getSortedOutputDir();
-
-    void setSortedOutputDir(String value);
-
-    @Description("GCS dir path for merge output")
-    String getMergedOutputDir();
-
-    void setMergedOutputDir(String value);
 }

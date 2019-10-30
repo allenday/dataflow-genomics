@@ -1,6 +1,6 @@
-package com.google.allenday.genomics.core.main.align;
+package com.google.allenday.genomics.core.main.processing;
 
-import com.google.allenday.genomics.core.align.SamBamManipulationService;
+import com.google.allenday.genomics.core.processing.SamBamManipulationService;
 import com.google.allenday.genomics.core.io.FileUtils;
 import htsjdk.samtools.SAMRecord;
 import org.junit.Assert;

@@ -1,9 +1,9 @@
-package com.google.allenday.genomics.core.align.transform;
+package com.google.allenday.genomics.core.processing.other;
 
-import com.google.allenday.genomics.core.align.SamBamManipulationService;
-import com.google.allenday.genomics.core.gene.FileWrapper;
-import com.google.allenday.genomics.core.gene.GeneReadGroupMetaData;
-import com.google.allenday.genomics.core.gene.ReferenceDatabase;
+import com.google.allenday.genomics.core.processing.SamBamManipulationService;
+import com.google.allenday.genomics.core.model.FileWrapper;
+import com.google.allenday.genomics.core.model.GeneReadGroupMetaData;
+import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;

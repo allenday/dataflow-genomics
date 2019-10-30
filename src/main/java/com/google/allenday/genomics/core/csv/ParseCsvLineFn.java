@@ -1,6 +1,6 @@
 package com.google.allenday.genomics.core.csv;
 
-import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
+import com.google.allenday.genomics.core.model.GeneExampleMetaData;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

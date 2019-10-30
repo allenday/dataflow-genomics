@@ -1,8 +1,8 @@
 package com.google.allenday.genomics.core.csv;
 
-import com.google.allenday.genomics.core.gene.FileWrapper;
-import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
-import com.google.allenday.genomics.core.gene.UriProvider;
+import com.google.allenday.genomics.core.model.FileWrapper;
+import com.google.allenday.genomics.core.model.GeneExampleMetaData;
+import com.google.allenday.genomics.core.io.UriProvider;
 import com.google.allenday.genomics.core.io.FileUtils;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;

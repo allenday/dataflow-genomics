@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.gene;
+package com.google.allenday.genomics.core.model;
 
 import org.apache.beam.sdk.coders.DefaultCoder;
 import org.apache.beam.sdk.coders.SerializableCoder;

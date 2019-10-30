@@ -1,19 +1,20 @@
 package com.google.allenday.genomics.core.integration;
 
-import com.google.allenday.genomics.core.align.AlignService;
-import com.google.allenday.genomics.core.align.SamBamManipulationService;
-import com.google.allenday.genomics.core.align.transform.AlignFn;
-import com.google.allenday.genomics.core.align.transform.AlignSortMergeTransform;
-import com.google.allenday.genomics.core.align.transform.MergeFn;
-import com.google.allenday.genomics.core.align.transform.SortFn;
 import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
-import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
-import com.google.allenday.genomics.core.gene.UriProvider;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
+import com.google.allenday.genomics.core.io.UriProvider;
+import com.google.allenday.genomics.core.model.GeneExampleMetaData;
+import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
+import com.google.allenday.genomics.core.processing.SamBamManipulationService;
+import com.google.allenday.genomics.core.processing.align.AlignFn;
+import com.google.allenday.genomics.core.processing.align.AlignService;
+import com.google.allenday.genomics.core.processing.other.CreateBamIndexFn;
+import com.google.allenday.genomics.core.processing.other.MergeFn;
+import com.google.allenday.genomics.core.processing.other.SortFn;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -48,6 +49,7 @@ public class EndToEndPipelineTest implements Serializable {
     private final static String ALIGN_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_aligned_bam/";
     private final static String SORT_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_sorted_bam/";
     private final static String MERGE_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_merged_bam/";
+    private final static String INDEX_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_index_bam/";
 
     private final static String TEST_GCS_INPUT_DATA_DIR = "testing/input/";
     private final static String TEST_GCS_REFERENCE_DIR = "testing/reference/";
@@ -84,29 +86,35 @@ public class EndToEndPipelineTest implements Serializable {
         CmdExecutor cmdExecutor = new CmdExecutor();
         SamBamManipulationService samBamManipulationService = new SamBamManipulationService(fileUtils);
 
+        String mergeResultGcsPath = String.format(MERGE_RESULT_GCS_DIR_PATH_PATTERN, jobTime);
+        String indexResultGcsPath = String.format(INDEX_RESULT_GCS_DIR_PATH_PATTERN, jobTime);
+
         TransformIoHandler alignTransformIoHandler = new TransformIoHandler(testBucket, String.format(ALIGN_RESULT_GCS_DIR_PATH_PATTERN, jobTime), 300, fileUtils);
         TransformIoHandler sortTransformIoHandler = new TransformIoHandler(testBucket, String.format(SORT_RESULT_GCS_DIR_PATH_PATTERN, jobTime), 300, fileUtils);
-        TransformIoHandler mergeTransformIoHandler = new TransformIoHandler(testBucket, String.format(MERGE_RESULT_GCS_DIR_PATH_PATTERN, jobTime), 300, fileUtils);
+        TransformIoHandler mergeTransformIoHandler = new TransformIoHandler(testBucket, mergeResultGcsPath, 300, fileUtils);
+        TransformIoHandler indexTransformIoHandler = new TransformIoHandler(testBucket, indexResultGcsPath, 300, fileUtils);
 
         AlignFn alignFn = new AlignFn(new AlignService(new WorkerSetupService(cmdExecutor), cmdExecutor, fileUtils),
                 new ReferencesProvider(fileUtils, allReferencesDirGcsUri, TEST_REFERENCE_FILE_EXTENSION, REFERENCE_LOCAL_DIR),
                 Collections.singletonList(TEST_REFERENCE_NAME), alignTransformIoHandler, fileUtils);
-        SortFn sortFn = new SortFn(sortTransformIoHandler, fileUtils, samBamManipulationService);
+        SortFn sortFn = new SortFn(sortTransformIoHandler, samBamManipulationService, fileUtils);
         MergeFn mergeFn = new MergeFn(mergeTransformIoHandler, samBamManipulationService, fileUtils);
+        CreateBamIndexFn createBamIndexFn = new CreateBamIndexFn(indexTransformIoHandler, samBamManipulationService, fileUtils);
 
-        String mergeResultGcsPath = String.format(MERGE_RESULT_GCS_DIR_PATH_PATTERN, jobTime);
 
         testPipeline
                 .apply(new ParseSourceCsvTransform(inputCsvUriAndProvider.getValue0(),
                         GeneExampleMetaData.Parser.withDefaultSchema(),
                         inputCsvUriAndProvider.getValue1(), fileUtils))
-                .apply(new AlignSortMergeTransform("AlignSortMergeTransform", alignFn, sortFn, mergeFn));
+                .apply(new AlignAndPostProcessTransform("AlignAndPostProcessTransform", alignFn, sortFn, mergeFn, createBamIndexFn));
 
         PipelineResult pipelineResult = testPipeline.run();
         pipelineResult.waitUntilFinish();
 
-        BlobId expectedResultBlob = BlobId.of(testBucket, mergeResultGcsPath + TEST_EXAMPLE_SRA + "_" + TEST_REFERENCE_NAME + ".merged.sorted.bam");
-        checkResultContent(gcsService, fileUtils, expectedResultBlob);
+        BlobId expectedResultMergeBlob = BlobId.of(testBucket, mergeResultGcsPath + TEST_EXAMPLE_SRA + "_" + TEST_REFERENCE_NAME + ".merged.sorted.bam");
+        BlobId expectedResultIndexBlob = BlobId.of(testBucket, indexResultGcsPath + TEST_EXAMPLE_SRA + "_" + TEST_REFERENCE_NAME + ".merged.sorted.bam.bai");
+        checkExists(gcsService, expectedResultIndexBlob);
+        checkResultContent(gcsService, fileUtils, expectedResultMergeBlob);
     }
 
     private Pair<String, UriProvider> prepareInputData(GCSService gcsService, FileUtils fileUtils, String bucketName, String testInputDataFile, String testInputCsvFileName) throws IOException {
@@ -132,9 +140,13 @@ public class EndToEndPipelineTest implements Serializable {
         return gcsService.getUriFromBlob(BlobId.of(bucketName, TEST_GCS_REFERENCE_DIR));
     }
 
-    private void checkResultContent(GCSService gcsService, FileUtils fileUtils, BlobId expectedResultBlob) throws IOException {
+    private void checkExists(GCSService gcsService, BlobId expectedResultBlob) throws IOException {
         boolean resultExists = gcsService.isExists(expectedResultBlob);
         Assert.assertTrue("Results file exists", resultExists);
+    }
+
+    private void checkResultContent(GCSService gcsService, FileUtils fileUtils, BlobId expectedResultBlob) throws IOException {
+        checkExists(gcsService, expectedResultBlob);
 
         String destFileName = TEMP_DIR + expectedResultBlob.getName();
 

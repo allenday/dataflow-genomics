@@ -1,10 +1,10 @@
-package com.google.allenday.genomics.core.main.align;
+package com.google.allenday.genomics.core.main.processing.align;
 
-import com.google.allenday.genomics.core.align.AlignService;
-import com.google.allenday.genomics.core.align.transform.AlignFn;
-import com.google.allenday.genomics.core.gene.FileWrapper;
-import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
-import com.google.allenday.genomics.core.gene.ReferenceDatabase;
+import com.google.allenday.genomics.core.processing.align.AlignService;
+import com.google.allenday.genomics.core.processing.align.AlignFn;
+import com.google.allenday.genomics.core.model.FileWrapper;
+import com.google.allenday.genomics.core.model.GeneExampleMetaData;
+import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;

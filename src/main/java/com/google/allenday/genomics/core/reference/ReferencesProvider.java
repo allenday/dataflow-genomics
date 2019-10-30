@@ -1,6 +1,6 @@
 package com.google.allenday.genomics.core.reference;
 
-import com.google.allenday.genomics.core.gene.ReferenceDatabase;
+import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.cloud.storage.BlobId;

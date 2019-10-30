@@ -1,6 +1,6 @@
 package com.google.allenday.genomics.core.io;
 
-import com.google.allenday.genomics.core.gene.FileWrapper;
+import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import org.slf4j.Logger;

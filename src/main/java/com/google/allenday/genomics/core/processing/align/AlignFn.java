@@ -1,9 +1,8 @@
-package com.google.allenday.genomics.core.align.transform;
+package com.google.allenday.genomics.core.processing.align;
 
-import com.google.allenday.genomics.core.align.AlignService;
-import com.google.allenday.genomics.core.gene.FileWrapper;
-import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
-import com.google.allenday.genomics.core.gene.ReferenceDatabase;
+import com.google.allenday.genomics.core.model.FileWrapper;
+import com.google.allenday.genomics.core.model.GeneExampleMetaData;
+import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
@@ -49,7 +48,7 @@ public class AlignFn extends DoFn<KV<GeneExampleMetaData, List<FileWrapper>>, KV
 
     @ProcessElement
     public void processElement(ProcessContext c) {
-        LOG.info(String.format("Start of align with input: %s", c.element().toString()));
+        LOG.info(String.format("Start of processing with input: %s", c.element().toString()));
 
         GeneExampleMetaData geneExampleMetaData = c.element().getKey();
         List<FileWrapper> fileWrapperList = c.element().getValue();

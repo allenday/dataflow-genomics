@@ -1,6 +1,6 @@
 package com.google.allenday.genomics.core.main.io;
 
-import com.google.allenday.genomics.core.gene.FileWrapper;
+import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;

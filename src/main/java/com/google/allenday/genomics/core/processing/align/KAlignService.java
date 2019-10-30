@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.align;
+package com.google.allenday.genomics.core.processing.align;
 
 import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;

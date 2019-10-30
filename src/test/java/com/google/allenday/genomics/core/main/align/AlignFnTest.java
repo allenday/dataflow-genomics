@@ -1,9 +1,10 @@
 package com.google.allenday.genomics.core.main.align;
 
-import com.google.allenday.genomics.core.align.transform.AlignFn;
 import com.google.allenday.genomics.core.align.AlignService;
-import com.google.allenday.genomics.core.gene.GeneData;
+import com.google.allenday.genomics.core.align.transform.AlignFn;
+import com.google.allenday.genomics.core.gene.FileWrapper;
 import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
+import com.google.allenday.genomics.core.gene.ReferenceDatabase;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
@@ -15,6 +16,7 @@ import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.transforms.SimpleFunction;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
+import org.javatuples.Pair;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -23,12 +25,12 @@ import org.mockito.Mockito;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.*;
 
 
 public class AlignFnTest implements Serializable {
@@ -41,7 +43,7 @@ public class AlignFnTest implements Serializable {
         String resultName = "result_1.sam";
 
         AlignService alignServiceMock = Mockito.mock(AlignService.class, Mockito.withSettings().serializable());
-        ReferencesProvider referencesProviderv = Mockito.mock(ReferencesProvider.class, Mockito.withSettings().serializable());
+        ReferencesProvider referencesProvider = Mockito.mock(ReferencesProvider.class, Mockito.withSettings().serializable());
         FileUtils fileUtilsMock = Mockito.mock(FileUtils.class, Mockito.withSettings().serializable());
         TransformIoHandler transformIoHandlerMock = Mockito.mock(TransformIoHandler.class, Mockito.withSettings().serializable());
 
@@ -54,33 +56,34 @@ public class AlignFnTest implements Serializable {
 
         Mockito.when(alignServiceMock.alignFastq(anyString(), any(), anyString(), anyString(), anyString())).thenReturn(resultName);
         for (String reference : referenceList) {
-            Mockito.when(transformIoHandlerMock.handleFileOutput(any(), Mockito.eq(resultName), Mockito.eq(reference)))
-                    .thenReturn(GeneData.fromBlobUri("result_uri", resultName)
-                            .withReferenceName(reference));
+            Mockito.when(referencesProvider.findReference(any(), eq(reference))).thenReturn(Pair.with(new ReferenceDatabase(reference, Collections.emptyList()),
+                    "ref_path"));
         }
+        Mockito.when(transformIoHandlerMock.handleFileOutput(any(), Mockito.eq(resultName)))
+                .thenReturn(FileWrapper.fromBlobUri("result_uri", resultName));
 
-        List<GeneData> geneDataList = new ArrayList<GeneData>() {{
-            add(GeneData.fromByteArrayContent("1".getBytes(), "input_1.fastq"));
-            add(GeneData.fromByteArrayContent("2".getBytes(), "input_2.fastq"));
+        List<FileWrapper> fileWrapperList = new ArrayList<FileWrapper>() {{
+            add(FileWrapper.fromByteArrayContent("1".getBytes(), "input_1.fastq"));
+            add(FileWrapper.fromByteArrayContent("2".getBytes(), "input_2.fastq"));
         }};
 
         GeneExampleMetaData geneExampleMetaData = new GeneExampleMetaData("test_project", "test_project_id",
                 "test_bio_sample", "tes_sra_sample", "test_run", false, "");
 
-        PCollection<KV<GeneExampleMetaData, GeneData>> alignedData = testPipeline
-                .apply(Create.<KV<GeneExampleMetaData, List<GeneData>>>of(KV.of(geneExampleMetaData, geneDataList)))
-                .apply(ParDo.of(new AlignFn(alignServiceMock, referencesProviderv, referenceList, transformIoHandlerMock, fileUtilsMock)));
+        PCollection<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>> alignedData = testPipeline
+                .apply(Create.<KV<GeneExampleMetaData, List<FileWrapper>>>of(KV.of(geneExampleMetaData, fileWrapperList)))
+                .apply(ParDo.of(new AlignFn(alignServiceMock, referencesProvider, referenceList, transformIoHandlerMock, fileUtilsMock)));
 
         PAssert.that(alignedData)
-                .satisfies(new SimpleFunction<Iterable<KV<GeneExampleMetaData, GeneData>>, Void>() {
+                .satisfies(new SimpleFunction<Iterable<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>>, Void>() {
                     @Override
-                    public Void apply(Iterable<KV<GeneExampleMetaData, GeneData>> input) {
-                        List<KV<GeneExampleMetaData, GeneData>> outputList = StreamSupport.stream(input.spliterator(), false).collect(Collectors.toList());
+                    public Void apply(Iterable<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>> input) {
+                        List<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>> outputList = StreamSupport.stream(input.spliterator(), false).collect(Collectors.toList());
 
-                        Assert.assertEquals("Output list equals to reference list", outputList.size(), referenceList.size());
+                        Assert.assertEquals("Output list equals to reference list", referenceList.size(), outputList.size());
                         for (String reference : referenceList) {
                             Assert.assertTrue("Output contains reference",
-                                    outputList.stream().map(el -> el.getValue().getReferenceName()).anyMatch(ref -> ref.equals(reference)));
+                                    outputList.stream().map(el -> el.getKey().getValue().getDbName()).anyMatch(ref -> ref.equals(reference)));
 
                         }
                         return null;

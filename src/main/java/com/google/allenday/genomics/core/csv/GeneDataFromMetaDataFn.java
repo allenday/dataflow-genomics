@@ -1,6 +1,6 @@
 package com.google.allenday.genomics.core.csv;
 
-import com.google.allenday.genomics.core.gene.GeneData;
+import com.google.allenday.genomics.core.gene.FileWrapper;
 import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
 import com.google.allenday.genomics.core.gene.UriProvider;
 import com.google.allenday.genomics.core.io.FileUtils;
@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class GeneDataFromMetaDataFn extends DoFn<GeneExampleMetaData, KV<GeneExampleMetaData, List<GeneData>>> {
+public class GeneDataFromMetaDataFn extends DoFn<GeneExampleMetaData, KV<GeneExampleMetaData, List<FileWrapper>>> {
 
     private Logger LOG = LoggerFactory.getLogger(GeneDataFromMetaDataFn.class);
     private UriProvider uriProvider;
@@ -28,8 +28,8 @@ public class GeneDataFromMetaDataFn extends DoFn<GeneExampleMetaData, KV<GeneExa
         GeneExampleMetaData input = c.element();
         LOG.info(String.format("GeneDataFromMetaDataFn %s", input.toString()));
 
-        List<GeneData> geneDataList = uriProvider.provide(input).stream()
-                .map(uri -> GeneData.fromBlobUri(uri, fileUtils.getFilenameFromPath(uri))).collect(Collectors.toList());
-        c.output(KV.of(input, geneDataList));
+        List<FileWrapper> fileWrapperList = uriProvider.provide(input).stream()
+                .map(uri -> FileWrapper.fromBlobUri(uri, fileUtils.getFilenameFromPath(uri))).collect(Collectors.toList());
+        c.output(KV.of(input, fileWrapperList));
     }
 }

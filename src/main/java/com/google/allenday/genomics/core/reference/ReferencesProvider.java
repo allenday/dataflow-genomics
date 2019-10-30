@@ -1,12 +1,16 @@
 package com.google.allenday.genomics.core.reference;
 
+import com.google.allenday.genomics.core.gene.ReferenceDatabase;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.cloud.storage.BlobId;
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ReferencesProvider implements Serializable {
     private static Logger LOG = LoggerFactory.getLogger(ReferencesProvider.class);
@@ -34,12 +38,14 @@ public class ReferencesProvider implements Serializable {
         this.allReferencesLocalDir = allReferencesLocalDir;
     }
 
-    public String findReference(GCSService gcsService, String referenceName) {
+    public Pair<ReferenceDatabase, String> findReference(GCSService gcsService, String referenceName) {
         BlobId blobIdFromUri = gcsService.getBlobIdFromUri(allReferencesDirGcsUri);
+        List<String> dbFilesUris = new ArrayList<>();
         gcsService.getAllBlobsIn(blobIdFromUri.getBucket(), blobIdFromUri.getName())
                 .stream()
                 .filter(blob -> blob.getName().contains(referenceName))
                 .forEach(blob -> {
+                    dbFilesUris.add(gcsService.getUriFromBlob(blob.getBlobId()));
                     String filePath = generateReferenceDir(referenceName) + fileUtils.getFilenameFromPath(blob.getName());
                     if (fileUtils.exists(filePath)) {
                         LOG.info(String.format("Reference %s already exists", blob.getName()));
@@ -48,7 +54,8 @@ public class ReferencesProvider implements Serializable {
                         gcsService.downloadBlobTo(blob, filePath);
                     }
                 });
-        return getReferencePathByName(referenceName);
+        String fastaLocalPath = getReferencePathByName(referenceName);
+        return Pair.with(new ReferenceDatabase(referenceName, dbFilesUris), fastaLocalPath);
     }
 
     private String generateReferenceDir(String referenceName) {

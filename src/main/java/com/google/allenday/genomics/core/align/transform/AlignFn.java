@@ -1,14 +1,16 @@
 package com.google.allenday.genomics.core.align.transform;
 
 import com.google.allenday.genomics.core.align.AlignService;
-import com.google.allenday.genomics.core.gene.GeneData;
+import com.google.allenday.genomics.core.gene.FileWrapper;
 import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
+import com.google.allenday.genomics.core.gene.ReferenceDatabase;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +18,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class AlignFn extends DoFn<KV<GeneExampleMetaData, List<GeneData>>, KV<GeneExampleMetaData, GeneData>> {
+public class AlignFn extends DoFn<KV<GeneExampleMetaData, List<FileWrapper>>, KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>> {
 
     private Logger LOG = LoggerFactory.getLogger(AlignFn.class);
     private GCSService gcsService;
@@ -50,23 +52,25 @@ public class AlignFn extends DoFn<KV<GeneExampleMetaData, List<GeneData>>, KV<Ge
         LOG.info(String.format("Start of align with input: %s", c.element().toString()));
 
         GeneExampleMetaData geneExampleMetaData = c.element().getKey();
-        List<GeneData> geneDataList = c.element().getValue();
+        List<FileWrapper> fileWrapperList = c.element().getValue();
 
-        if (geneExampleMetaData == null || geneDataList.size() == 0) {
+        if (geneExampleMetaData == null || fileWrapperList.size() == 0) {
             LOG.error("Data error");
             LOG.error("geneExampleMetaData: " + geneExampleMetaData);
-            LOG.error("geneDataList.size(): " + geneDataList.size());
+            LOG.error("fileWrapperList.size(): " + fileWrapperList.size());
             return;
         }
         try {
             String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneExampleMetaData.getRunId());
             try {
-                List<String> srcFilesPaths = geneDataList.stream()
+                List<String> srcFilesPaths = fileWrapperList.stream()
                         .map(geneData -> transformIoHandler.handleInputAsLocalFile(gcsService, geneData, workingDir))
                         .collect(Collectors.toList());
 
                 for (String referenceName : referenceNames) {
-                    String referencePath = referencesProvider.findReference(gcsService, referenceName);
+                    Pair<ReferenceDatabase, String> referenceDatabaseAndFastaLocalPath = referencesProvider.findReference(gcsService, referenceName);
+                    ReferenceDatabase referenceDatabase = referenceDatabaseAndFastaLocalPath.getValue0();
+                    String localFastaPath = referenceDatabaseAndFastaLocalPath.getValue1();
 
                     //TODO temp
                     String alignedSamName = workingDir + "_" + geneExampleMetaData.getRunId() + ".sam";
@@ -74,9 +78,10 @@ public class AlignFn extends DoFn<KV<GeneExampleMetaData, List<GeneData>>, KV<Ge
                     boolean exists = TransformIoHandler.tryToFindInPrevious(gcsService, alignedSamName, alignedSamPath, "", "");
 
                     if (!exists) {
-                        alignedSamPath = alignService.alignFastq(referencePath, srcFilesPaths, workingDir, geneExampleMetaData.getRunId(), referenceName);
+                        alignedSamPath = alignService.alignFastq(localFastaPath, srcFilesPaths,
+                                workingDir, geneExampleMetaData.getRunId(), referenceName);
                     }
-                    c.output(KV.of(geneExampleMetaData, transformIoHandler.handleFileOutput(gcsService, alignedSamPath, referenceName)));
+                    c.output(KV.of(KV.of(geneExampleMetaData, referenceDatabase), transformIoHandler.handleFileOutput(gcsService, alignedSamPath)));
                 }
             } catch (IOException e) {
                 LOG.error(e.getMessage());

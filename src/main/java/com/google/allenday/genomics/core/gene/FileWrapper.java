@@ -8,7 +8,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;
 
-public class GeneData implements Serializable {
+public class FileWrapper implements Serializable {
 
     private DataType dataType;
     private String fileName;
@@ -16,20 +16,18 @@ public class GeneData implements Serializable {
     private String blobUri;
     @Nullable
     private byte[] content;
-    @Nullable
-    private String referenceName;
 
-    private GeneData(DataType dataType, String fileName) {
+    private FileWrapper(DataType dataType, String fileName) {
         this.dataType = dataType;
         this.fileName = fileName;
     }
 
-    public static GeneData fromBlobUri(String blobUri, String fileName){
-        return new GeneData(DataType.BLOB_URI, fileName).withBlobUri(blobUri);
+    public static FileWrapper fromBlobUri(String blobUri, String fileName){
+        return new FileWrapper(DataType.BLOB_URI, fileName).withBlobUri(blobUri);
     }
 
-    public static GeneData fromByteArrayContent(byte[] content, String fileName){
-        return new GeneData(DataType.CONTENT, fileName).withContent(content);
+    public static FileWrapper fromByteArrayContent(byte[] content, String fileName){
+        return new FileWrapper(DataType.CONTENT, fileName).withContent(content);
     }
 
     @Nullable
@@ -50,24 +48,14 @@ public class GeneData implements Serializable {
         return fileName;
     }
 
-    public GeneData withBlobUri(String blobUri) {
+    public FileWrapper withBlobUri(String blobUri) {
         this.blobUri = blobUri;
         return this;
     }
 
-    public GeneData withContent(byte[] raw) {
+    public FileWrapper withContent(byte[] raw) {
         this.content = raw;
         return this;
-    }
-
-    public GeneData withReferenceName(String referenceName) {
-        this.referenceName = referenceName;
-        return this;
-    }
-
-    @Nullable
-    public String getReferenceName() {
-        return referenceName;
     }
 
     @DefaultCoder(SerializableCoder.class)
@@ -79,29 +67,27 @@ public class GeneData implements Serializable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        GeneData geneData = (GeneData) o;
-        return dataType == geneData.dataType &&
-                Objects.equals(fileName, geneData.fileName) &&
-                Objects.equals(blobUri, geneData.blobUri) &&
-                Arrays.equals(content, geneData.content) &&
-                Objects.equals(referenceName, geneData.referenceName);
+        FileWrapper fileWrapper = (FileWrapper) o;
+        return dataType == fileWrapper.dataType &&
+                Objects.equals(fileName, fileWrapper.fileName) &&
+                Objects.equals(blobUri, fileWrapper.blobUri) &&
+                Arrays.equals(content, fileWrapper.content);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(dataType, fileName, blobUri, referenceName);
+        int result = Objects.hash(dataType, fileName, blobUri);
         result = 31 * result + Arrays.hashCode(content);
         return result;
     }
 
     @Override
     public String toString() {
-        return "GeneData{" +
+        return "FileWrapper{" +
                 "dataType=" + dataType +
                 ", fileName='" + fileName + '\'' +
                 ", blobUri='" + blobUri + '\'' +
-                ", rawSize=" + (content != null ? String.valueOf(content.length) : "0") +
-                ", referenceName='" + referenceName + '\'' +
+                ", content=" + Arrays.toString(content) +
                 '}';
     }
 }

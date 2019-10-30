@@ -1,8 +1,9 @@
 package com.google.allenday.genomics.core.align.transform;
 
-import com.google.allenday.genomics.core.gene.GeneData;
+import com.google.allenday.genomics.core.gene.FileWrapper;
 import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
 import com.google.allenday.genomics.core.gene.GeneReadGroupMetaData;
+import com.google.allenday.genomics.core.gene.ReferenceDatabase;
 import com.google.allenday.genomics.core.utils.ValueIterableToValueListTransform;
 import org.apache.beam.sdk.transforms.*;
 import org.apache.beam.sdk.values.KV;
@@ -11,8 +12,8 @@ import org.apache.beam.sdk.values.PCollection;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExampleMetaData, List<GeneData>>>,
-        PCollection<KV<GeneReadGroupMetaData, GeneData>>> {
+public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExampleMetaData, List<FileWrapper>>>,
+        PCollection<KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, FileWrapper>>> {
 
     public AlignFn alignFn;
     public SortFn sortFn;
@@ -26,16 +27,16 @@ public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExamp
     }
 
     @Override
-    public PCollection<KV<GeneReadGroupMetaData, GeneData>> expand(PCollection<KV<GeneExampleMetaData, List<GeneData>>> input) {
+    public PCollection<KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, FileWrapper>> expand(PCollection<KV<GeneExampleMetaData, List<FileWrapper>>> input) {
         return input
                 .apply(ParDo.of(alignFn))
                 .apply(ParDo.of(sortFn))
-                .apply(MapElements.via(new SimpleFunction<KV<GeneExampleMetaData, GeneData>, KV<KV<GeneReadGroupMetaData, String>, GeneData>>() {
+                .apply(MapElements.via(new SimpleFunction<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>, KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, FileWrapper>>() {
                     @Override
-                    public KV<KV<GeneReadGroupMetaData, String>, GeneData> apply(KV<GeneExampleMetaData, GeneData> input) {
-                        GeneExampleMetaData geneExampleMetaData = input.getKey();
-                        GeneData geneData = input.getValue();
-                        return KV.of(KV.of(geneExampleMetaData, geneData.getReferenceName()), geneData);
+                    public KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, FileWrapper> apply(KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper> input) {
+                        GeneReadGroupMetaData geneReafdGroupMetaData = input.getKey().getKey();
+                        ReferenceDatabase referenceDatabase = input.getKey().getValue();
+                        return KV.of(KV.of(geneReafdGroupMetaData, referenceDatabase), input.getValue());
                     }
                 }))
                 .apply(GroupByKey.create())

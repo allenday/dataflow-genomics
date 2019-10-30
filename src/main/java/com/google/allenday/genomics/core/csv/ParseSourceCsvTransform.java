@@ -1,6 +1,6 @@
 package com.google.allenday.genomics.core.csv;
 
-import com.google.allenday.genomics.core.gene.GeneData;
+import com.google.allenday.genomics.core.gene.FileWrapper;
 import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
 import com.google.allenday.genomics.core.gene.UriProvider;
 import com.google.allenday.genomics.core.io.FileUtils;
@@ -16,7 +16,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public class ParseSourceCsvTransform extends PTransform<PBegin,
-        PCollection<KV<GeneExampleMetaData, List<GeneData>>>> {
+        PCollection<KV<GeneExampleMetaData, List<FileWrapper>>>> {
 
     private String csvGcsUri;
     private GeneExampleMetaData.Parser csvParser;
@@ -24,15 +24,15 @@ public class ParseSourceCsvTransform extends PTransform<PBegin,
     private FileUtils fileUtils;
 
     private List<String> sraSamplesToFilter;
-    private PTransform<PCollection<KV<GeneExampleMetaData, List<GeneData>>>,
-            PCollection<KV<GeneExampleMetaData, List<GeneData>>>> preparingTransforms;
+    private PTransform<PCollection<KV<GeneExampleMetaData, List<FileWrapper>>>,
+            PCollection<KV<GeneExampleMetaData, List<FileWrapper>>>> preparingTransforms;
 
     public void setSraSamplesToFilter(List<String> sraSamplesToFilter) {
         this.sraSamplesToFilter = sraSamplesToFilter;
     }
 
-    public void setPreparingTransforms(PTransform<PCollection<KV<GeneExampleMetaData, List<GeneData>>>,
-            PCollection<KV<GeneExampleMetaData, List<GeneData>>>> preparingTransforms) {
+    public void setPreparingTransforms(PTransform<PCollection<KV<GeneExampleMetaData, List<FileWrapper>>>,
+            PCollection<KV<GeneExampleMetaData, List<FileWrapper>>>> preparingTransforms) {
         this.preparingTransforms = preparingTransforms;
     }
 
@@ -52,13 +52,13 @@ public class ParseSourceCsvTransform extends PTransform<PBegin,
     }
 
     @Override
-    public PCollection<KV<GeneExampleMetaData, List<GeneData>>> expand(PBegin pBegin) {
+    public PCollection<KV<GeneExampleMetaData, List<FileWrapper>>> expand(PBegin pBegin) {
         PCollection<String> csvLines = pBegin.apply("Read data from CSV", TextIO.read().from(csvGcsUri));
         if (sraSamplesToFilter != null && sraSamplesToFilter.size() > 0) {
             csvLines
                     .apply("Filter lines", Filter.by(name -> sraSamplesToFilter.stream().anyMatch(name::contains)));
         }
-        PCollection<KV<GeneExampleMetaData, List<GeneData>>> readyToAlign = csvLines
+        PCollection<KV<GeneExampleMetaData, List<FileWrapper>>> readyToAlign = csvLines
                 .apply("Parse CSV line", ParDo.of(new ParseCsvLineFn(csvParser)))
                 .apply("Gene data from meta data", ParDo.of(new GeneDataFromMetaDataFn(uriProvider, fileUtils)));
         if (preparingTransforms != null) {

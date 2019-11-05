@@ -78,7 +78,7 @@ public class AlignFn extends DoFn<KV<GeneExampleMetaData, List<FileWrapper>>, KV
 
                     if (!exists) {
                         alignedSamPath = alignService.alignFastq(localFastaPath, srcFilesPaths,
-                                workingDir, geneExampleMetaData.getRunId(), referenceName);
+                                workingDir, geneExampleMetaData.getRunId(), geneExampleMetaData.getSraSample(), referenceName);
                     }
                     c.output(KV.of(KV.of(geneExampleMetaData, referenceDatabase), transformIoHandler.handleFileOutput(gcsService, alignedSamPath)));
                 }

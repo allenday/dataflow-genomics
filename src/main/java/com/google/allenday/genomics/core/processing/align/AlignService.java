@@ -28,7 +28,7 @@ public class AlignService implements Serializable {
 
     private final static String ALIGN_COMMAND_PATTERN = "./%s/minimap2" +
             " -ax sr %s %s" +
-            " -R '@RG\tID:minimap2\tPL:ILLUMINA\tPU:NONE\tSM:RSP11055' " +
+            " -R '@RG\\tID:%s\\tSM:%s' " +
             "> %s";
 
     private final static String DEFAULT_MINIMAP_INSTALATION_PATH = "/";
@@ -55,13 +55,13 @@ public class AlignService implements Serializable {
 
 
     public String alignFastq(String referencePath, List<String> localFastqPaths, String workDir,
-                             String outPrefix, String outSuffix) {
+                             String outPrefix, String outSuffix, String readGroupName) {
         String alignedSamName = outPrefix + "_" + outSuffix + SAM_FILE_PREFIX;
         String alignedSamPath = workDir + alignedSamName;
 
         String joinedSrcFiles = String.join(" ", localFastqPaths);
         String minimapCommand = String.format(ALIGN_COMMAND_PATTERN, MINIMAP_NAME, referencePath,
-                joinedSrcFiles, alignedSamPath);
+                joinedSrcFiles, readGroupName, readGroupName, alignedSamPath);
 
         Triplet<Boolean, Integer, String> result = cmdExecutor.executeCommand(minimapCommand);
         if (!result.getValue0()) {

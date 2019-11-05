@@ -87,7 +87,7 @@ public class FileWrapper implements Serializable {
                 "dataType=" + dataType +
                 ", fileName='" + fileName + '\'' +
                 ", blobUri='" + blobUri + '\'' +
-                ", content=" + Arrays.toString(content) +
+                ", contentLength=" + (content != null ? content.length : 0) +
                 '}';
     }
 }

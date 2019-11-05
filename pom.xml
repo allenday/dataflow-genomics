@@ -22,7 +22,9 @@
     </licenses>
 
     <scm>
-        <url>https://svn.apache.org/viewvc/maven</url>
+        <url>https://github.com/allenday/dataflow-genomics.git</url>
+        <connection>git@github.com:allenday/dataflow-genomics.git</connection>
+        <developerConnection>scm:git:https://github.com/allenday/dataflow-genomics.git</developerConnection>
     </scm>
 
     <properties>

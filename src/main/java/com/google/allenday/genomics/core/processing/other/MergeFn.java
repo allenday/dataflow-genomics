@@ -1,8 +1,9 @@
-package com.google.allenday.genomics.core.align.transform;
+package com.google.allenday.genomics.core.processing.other;
 
-import com.google.allenday.genomics.core.align.SamBamManipulationService;
-import com.google.allenday.genomics.core.gene.GeneData;
-import com.google.allenday.genomics.core.gene.GeneReadGroupMetaData;
+import com.google.allenday.genomics.core.processing.SamBamManipulationService;
+import com.google.allenday.genomics.core.model.FileWrapper;
+import com.google.allenday.genomics.core.model.GeneReadGroupMetaData;
+import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
@@ -15,7 +16,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class MergeFn extends DoFn<KV<KV<GeneReadGroupMetaData, String>, List<GeneData>>, KV<GeneReadGroupMetaData, GeneData>> {
+public class MergeFn extends DoFn<KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, List<FileWrapper>>, KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, FileWrapper>> {
 
 
     private Logger LOG = LoggerFactory.getLogger(MergeFn.class);
@@ -36,15 +37,15 @@ public class MergeFn extends DoFn<KV<KV<GeneReadGroupMetaData, String>, List<Gen
         gcsService = GCSService.initialize(fileUtils);
     }
 
-    private boolean isNothingToMerge(List<GeneData> geneDataList) {
-        return geneDataList.size() < 2;
+    private boolean isNothingToMerge(List<FileWrapper> fileWrapperList) {
+        return fileWrapperList.size() < 2;
     }
 
     @ProcessElement
     public void processElement(ProcessContext c) {
         LOG.info(String.format("Merge of sort with input: %s", c.element().toString()));
 
-        KV<GeneReadGroupMetaData, String> geneReadGroupMetaDataAndReference = c.element().getKey();
+        KV<GeneReadGroupMetaData, ReferenceDatabase> geneReadGroupMetaDataAndReference = c.element().getKey();
 
         if (geneReadGroupMetaDataAndReference == null) {
             LOG.error("Data error");
@@ -52,36 +53,41 @@ public class MergeFn extends DoFn<KV<KV<GeneReadGroupMetaData, String>, List<Gen
             return;
         }
         GeneReadGroupMetaData geneReadGroupMetaData = geneReadGroupMetaDataAndReference.getKey();
-        String reference = geneReadGroupMetaDataAndReference.getValue();
+        ReferenceDatabase referenceDatabase = geneReadGroupMetaDataAndReference.getValue();
 
-        List<GeneData> geneDataList = c.element().getValue();
+        List<FileWrapper> fileWrapperList = c.element().getValue();
 
-        if (geneReadGroupMetaData == null || geneDataList.size() == 0) {
+        if (geneReadGroupMetaData == null || fileWrapperList.size() == 0) {
             LOG.error("Data error");
             LOG.error("geneReadGroupMetaData: " + geneReadGroupMetaDataAndReference);
-            LOG.error("geneDataList.size(): " + geneDataList.size());
+            LOG.error("fileWrapperList.size(): " + fileWrapperList.size());
             return;
         }
 
         try {
             String workDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneReadGroupMetaData.getSraSample());
             try {
-                if (isNothingToMerge(geneDataList)) {
-                    geneDataList.stream().findFirst().ifPresent(inputGeneData -> {
-                                GeneData geneData = transformIoHandler.handleInputAndCopyToGcs(inputGeneData, gcsService,
-                                        samBamManipulationService.generateMergedFileName(geneReadGroupMetaData.getSraSample(), reference),
-                                        reference, workDir);
-                                c.output(KV.of(geneReadGroupMetaData, geneData));
+                if (isNothingToMerge(fileWrapperList)) {
+                    fileWrapperList.stream().findFirst().ifPresent(inputGeneData -> {
+                                String mergedFilename =
+                                        samBamManipulationService.generateMergedFileName(geneReadGroupMetaData.getSraSample(), referenceDatabase.getDbName());
+                                FileWrapper fileWrapper = transformIoHandler.handleInputAndCopyToGcs(
+                                        inputGeneData,
+                                        gcsService,
+                                        mergedFilename,
+                                        workDir);
+                                c.output(KV.of(geneReadGroupMetaDataAndReference, fileWrapper));
                             }
                     );
                 } else {
-                    List<String> localBamPaths = geneDataList.stream()
+                    List<String> localBamPaths = fileWrapperList.stream()
                             .map(geneData -> transformIoHandler.handleInputAsLocalFile(gcsService, geneData, workDir))
                             .collect(Collectors.toList());
 
-                    String mergedFileName = samBamManipulationService.mergeBamFiles(localBamPaths, workDir, geneReadGroupMetaData.getSraSample(), reference);
-                    GeneData geneData = transformIoHandler.saveFileToGcsOutput(gcsService, mergedFileName, reference);
-                    c.output(KV.of(geneReadGroupMetaData, geneData));
+                    String mergedFileName = samBamManipulationService.mergeBamFiles(localBamPaths, workDir,
+                            geneReadGroupMetaData.getSraSample(), referenceDatabase.getDbName());
+                    FileWrapper fileWrapper = transformIoHandler.saveFileToGcsOutput(gcsService, mergedFileName);
+                    c.output(KV.of(geneReadGroupMetaDataAndReference, fileWrapper));
 
                 }
             } catch (IOException e) {

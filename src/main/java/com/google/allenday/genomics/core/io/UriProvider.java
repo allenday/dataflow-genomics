@@ -1,4 +1,6 @@
-package com.google.allenday.genomics.core.gene;
+package com.google.allenday.genomics.core.io;
+
+import com.google.allenday.genomics.core.model.GeneExampleMetaData;
 
 import java.io.Serializable;
 import java.util.List;

@@ -1,6 +1,6 @@
 package com.google.allenday.genomics.core.io;
 
-import com.google.allenday.genomics.core.gene.GeneData;
+import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import org.slf4j.Logger;
@@ -26,54 +26,54 @@ public class TransformIoHandler implements Serializable {
         this.fileUtils = fileUtils;
     }
 
-    public GeneData handleFileOutput(GCSService gcsService, String filepath, String referenceName) throws IOException {
-        GeneData geneData;
+    public FileWrapper handleFileOutput(GCSService gcsService, String filepath) throws IOException {
+        FileWrapper fileWrapper;
         if (fileUtils.getFileSizeMegaBytes(filepath) > memoryOutputLimitMb) {
-            geneData = saveFileToGcsOutput(gcsService, filepath, referenceName);
+            fileWrapper = saveFileToGcsOutput(gcsService, filepath);
         } else {
             String fileName = fileUtils.getFilenameFromPath(filepath);
             LOG.info(String.format("Pass %s file as CONTENT data", filepath));
-            geneData = GeneData.fromByteArrayContent(fileUtils.readFileToByteArray(filepath), fileName).withReferenceName(referenceName);
+            fileWrapper = FileWrapper.fromByteArrayContent(fileUtils.readFileToByteArray(filepath), fileName);
         }
         fileUtils.deleteFile(filepath);
-        return geneData;
+        return fileWrapper;
     }
 
-    public GeneData saveFileToGcsOutput(GCSService gcsService, String filepath, String referenceName) throws IOException {
+    public FileWrapper saveFileToGcsOutput(GCSService gcsService, String filepath) throws IOException {
         String fileName = fileUtils.getFilenameFromPath(filepath);
         String gcsFilePath = destGcsPrefix + fileName;
 
         LOG.info(String.format("Export %s file to GCS %s", filepath, gcsFilePath));
         Blob blob = gcsService.writeToGcs(resultsBucket, gcsFilePath, filepath);
-        return GeneData.fromBlobUri(gcsService.getUriFromBlob(blob.getBlobId()), fileName).withReferenceName(referenceName);
+        return FileWrapper.fromBlobUri(gcsService.getUriFromBlob(blob.getBlobId()), fileName);
     }
 
-    public String handleInputAsLocalFile(GCSService gcsService, GeneData geneData, String workDir) {
-        String destFilepath = workDir + geneData.getFileName();
-        if (geneData.getDataType() == GeneData.DataType.CONTENT) {
+    public String handleInputAsLocalFile(GCSService gcsService, FileWrapper fileWrapper, String workDir) {
+        String destFilepath = workDir + fileWrapper.getFileName();
+        if (fileWrapper.getDataType() == FileWrapper.DataType.CONTENT) {
             try {
-                fileUtils.saveDataToFile(geneData.getContent(), destFilepath);
+                fileUtils.saveDataToFile(fileWrapper.getContent(), destFilepath);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        } else if (geneData.getDataType() == GeneData.DataType.BLOB_URI) {
-            BlobId blobId = gcsService.getBlobIdFromUri(geneData.getBlobUri());
+        } else if (fileWrapper.getDataType() == FileWrapper.DataType.BLOB_URI) {
+            BlobId blobId = gcsService.getBlobIdFromUri(fileWrapper.getBlobUri());
             gcsService.downloadBlobTo(gcsService.getBlob(blobId), destFilepath);
         }
         return destFilepath;
     }
 
-    public GeneData handleInputAndCopyToGcs(GeneData geneData, GCSService gcsService, String newFileName, String reference, String workDir) throws RuntimeException {
+    public FileWrapper handleInputAndCopyToGcs(FileWrapper fileWrapper, GCSService gcsService, String newFileName, String workDir) throws RuntimeException {
         String gcsFilePath = destGcsPrefix + newFileName;
         Blob resultBlob;
         try {
-            if (geneData.getDataType() == GeneData.DataType.CONTENT) {
+            if (fileWrapper.getDataType() == FileWrapper.DataType.CONTENT) {
                 String filePath = workDir + newFileName;
-                fileUtils.saveDataToFile(geneData.getContent(), filePath);
+                fileUtils.saveDataToFile(fileWrapper.getContent(), filePath);
 
                 resultBlob = gcsService.writeToGcs(resultsBucket, gcsFilePath, filePath);
-            } else if (geneData.getDataType() == GeneData.DataType.BLOB_URI) {
-                resultBlob = gcsService.copy(gcsService.getBlobIdFromUri(geneData.getBlobUri()),
+            } else if (fileWrapper.getDataType() == FileWrapper.DataType.BLOB_URI) {
+                resultBlob = gcsService.copy(gcsService.getBlobIdFromUri(fileWrapper.getBlobUri()),
                         BlobId.of(resultsBucket, gcsFilePath));
             } else {
                 throw new RuntimeException("Gene data type should be CONTENT or BLOB_URI");
@@ -82,7 +82,7 @@ public class TransformIoHandler implements Serializable {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
-        return GeneData.fromBlobUri(gcsService.getUriFromBlob(resultBlob.getBlobId()), newFileName).withReferenceName(reference);
+        return FileWrapper.fromBlobUri(gcsService.getUriFromBlob(resultBlob.getBlobId()), newFileName);
     }
 
     public static boolean tryToFindInPrevious(GCSService gcsService,

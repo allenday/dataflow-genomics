@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.align;
+package com.google.allenday.genomics.core.processing;
 
 import com.google.allenday.genomics.core.io.FileUtils;
 import htsjdk.samtools.*;
@@ -18,8 +18,9 @@ import java.util.stream.Collectors;
 public class SamBamManipulationService implements Serializable {
     private static final Log LOG = Log.getInstance(SamBamManipulationService.class);
 
-    private final static String SORTED_BAM_FILE_PREFIX = ".sorted.bam";
-    private final static String MERGE_SORTED_FILE_PREFIX = ".merged.sorted.bam";
+    private final static String SORTED_BAM_FILE_SUFFIX = ".sorted.bam";
+    private final static String BAM_INDEX_SUFFIX = ".bai";
+    private final static String MERGE_SORTED_FILE_SUFFIX = ".merged.sorted.bam";
 
     private SAMFileHeader.SortOrder SORT_ORDER = SAMFileHeader.SortOrder.coordinate;
     private boolean ASSUME_SORTED = false;
@@ -38,7 +39,7 @@ public class SamBamManipulationService implements Serializable {
     public String sortSam(String inputFilePath, String workDir,
                           String outPrefix, String outSuffix) throws IOException {
         String alignedSamName = fileUtils.getFilenameFromPath(inputFilePath);
-        String alignedSortedBamPath = workDir + outPrefix + "_" + outSuffix + SORTED_BAM_FILE_PREFIX;
+        String alignedSortedBamPath = workDir + outPrefix + "_" + outSuffix + SORTED_BAM_FILE_SUFFIX;
 
         final SamReader reader = SamReaderFactory.makeDefault().open(new File(inputFilePath));
         reader.getFileHeader().setSortOrder(SAMFileHeader.SortOrder.coordinate);
@@ -75,7 +76,7 @@ public class SamBamManipulationService implements Serializable {
     }
 
     public String generateMergedFileName(String outPrefix, String outSuffix) {
-        return outPrefix + "_" + outSuffix + MERGE_SORTED_FILE_PREFIX;
+        return outPrefix + "_" + outSuffix + MERGE_SORTED_FILE_SUFFIX;
     }
 
     public List<SAMRecord> samRecordsFromBamFile(String inputFilePath) throws IOException {
@@ -188,5 +189,14 @@ public class SamBamManipulationService implements Serializable {
         CloserUtil.close(readers);
         out.close();
         return outputFileName;
+    }
+
+    public String createIndex(String inputFilePath) {
+        final SamReader reader = SamReaderFactory.makeDefault()
+                .enable(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS)
+                .open(new File(inputFilePath));
+        String outputFilePath = inputFilePath + BAM_INDEX_SUFFIX;
+        BAMIndexer.createIndex(reader, new File(outputFilePath));
+        return outputFilePath;
     }
 }

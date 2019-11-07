@@ -7,7 +7,7 @@ import org.apache.beam.sdk.options.Validation;
 
 import java.util.List;
 
-public interface AlignerPipelineOptions extends DataflowPipelineOptions {
+public interface GenomicsPipelineOptions extends DataflowPipelineOptions {
 
     @Description("Name of GCS bucket with all resuts data")
     @Validation.Required

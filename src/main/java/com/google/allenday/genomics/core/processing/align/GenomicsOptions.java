@@ -1,15 +1,16 @@
 package com.google.allenday.genomics.core.processing.align;
 
-import com.google.allenday.genomics.core.pipeline.AlignerPipelineOptions;
+import com.google.allenday.genomics.core.pipeline.GenomicsPipelineOptions;
 
 import java.util.List;
 
-public class AlignerOptions {
+public class GenomicsOptions {
 
     private final String ALIGNED_OUTPUT_PATH_PATTERN = "%s/result_aligned_bam/";
     private final String SORTED_OUTPUT_PATH_PATTERN = "%s/result_sorted_bam/";
     private final String MERGED_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
-    private final String BAM_INDEX_OUTPUT_PATH_PATTERN = "%s/result_index_bam/";
+    private final String BAM_INDEX_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
+    private final String DEEP_VARIANT_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
     private final String ANOMALY_PATH_PATTERN = "%s/anomaly_examples/";
 
     private String resultBucket;
@@ -19,8 +20,8 @@ public class AlignerOptions {
 
     private String outputDir;
 
-    public AlignerOptions(String resultBucket, List<String> geneReferences,
-                          String allReferencesDirGcsUri, String outputDir, long memoryOutputLimit) {
+    public GenomicsOptions(String resultBucket, List<String> geneReferences,
+                           String allReferencesDirGcsUri, String outputDir, long memoryOutputLimit) {
         this.resultBucket = resultBucket;
         this.geneReferences = geneReferences;
         this.allReferencesDirGcsUri = allReferencesDirGcsUri;
@@ -32,14 +33,14 @@ public class AlignerOptions {
         }
     }
 
-    public static AlignerOptions fromAlignerPipelineOptions(AlignerPipelineOptions alignerPipelineOptions) {
-        AlignerOptions alignerOptions = new AlignerOptions(
+    public static GenomicsOptions fromAlignerPipelineOptions(GenomicsPipelineOptions alignerPipelineOptions) {
+        GenomicsOptions genomicsOptions = new GenomicsOptions(
                 alignerPipelineOptions.getResultBucket(),
                 alignerPipelineOptions.getReferenceNamesList(),
                 alignerPipelineOptions.getAllReferencesDirGcsUri(),
                 alignerPipelineOptions.getOutputDir(),
                 alignerPipelineOptions.getMemoryOutputLimit());
-        return alignerOptions;
+        return genomicsOptions;
     }
 
     public String getResultBucket() {
@@ -77,5 +78,13 @@ public class AlignerOptions {
 
     public String getAnomalyOutputDirPattern() {
         return outputDir + ANOMALY_PATH_PATTERN;
+    }
+
+    public String getDeepVariantOutputDirPattern() {
+        return outputDir + DEEP_VARIANT_OUTPUT_PATH_PATTERN;
+    }
+
+    public String getCustomOutputDirPattern(String patternSuffix) {
+        return outputDir + patternSuffix;
     }
 }

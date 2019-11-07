@@ -40,7 +40,7 @@ import java.util.TimeZone;
 /**
  * Tests full pipeline lifecycle in DataflowRunner mode
  */
-public class EndToEndPipelineTest implements Serializable {
+public class EndToEndPipelineIT implements Serializable {
 
     private final static String REFERENCE_LOCAL_DIR = "reference/";
 

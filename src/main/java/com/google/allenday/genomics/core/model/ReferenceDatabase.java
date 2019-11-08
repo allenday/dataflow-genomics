@@ -31,9 +31,9 @@ public class ReferenceDatabase implements Serializable {
         return dbFilesUris;
     }
 
-    public Pair<String, String> getRefUriWithIndex(String refExtension){
+    public Pair<String, String> getRefUriWithIndex(String refExtension) {
         String ref = dbFilesUris.stream().filter(f -> f.endsWith(refExtension)).findFirst().orElse(null);
         String refIndex = dbFilesUris.stream().filter(f -> f.endsWith(refExtension + INDEX_SUFFIX)).findFirst().orElse(null);
-        return Pair.with(ref, refExtension);
+        return Pair.with(ref, refIndex);
     }
 }

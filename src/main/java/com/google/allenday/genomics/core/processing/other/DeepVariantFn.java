@@ -1,9 +1,11 @@
 package com.google.allenday.genomics.core.processing.other;
 
+import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.model.BamWithIndexUris;
 import com.google.allenday.genomics.core.model.GeneReadGroupMetaData;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.processing.DeepVariantService;
+import com.google.allenday.genomics.core.utils.ResourceProvider;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.javatuples.Triplet;
@@ -16,10 +18,16 @@ public class DeepVariantFn extends DoFn<KV<KV<GeneReadGroupMetaData, ReferenceDa
 
     private DeepVariantService deepVariantService;
     private String gcsOutputDir;
+    private ResourceProvider resourceProvider;
 
     public DeepVariantFn(DeepVariantService deepVariantService, String gcsOutputDir) {
         this.deepVariantService = deepVariantService;
         this.gcsOutputDir = gcsOutputDir;
+    }
+
+    @Setup
+    public void setUp() {
+        resourceProvider = ResourceProvider.initialize();
     }
 
     @ProcessElement
@@ -41,7 +49,7 @@ public class DeepVariantFn extends DoFn<KV<KV<GeneReadGroupMetaData, ReferenceDa
         String readGroupAndDb = geneReadGroupMetaData.getSraSample() + "_" + referenceDatabase.getDbName();
         String dvGcsOutputDir = gcsOutputDir + readGroupAndDb + "/";
 
-        Triplet<String, Boolean, String> result = deepVariantService.processExampleWithDeepVariant(
+        Triplet<String, Boolean, String> result = deepVariantService.processExampleWithDeepVariant(resourceProvider,
                 dvGcsOutputDir, readGroupAndDb, bamWithIndexUris.getBamUri(), bamWithIndexUris.getIndexUri(), referenceDatabase);
 
         if (result.getValue1()) {

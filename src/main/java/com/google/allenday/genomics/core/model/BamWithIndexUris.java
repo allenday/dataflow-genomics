@@ -19,4 +19,12 @@ public class BamWithIndexUris implements Serializable {
     public String getIndexUri() {
         return indexUri;
     }
+
+    @Override
+    public String toString() {
+        return "BamWithIndexUris{" +
+                "bamUri='" + bamUri + '\'' +
+                ", indexUri='" + indexUri + '\'' +
+                '}';
+    }
 }

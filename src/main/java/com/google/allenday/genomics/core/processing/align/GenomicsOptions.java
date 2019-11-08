@@ -10,7 +10,7 @@ public class GenomicsOptions {
     private final String SORTED_OUTPUT_PATH_PATTERN = "%s/result_sorted_bam/";
     private final String MERGED_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
     private final String BAM_INDEX_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
-    private final String DEEP_VARIANT_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
+    private final String DEEP_VARIANT_OUTPUT_PATH_PATTERN = "%s/result_dv/";
     private final String ANOMALY_PATH_PATTERN = "%s/anomaly_examples/";
 
     private String resultBucket;

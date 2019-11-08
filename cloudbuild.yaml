@@ -1,0 +1,5 @@
+steps:
+  - name: 'gcr.io/cloud-builders/mvn'
+    args: ['test']
+    env:
+      - 'TEST_BUCKET=$PROJECT_ID-tests'

@@ -57,7 +57,7 @@ public class SamBamManipulationService implements Serializable {
 
     public boolean isRecordsInBamEquals(File file1, File file2) {
         final SamReader reader1 = SamReaderFactory.makeDefault().open(file1);
-        final SamReader reader2 = SamReaderFactory.makeDefault().open(file1);
+        final SamReader reader2 = SamReaderFactory.makeDefault().open(file2);
 
         SAMRecordIterator iterator1 = reader1.iterator();
         SAMRecordIterator iterator2 = reader2.iterator();

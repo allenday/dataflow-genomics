@@ -1,8 +1,8 @@
 package com.google.allenday.genomics.core.reference;
 
-import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
+import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.cloud.storage.BlobId;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -39,6 +39,17 @@ public class ReferencesProvider implements Serializable {
     }
 
     public Pair<ReferenceDatabase, String> findReference(GCSService gcsService, String referenceName) {
+        List<String> dbFilesUris = getDbFilesUris(gcsService, referenceName, true);
+        String fastaLocalPath = getReferencePathByName(referenceName);
+        return Pair.with(new ReferenceDatabase(referenceName, dbFilesUris), fastaLocalPath);
+    }
+
+    public ReferenceDatabase getReferenceDd(GCSService gcsService, String referenceName) {
+        List<String> dbFilesUris = getDbFilesUris(gcsService, referenceName, false);
+        return new ReferenceDatabase(referenceName, dbFilesUris);
+    }
+
+    private List<String> getDbFilesUris(GCSService gcsService, String referenceName, boolean withDownload) {
         BlobId blobIdFromUri = gcsService.getBlobIdFromUri(allReferencesDirGcsUri);
         List<String> dbFilesUris = new ArrayList<>();
         gcsService.getAllBlobsIn(blobIdFromUri.getBucket(), blobIdFromUri.getName())
@@ -46,16 +57,18 @@ public class ReferencesProvider implements Serializable {
                 .filter(blob -> blob.getName().contains(referenceName))
                 .forEach(blob -> {
                     dbFilesUris.add(gcsService.getUriFromBlob(blob.getBlobId()));
-                    String filePath = generateReferenceDir(referenceName) + fileUtils.getFilenameFromPath(blob.getName());
-                    if (fileUtils.exists(filePath)) {
-                        LOG.info(String.format("Reference %s already exists", blob.getName()));
-                    } else {
-                        fileUtils.mkdirFromUri(filePath);
-                        gcsService.downloadBlobTo(blob, filePath);
+
+                    if (withDownload) {
+                        String filePath = generateReferenceDir(referenceName) + fileUtils.getFilenameFromPath(blob.getName());
+                        if (fileUtils.exists(filePath)) {
+                            LOG.info(String.format("Reference %s already exists", blob.getName()));
+                        } else {
+                            fileUtils.mkdirFromUri(filePath);
+                            gcsService.downloadBlobTo(blob, filePath);
+                        }
                     }
                 });
-        String fastaLocalPath = getReferencePathByName(referenceName);
-        return Pair.with(new ReferenceDatabase(referenceName, dbFilesUris), fastaLocalPath);
+        return dbFilesUris;
     }
 
     private String generateReferenceDir(String referenceName) {
@@ -64,5 +77,9 @@ public class ReferencesProvider implements Serializable {
 
     private String getReferencePathByName(String referenceName) {
         return generateReferenceDir(referenceName) + referenceName + referenceFileExtension;
+    }
+
+    public String getReferenceFileExtension() {
+        return referenceFileExtension;
     }
 }

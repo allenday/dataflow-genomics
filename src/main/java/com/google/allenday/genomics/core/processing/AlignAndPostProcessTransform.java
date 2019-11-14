@@ -1,7 +1,7 @@
 package com.google.allenday.genomics.core.processing;
 
 import com.google.allenday.genomics.core.model.*;
-import com.google.allenday.genomics.core.processing.align.AlignFn;
+import com.google.allenday.genomics.core.processing.align.AlignTransform;
 import com.google.allenday.genomics.core.processing.other.CreateBamIndexFn;
 import com.google.allenday.genomics.core.processing.other.MergeFn;
 import com.google.allenday.genomics.core.processing.other.SortFn;
@@ -20,15 +20,15 @@ import java.util.List;
 public class AlignAndPostProcessTransform extends PTransform<PCollection<KV<GeneExampleMetaData, List<FileWrapper>>>,
         PCollection<KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>>> {
 
-    public AlignFn alignFn;
+    public AlignTransform alignTransform;
     public SortFn sortFn;
     public MergeFn mergeFn;
     public CreateBamIndexFn createBamIndexFn;
 
-    public AlignAndPostProcessTransform(@Nullable String name, AlignFn alignFn, SortFn sortFn,
+    public AlignAndPostProcessTransform(@Nullable String name, AlignTransform alignTransform, SortFn sortFn,
                                         MergeFn mergeFn, CreateBamIndexFn createBamIndexFn) {
         super(name);
-        this.alignFn = alignFn;
+        this.alignTransform = alignTransform;
         this.sortFn = sortFn;
         this.mergeFn = mergeFn;
         this.createBamIndexFn = createBamIndexFn;
@@ -38,7 +38,7 @@ public class AlignAndPostProcessTransform extends PTransform<PCollection<KV<Gene
     public PCollection<KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>> expand(
             PCollection<KV<GeneExampleMetaData, List<FileWrapper>>> input) {
         PCollection<KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, FileWrapper>> mergedAlignedSequences = input
-                .apply("Align reads", ParDo.of(alignFn))
+                .apply("Align reads transform", alignTransform)
                 .apply("Sort aligned results", ParDo.of(sortFn))
                 .apply("Prepare for merge", MapElements.via(new SimpleFunction<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>,
                         KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, FileWrapper>>() {

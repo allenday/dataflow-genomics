@@ -1,11 +1,11 @@
 package com.google.allenday.genomics.core.processing.align;
 
-import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.GeneExampleMetaData;
-import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
+import com.google.allenday.genomics.core.model.FileWrapper;
+import com.google.allenday.genomics.core.model.GeneExampleMetaData;
+import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
@@ -17,25 +17,22 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class AlignFn extends DoFn<KV<GeneExampleMetaData, List<FileWrapper>>, KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>> {
+public class AlignFn extends DoFn<KV<KV<GeneExampleMetaData, List<String>>, List<FileWrapper>>, KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>> {
 
     private Logger LOG = LoggerFactory.getLogger(AlignFn.class);
     private GCSService gcsService;
 
     private AlignService alignService;
     private ReferencesProvider referencesProvider;
-    private List<String> referenceNames;
     private TransformIoHandler transformIoHandler;
     private FileUtils fileUtils;
 
     public AlignFn(AlignService alignService,
                    ReferencesProvider referencesProvider,
-                   List<String> referenceNames,
                    TransformIoHandler transformIoHandler,
                    FileUtils fileUtils) {
         this.alignService = alignService;
         this.referencesProvider = referencesProvider;
-        this.referenceNames = referenceNames;
         this.transformIoHandler = transformIoHandler;
         this.fileUtils = fileUtils;
     }
@@ -50,7 +47,10 @@ public class AlignFn extends DoFn<KV<GeneExampleMetaData, List<FileWrapper>>, KV
     public void processElement(ProcessContext c) {
         LOG.info(String.format("Start of processing with input: %s", c.element().toString()));
 
-        GeneExampleMetaData geneExampleMetaData = c.element().getKey();
+        KV<GeneExampleMetaData, List<String>> kvMetaDataRefs = c.element().getKey();
+        GeneExampleMetaData geneExampleMetaData = kvMetaDataRefs.getKey();
+        List<String> referenceNames = kvMetaDataRefs.getValue();
+
         List<FileWrapper> fileWrapperList = c.element().getValue();
 
         if (geneExampleMetaData == null || fileWrapperList.size() == 0) {
@@ -71,15 +71,8 @@ public class AlignFn extends DoFn<KV<GeneExampleMetaData, List<FileWrapper>>, KV
                     ReferenceDatabase referenceDatabase = referenceDatabaseAndFastaLocalPath.getValue0();
                     String localFastaPath = referenceDatabaseAndFastaLocalPath.getValue1();
 
-                    //TODO temp
-                    String alignedSamName = workingDir + "_" + geneExampleMetaData.getRunId() + ".sam";
-                    String alignedSamPath = workingDir + alignedSamName;
-                    boolean exists = TransformIoHandler.tryToFindInPrevious(gcsService, alignedSamName, alignedSamPath, "", "");
-
-                    if (!exists) {
-                        alignedSamPath = alignService.alignFastq(localFastaPath, srcFilesPaths,
-                                workingDir, geneExampleMetaData.getRunId(), geneExampleMetaData.getSraSample(), referenceName);
-                    }
+                    String alignedSamPath = alignService.alignFastq(localFastaPath, srcFilesPaths,
+                            workingDir, geneExampleMetaData.getRunId(), referenceName, geneExampleMetaData.getSraSample());
                     c.output(KV.of(KV.of(geneExampleMetaData, referenceDatabase), transformIoHandler.handleFileOutput(gcsService, alignedSamPath)));
                 }
             } catch (IOException e) {

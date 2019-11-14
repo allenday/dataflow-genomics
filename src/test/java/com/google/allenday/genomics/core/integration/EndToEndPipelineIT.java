@@ -13,6 +13,7 @@ import com.google.allenday.genomics.core.processing.DeepVariantService;
 import com.google.allenday.genomics.core.processing.SamBamManipulationService;
 import com.google.allenday.genomics.core.processing.align.AlignFn;
 import com.google.allenday.genomics.core.processing.align.AlignService;
+import com.google.allenday.genomics.core.processing.align.AlignTransform;
 import com.google.allenday.genomics.core.processing.other.CreateBamIndexFn;
 import com.google.allenday.genomics.core.processing.other.MergeFn;
 import com.google.allenday.genomics.core.processing.other.SortFn;
@@ -66,7 +67,7 @@ public class EndToEndPipelineIT implements Serializable {
 
     public class TestSraParser extends GeneExampleMetaData.Parser {
         @Override
-        public GeneExampleMetaData processParts(String[] csvLineParts, String csvLine) {
+        public GeneExampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException {
             return new GeneExampleMetaData(csvLineParts[0], csvLineParts[1], csvLineParts[2], csvLine);
         }
     }
@@ -107,7 +108,8 @@ public class EndToEndPipelineIT implements Serializable {
 
         AlignFn alignFn = new AlignFn(new AlignService(new WorkerSetupService(cmdExecutor), cmdExecutor, fileUtils),
                 referencesProvider,
-                Collections.singletonList(TEST_REFERENCE_NAME), alignTransformIoHandler, fileUtils);
+                alignTransformIoHandler, fileUtils);
+        AlignTransform alignTransform = new AlignTransform("Align reads transform", alignFn, Collections.singletonList(TEST_REFERENCE_NAME));
         SortFn sortFn = new SortFn(sortTransformIoHandler, samBamManipulationService, fileUtils);
         MergeFn mergeFn = new MergeFn(mergeTransformIoHandler, samBamManipulationService, fileUtils);
         CreateBamIndexFn createBamIndexFn = new CreateBamIndexFn(indexTransformIoHandler, samBamManipulationService, fileUtils);
@@ -116,7 +118,7 @@ public class EndToEndPipelineIT implements Serializable {
                 .apply(new ParseSourceCsvTransform(inputCsvUriAndProvider.getValue0(),
                         new TestSraParser(),
                         inputCsvUriAndProvider.getValue1(), fileUtils))
-                .apply(new AlignAndPostProcessTransform("AlignAndPostProcessTransform", alignFn, sortFn, mergeFn, createBamIndexFn))
+                .apply(new AlignAndPostProcessTransform("AlignAndPostProcessTransform", alignTransform, sortFn, mergeFn, createBamIndexFn))
 
 //        TODO DeepVeariant temporary excluded from end-to-end tests
 //                .apply(ParDo.of(new DeepVariantFn(deepVariantService, dvResultGcsPath)))
@@ -135,7 +137,7 @@ public class EndToEndPipelineIT implements Serializable {
         gcsService.writeToGcs(bucketName, TEST_GCS_INPUT_DATA_DIR + testInputDataFile,
                 Channels.newChannel(getClass().getClassLoader().getResourceAsStream(testInputDataFile)));
         String csvLine = String.join(",", new String[]{
-                TEST_EXAMPLE_SRA, "test_read_10", "SINGLE"});
+                TEST_EXAMPLE_SRA, "test_read_10000", "SINGLE"});
         Blob blob = gcsService.writeToGcs(bucketName, TEST_GCS_INPUT_DATA_DIR + testInputCsvFileName,
                 Channels.newChannel(new ByteArrayInputStream(csvLine.getBytes())));
         UriProvider uriProvider = new UriProvider(bucketName, new UriProvider.ProviderRule() {

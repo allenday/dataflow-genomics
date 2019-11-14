@@ -70,8 +70,8 @@ public class AlignFnTest implements Serializable {
         GeneExampleMetaData geneExampleMetaData = new GeneExampleMetaData("tes_sra_sample", "test_run", "Single", "");
 
         PCollection<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>> alignedData = testPipeline
-                .apply(Create.<KV<GeneExampleMetaData, List<FileWrapper>>>of(KV.of(geneExampleMetaData, fileWrapperList)))
-                .apply(ParDo.of(new AlignFn(alignServiceMock, referencesProvider, referenceList, transformIoHandlerMock, fileUtilsMock)));
+                .apply(Create.of(KV.of(KV.of(geneExampleMetaData, referenceList), fileWrapperList)))
+                .apply(ParDo.of(new AlignFn(alignServiceMock, referencesProvider, transformIoHandlerMock, fileUtilsMock)));
 
         PAssert.that(alignedData)
                 .satisfies(new SimpleFunction<Iterable<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>>, Void>() {

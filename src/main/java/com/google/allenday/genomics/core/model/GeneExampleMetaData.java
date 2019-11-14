@@ -71,7 +71,7 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
         return this;
     }
 
-    public static GeneExampleMetaData fromCsvLine(Parser parser, String csvLine) {
+    public static GeneExampleMetaData fromCsvLine(Parser parser, String csvLine) throws Parser.CsvParseException {
         return parser.parse(csvLine);
     }
 
@@ -138,12 +138,12 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
 
     public abstract static class Parser implements Serializable {
 
-        public GeneExampleMetaData parse(String csvLine) {
+        public GeneExampleMetaData parse(String csvLine) throws CsvParseException {
             String[] partsFromCsvLine = getPartsFromCsvLine(csvLine);
             return processParts(partsFromCsvLine, csvLine);
         }
 
-        public abstract GeneExampleMetaData processParts(String[] csvLineParts, String csvLine);
+        public abstract GeneExampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException;
 
         public String[] getPartsFromCsvLine(String csvLine) {
             String[] parts = csvLine.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
@@ -156,6 +156,12 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
                 }
             }
             return parts;
+        }
+
+        public static class CsvParseException extends RuntimeException {
+            public CsvParseException(String csvLine) {
+                super(String.format("Exception occurred while %s was parsing", csvLine));
+            }
         }
     }
 }

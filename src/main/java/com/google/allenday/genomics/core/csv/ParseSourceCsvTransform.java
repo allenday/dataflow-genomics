@@ -1,9 +1,9 @@
 package com.google.allenday.genomics.core.csv;
 
+import com.google.allenday.genomics.core.io.FileUtils;
+import com.google.allenday.genomics.core.io.UriProvider;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.GeneExampleMetaData;
-import com.google.allenday.genomics.core.io.UriProvider;
-import com.google.allenday.genomics.core.io.FileUtils;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.transforms.Filter;
 import org.apache.beam.sdk.transforms.PTransform;
@@ -55,7 +55,7 @@ public class ParseSourceCsvTransform extends PTransform<PBegin,
     public PCollection<KV<GeneExampleMetaData, List<FileWrapper>>> expand(PBegin pBegin) {
         PCollection<String> csvLines = pBegin.apply("Read data from CSV", TextIO.read().from(csvGcsUri));
         if (sraSamplesToFilter != null && sraSamplesToFilter.size() > 0) {
-            csvLines
+            csvLines = csvLines
                     .apply("Filter lines", Filter.by(name -> sraSamplesToFilter.stream().anyMatch(name::contains)));
         }
         PCollection<KV<GeneExampleMetaData, List<FileWrapper>>> readyToAlign = csvLines

@@ -12,7 +12,6 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
@@ -155,5 +154,9 @@ public class GCSService {
         }
         reader.close();
         return builder.toString();
+    }
+
+    public long getBlobSize(BlobId blobId) {
+        return storage.get(blobId).getSize();
     }
 }

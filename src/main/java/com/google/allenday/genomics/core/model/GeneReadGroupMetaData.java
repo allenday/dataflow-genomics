@@ -1,5 +1,6 @@
 package com.google.allenday.genomics.core.model;
 
+import org.apache.avro.reflect.Nullable;
 import org.apache.beam.sdk.coders.AvroCoder;
 import org.apache.beam.sdk.coders.DefaultCoder;
 
@@ -14,35 +15,352 @@ import java.util.Objects;
 @DefaultCoder(AvroCoder.class)
 public class GeneReadGroupMetaData implements Serializable {
 
-    protected String projectName;
-    protected String projectId;
+    protected int avgSpotLen;
+    @Nullable
     protected String bioSample;
+    @Nullable
+    protected String datastoreProvider;
+    @Nullable
+    protected String datastoreRegion;
+    @Nullable
+    protected String experiment;
+    @Nullable
+    protected int insertSize;
+    @Nullable
+    protected String libraryName;
+    protected int numBases;
+    protected int numBytes;
+
+    @Nullable
     protected String sraSample;
+    @Nullable
+    protected String assayType;
+    @Nullable
+    protected String bioProject;
+    @Nullable
+    protected String centerName;
+    @Nullable
+    protected String consent;
+    @Nullable
+    protected String datastoreFiletype;
+    @Nullable
+    protected String instrument;
+    @Nullable
+    protected String librarySelection;
+    @Nullable
+    protected String librarySource;
+    @Nullable
+    protected String loadDate;
+    @Nullable
+    protected String organism;
+    @Nullable
+    protected String platform;
+    @Nullable
+    protected String releaseDate;
+    @Nullable
+    protected String sraStudy;
+
 
     public GeneReadGroupMetaData() {
     }
 
-    public GeneReadGroupMetaData(String projectName, String projectId, String bioSample, String sraSample) {
-        this.projectName = projectName;
-        this.projectId = projectId;
-        this.bioSample = bioSample;
+    public GeneReadGroupMetaData(String sraSample) {
         this.sraSample = sraSample;
     }
 
-    public String getProjectName() {
-        return projectName;
-    }
-
-    public String getProjectId() {
-        return projectId;
+    public int getAvgSpotLen() {
+        return avgSpotLen;
     }
 
     public String getBioSample() {
         return bioSample;
     }
 
+    public String getDatastoreProvider() {
+        return datastoreProvider;
+    }
+
+    public String getDatastoreRegion() {
+        return datastoreRegion;
+    }
+
+    public String getExperiment() {
+        return experiment;
+    }
+
+    public int getInsertSize() {
+        return insertSize;
+    }
+
+    public String getLibraryName() {
+        return libraryName;
+    }
+
+    public int getNumBases() {
+        return numBases;
+    }
+
+    public int getNumBytes() {
+        return numBytes;
+    }
+
     public String getSraSample() {
         return sraSample;
+    }
+
+    public String getAssayType() {
+        return assayType;
+    }
+
+    public String getBioProject() {
+        return bioProject;
+    }
+
+    public String getCenterName() {
+        return centerName;
+    }
+
+    public String getConsent() {
+        return consent;
+    }
+
+    public String getDatastoreFiletype() {
+        return datastoreFiletype;
+    }
+
+    public String getInstrument() {
+        return instrument;
+    }
+
+    public String getLibrarySelection() {
+        return librarySelection;
+    }
+
+    public String getLibrarySource() {
+        return librarySource;
+    }
+
+    public String getLoadDate() {
+        return loadDate;
+    }
+
+    public String getOrganism() {
+        return organism;
+    }
+
+    public String getPlatform() {
+        return platform;
+    }
+
+    public String getReleaseDate() {
+        return releaseDate;
+    }
+
+    public String getSraStudy() {
+        return sraStudy;
+    }
+
+
+   /* public <T> TsetAvgSpotLen(int avgSpotLen) {
+        this.avgSpotLen = avgSpotLen;
+        return (T) this;
+    }
+
+    public GeneReadGroupMetaData setBioSample(String bioSample) {
+        this.bioSample = bioSample;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setDatastoreProvider(String datastoreProvider) {
+        this.datastoreProvider = datastoreProvider;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setDatastoreRegion(String datastoreRegion) {
+        this.datastoreRegion = datastoreRegion;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setExperiment(String experiment) {
+        this.experiment = experiment;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setInsertSize(int insertSize) {
+        this.insertSize = insertSize;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setLibraryName(String libraryName) {
+        this.libraryName = libraryName;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setNumBases(int numBases) {
+        this.numBases = numBases;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setNumBytes(int numBytes) {
+        this.numBytes = numBytes;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setAssayType(String assayType) {
+        this.assayType = assayType;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setBioProject(String bioProject) {
+        this.bioProject = bioProject;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setCenterName(String centerName) {
+        this.centerName = centerName;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setConsent(String consent) {
+        this.consent = consent;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setDatastoreFiletype(String datastoreFiletype) {
+        this.datastoreFiletype = datastoreFiletype;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setInstrument(String instrument) {
+        this.instrument = instrument;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setLibrarySelection(String librarySelection) {
+        this.librarySelection = librarySelection;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setLibrarySource(String librarySource) {
+        this.librarySource = librarySource;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setLoadDate(String loadDate) {
+        this.loadDate = loadDate;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setOrganism(String organism) {
+        this.organism = organism;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setPlatform(String platform) {
+        this.platform = platform;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setReleaseDate(String releaseDate) {
+        this.releaseDate = releaseDate;
+        return this;
+    }
+
+    public GeneReadGroupMetaData setSraStudy(String sraStudy) {
+        this.sraStudy = sraStudy;
+        return this;
+    }*/
+
+    public void setAvgSpotLen(int avgSpotLen) {
+        this.avgSpotLen = avgSpotLen;
+    }
+
+    public void setBioSample(String bioSample) {
+        this.bioSample = bioSample;
+    }
+
+    public void setDatastoreProvider(String datastoreProvider) {
+        this.datastoreProvider = datastoreProvider;
+    }
+
+    public void setDatastoreRegion(String datastoreRegion) {
+        this.datastoreRegion = datastoreRegion;
+    }
+
+    public void setExperiment(String experiment) {
+        this.experiment = experiment;
+    }
+
+    public void setInsertSize(int insertSize) {
+        this.insertSize = insertSize;
+    }
+
+    public void setLibraryName(String libraryName) {
+        this.libraryName = libraryName;
+    }
+
+    public void setNumBases(int numBases) {
+        this.numBases = numBases;
+    }
+
+    public void setNumBytes(int numBytes) {
+        this.numBytes = numBytes;
+    }
+
+    public void setSraSample(String sraSample) {
+        this.sraSample = sraSample;
+    }
+
+    public void setAssayType(String assayType) {
+        this.assayType = assayType;
+    }
+
+    public void setBioProject(String bioProject) {
+        this.bioProject = bioProject;
+    }
+
+    public void setCenterName(String centerName) {
+        this.centerName = centerName;
+    }
+
+    public void setConsent(String consent) {
+        this.consent = consent;
+    }
+
+    public void setDatastoreFiletype(String datastoreFiletype) {
+        this.datastoreFiletype = datastoreFiletype;
+    }
+
+    public void setInstrument(String instrument) {
+        this.instrument = instrument;
+    }
+
+    public void setLibrarySelection(String librarySelection) {
+        this.librarySelection = librarySelection;
+    }
+
+    public void setLibrarySource(String librarySource) {
+        this.librarySource = librarySource;
+    }
+
+    public void setLoadDate(String loadDate) {
+        this.loadDate = loadDate;
+    }
+
+    public void setOrganism(String organism) {
+        this.organism = organism;
+    }
+
+    public void setPlatform(String platform) {
+        this.platform = platform;
+    }
+
+    public void setReleaseDate(String releaseDate) {
+        this.releaseDate = releaseDate;
+    }
+
+    public void setSraStudy(String sraStudy) {
+        this.sraStudy = sraStudy;
     }
 
     @Override
@@ -50,24 +368,62 @@ public class GeneReadGroupMetaData implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         GeneReadGroupMetaData that = (GeneReadGroupMetaData) o;
-        return Objects.equals(projectName, that.projectName) &&
-                Objects.equals(projectId, that.projectId) &&
+        return avgSpotLen == that.avgSpotLen &&
+                insertSize == that.insertSize &&
+                numBases == that.numBases &&
+                numBytes == that.numBytes &&
                 Objects.equals(bioSample, that.bioSample) &&
-                Objects.equals(sraSample, that.sraSample);
+                Objects.equals(datastoreProvider, that.datastoreProvider) &&
+                Objects.equals(datastoreRegion, that.datastoreRegion) &&
+                Objects.equals(experiment, that.experiment) &&
+                Objects.equals(libraryName, that.libraryName) &&
+                Objects.equals(sraSample, that.sraSample) &&
+                Objects.equals(assayType, that.assayType) &&
+                Objects.equals(bioProject, that.bioProject) &&
+                Objects.equals(centerName, that.centerName) &&
+                Objects.equals(consent, that.consent) &&
+                Objects.equals(datastoreFiletype, that.datastoreFiletype) &&
+                Objects.equals(instrument, that.instrument) &&
+                Objects.equals(librarySelection, that.librarySelection) &&
+                Objects.equals(librarySource, that.librarySource) &&
+                Objects.equals(loadDate, that.loadDate) &&
+                Objects.equals(organism, that.organism) &&
+                Objects.equals(platform, that.platform) &&
+                Objects.equals(releaseDate, that.releaseDate) &&
+                Objects.equals(sraStudy, that.sraStudy);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(projectName, projectId, bioSample, sraSample);
+        return Objects.hash(avgSpotLen, bioSample, datastoreProvider, datastoreRegion, experiment, insertSize, libraryName, numBases, numBytes, sraSample, assayType, bioProject, centerName, consent, datastoreFiletype, instrument, librarySelection, librarySource, loadDate, organism, platform, releaseDate, sraStudy);
     }
 
     @Override
     public String toString() {
-        return "GeneExampleMetaData{" +
-                "projectName='" + projectName + '\'' +
-                ", projectId='" + projectId + '\'' +
+        return "GeneReadGroupMetaData{" +
+                "avgSpotLen=" + avgSpotLen +
                 ", bioSample='" + bioSample + '\'' +
+                ", datastoreProvider='" + datastoreProvider + '\'' +
+                ", datastoreRegion='" + datastoreRegion + '\'' +
+                ", experiment='" + experiment + '\'' +
+                ", insertSize=" + insertSize +
+                ", libraryName='" + libraryName + '\'' +
+                ", numBases=" + numBases +
+                ", numBytes=" + numBytes +
                 ", sraSample='" + sraSample + '\'' +
+                ", assayType='" + assayType + '\'' +
+                ", bioProject='" + bioProject + '\'' +
+                ", centerName='" + centerName + '\'' +
+                ", consent='" + consent + '\'' +
+                ", datastoreFiletype='" + datastoreFiletype + '\'' +
+                ", instrument='" + instrument + '\'' +
+                ", librarySelection='" + librarySelection + '\'' +
+                ", librarySource='" + librarySource + '\'' +
+                ", loadDate='" + loadDate + '\'' +
+                ", organism='" + organism + '\'' +
+                ", platform='" + platform + '\'' +
+                ", releaseDate='" + releaseDate + '\'' +
+                ", sraStudy='" + sraStudy + '\'' +
                 '}';
     }
 }

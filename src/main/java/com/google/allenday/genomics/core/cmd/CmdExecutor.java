@@ -1,5 +1,6 @@
 package com.google.allenday.genomics.core.cmd;
 
+import com.google.allenday.genomics.core.utils.TimeUtils;
 import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,8 @@ public class CmdExecutor implements Serializable {
     }
 
     public Triplet<Boolean, Integer, String> executeCommand(String cmdCommand, boolean inheritIO) {
+        long startTime = System.currentTimeMillis();
+
         LOG.info(String.format("Executing command: %s", cmdCommand));
         ProcessBuilder processBuilder = new ProcessBuilder();
         if (inheritIO) {
@@ -39,7 +42,8 @@ public class CmdExecutor implements Serializable {
             }
 
             int exitCode = process.waitFor();
-            LOG.info("\nExited with error code : " + exitCode);
+            LOG.info(String.format("Execution finished in %s. Exited with error code: %d. Command: %s",
+                    TimeUtils.formatDeltaTime(System.currentTimeMillis() - startTime), exitCode, cmdCommand));
             return Triplet.with(exitCode == 0, exitCode, response.toString());
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();

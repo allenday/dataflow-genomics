@@ -1,12 +1,12 @@
 package com.google.allenday.genomics.core.main.processing.align;
 
-import com.google.allenday.genomics.core.processing.align.AlignService;
-import com.google.allenday.genomics.core.processing.align.AlignFn;
+import com.google.allenday.genomics.core.io.FileUtils;
+import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.GeneExampleMetaData;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
-import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.io.TransformIoHandler;
+import com.google.allenday.genomics.core.processing.align.AlignFn;
+import com.google.allenday.genomics.core.processing.align.AlignService;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.testing.PAssert;
@@ -67,12 +67,11 @@ public class AlignFnTest implements Serializable {
             add(FileWrapper.fromByteArrayContent("2".getBytes(), "input_2.fastq"));
         }};
 
-        GeneExampleMetaData geneExampleMetaData = new GeneExampleMetaData("test_project", "test_project_id",
-                "test_bio_sample", "tes_sra_sample", "test_run", false, "");
+        GeneExampleMetaData geneExampleMetaData = new GeneExampleMetaData("tes_sra_sample", "test_run", "Single", "");
 
         PCollection<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>> alignedData = testPipeline
-                .apply(Create.<KV<GeneExampleMetaData, List<FileWrapper>>>of(KV.of(geneExampleMetaData, fileWrapperList)))
-                .apply(ParDo.of(new AlignFn(alignServiceMock, referencesProvider, referenceList, transformIoHandlerMock, fileUtilsMock)));
+                .apply(Create.of(KV.of(KV.of(geneExampleMetaData, referenceList), fileWrapperList)))
+                .apply(ParDo.of(new AlignFn(alignServiceMock, referencesProvider, transformIoHandlerMock, fileUtilsMock)));
 
         PAssert.that(alignedData)
                 .satisfies(new SimpleFunction<Iterable<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>>, Void>() {

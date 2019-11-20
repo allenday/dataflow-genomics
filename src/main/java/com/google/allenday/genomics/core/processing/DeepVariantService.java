@@ -3,6 +3,7 @@ package com.google.allenday.genomics.core.processing;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
 import com.google.allenday.genomics.core.utils.ResourceProvider;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson.JacksonFactory;
@@ -70,7 +71,8 @@ public class DeepVariantService implements Serializable {
         BAM("bam"),
         BAI("bai"),
         REF("ref"),
-        REF_BAI("ref_fai");
+        REF_BAI("ref_fai"),
+        SAMPLE_NAME("sample_name");
 
         private final String argName;
 
@@ -113,7 +115,8 @@ public class DeepVariantService implements Serializable {
     public Triplet<String, Boolean, String> processExampleWithDeepVariant(ResourceProvider resourceProvider,
                                                                           String outDirGcsUri, String outFilePrefix,
                                                                           String bamUri, String baiUri,
-                                                                          ReferenceDatabase referenceDatabase) {
+                                                                          ReferenceDatabase referenceDatabase,
+                                                                          String readGroupName) {
         Pair<String, String> refUriWithIndex = referenceDatabase.getRefUriWithIndex(referencesProvider.getReferenceFileExtension());
 
         String outFileUri = outDirGcsUri + outFilePrefix + DEEP_VARIANT_RESULT_EXTENSION;
@@ -124,7 +127,7 @@ public class DeepVariantService implements Serializable {
                     .setActions(Arrays.asList(
                             new Action()
                                     .setCommands(buildCommand(resourceProvider, outDirGcsUri, outFileUri, bamUri, baiUri,
-                                            refUriWithIndex.getValue0(), refUriWithIndex.getValue1()))
+                                            refUriWithIndex.getValue0(), refUriWithIndex.getValue1(), readGroupName))
                                     .setImageUri(DEEP_VARIANT_RUNNER_IMAGE_URI),
                             buildLoggingAction(outDirGcsUri)
                     ))
@@ -151,19 +154,23 @@ public class DeepVariantService implements Serializable {
             String msg = String.format("Not processed %s", outFilePrefix);
             while (isProcessing) {
                 Thread.sleep(DEEP_VARIANT_STATUS_UPDATE_PERIOD);
-                Operation getOperation = getStatusRequest.execute();
-                isProcessing = getOperation.getDone() == null || !getOperation.getDone();
+                try {
+                    Operation getOperation = getStatusRequest.execute();
+                    isProcessing = getOperation.getDone() == null || !getOperation.getDone();
 
-                if (isProcessing) {
-                    LOG.info(String.format("Deep Variant operation %s is still working (%d sec)",
-                            operationName, (System.currentTimeMillis() - start) / 1000));
-                } else {
-                    success = getOperation.getError() == null;
-                    msg = success
-                            ? String.format("Deep Variant operation %s finished (%d sec)", operationName, (System.currentTimeMillis() - start) / 1000)
-                            : String.format("Deep Variant operation %s failed with %s (%d sec)", operationName, getOperation.getError().getCode() + " " + getOperation.getError().getMessage(), (System.currentTimeMillis() - start) / 1000);
+                    if (isProcessing) {
+                        LOG.info(String.format("Deep Variant operation %s is still working (%d sec)(%s)",
+                                operationName, (System.currentTimeMillis() - start) / 1000), outFilePrefix);
+                    } else {
+                        success = getOperation.getError() == null;
+                        msg = success
+                                ? String.format("Deep Variant operation %s finished (%d sec)(%s)", operationName, (System.currentTimeMillis() - start) / 1000, outFilePrefix)
+                                : String.format("Deep Variant operation %s failed with %s (%d sec)(%s)", operationName, getOperation.getError().getCode() + " " + getOperation.getError().getMessage(), (System.currentTimeMillis() - start) / 1000, outFilePrefix);
 
-                    LOG.info(msg);
+                        LOG.info(msg);
+                    }
+                } catch (GoogleJsonResponseException googleJsonException) {
+                    LOG.error(googleJsonException.getMessage());
                 }
             }
             return Triplet.with(outFileUri, success, msg);
@@ -177,7 +184,8 @@ public class DeepVariantService implements Serializable {
 
     private List<String> buildCommand(ResourceProvider resourceProvider,
                                       String outDirGcsUri, String outfileGcsUri, String bamUri, String baiUri,
-                                      String ref, String refIndex) {
+                                      String ref, String refIndex,
+                                      String sampleName) {
         Map<DeepVariantArguments, String> args = new HashMap<>();
 
         args.put(DeepVariantArguments.PROJECT, resourceProvider.getProjectId());
@@ -190,6 +198,7 @@ public class DeepVariantService implements Serializable {
         args.put(DeepVariantArguments.BAI, baiUri);
         args.put(DeepVariantArguments.REF, ref);
         args.put(DeepVariantArguments.REF_BAI, refIndex);
+        args.put(DeepVariantArguments.SAMPLE_NAME, sampleName);
 
         List<String> command = new ArrayList<>();
         command.add(DEEP_VARIANT_RUNNER_PATH);

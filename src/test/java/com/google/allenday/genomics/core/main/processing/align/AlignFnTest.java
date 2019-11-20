@@ -3,7 +3,7 @@ package com.google.allenday.genomics.core.main.processing.align;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.GeneExampleMetaData;
+import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.processing.align.AlignFn;
 import com.google.allenday.genomics.core.processing.align.AlignService;
@@ -67,17 +67,17 @@ public class AlignFnTest implements Serializable {
             add(FileWrapper.fromByteArrayContent("2".getBytes(), "input_2.fastq"));
         }};
 
-        GeneExampleMetaData geneExampleMetaData = new GeneExampleMetaData("tes_sra_sample", "test_run", "Single", "");
+        SampleMetaData geneExampleMetaData = new SampleMetaData("tes_sra_sample", "test_run", "Single", "");
 
-        PCollection<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>> alignedData = testPipeline
+        PCollection<KV<KV<SampleMetaData, ReferenceDatabase>, FileWrapper>> alignedData = testPipeline
                 .apply(Create.of(KV.of(KV.of(geneExampleMetaData, referenceList), fileWrapperList)))
                 .apply(ParDo.of(new AlignFn(alignServiceMock, referencesProvider, transformIoHandlerMock, fileUtilsMock)));
 
         PAssert.that(alignedData)
-                .satisfies(new SimpleFunction<Iterable<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>>, Void>() {
+                .satisfies(new SimpleFunction<Iterable<KV<KV<SampleMetaData, ReferenceDatabase>, FileWrapper>>, Void>() {
                     @Override
-                    public Void apply(Iterable<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>> input) {
-                        List<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>> outputList = StreamSupport.stream(input.spliterator(), false).collect(Collectors.toList());
+                    public Void apply(Iterable<KV<KV<SampleMetaData, ReferenceDatabase>, FileWrapper>> input) {
+                        List<KV<KV<SampleMetaData, ReferenceDatabase>, FileWrapper>> outputList = StreamSupport.stream(input.spliterator(), false).collect(Collectors.toList());
 
                         Assert.assertEquals("Output list equals to reference list", referenceList.size(), outputList.size());
                         for (String reference : referenceList) {

@@ -17,8 +17,8 @@ import org.apache.beam.sdk.values.TupleTag;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class AlignAndPostProcessTransform extends PTransform<PCollection<KV<GeneExampleMetaData, List<FileWrapper>>>,
-        PCollection<KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>>> {
+public class AlignAndPostProcessTransform extends PTransform<PCollection<KV<SampleMetaData, List<FileWrapper>>>,
+        PCollection<KV<KV<ReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>>> {
 
     public AlignTransform alignTransform;
     public SortFn sortFn;
@@ -35,17 +35,17 @@ public class AlignAndPostProcessTransform extends PTransform<PCollection<KV<Gene
     }
 
     @Override
-    public PCollection<KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>> expand(
-            PCollection<KV<GeneExampleMetaData, List<FileWrapper>>> input) {
-        PCollection<KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, FileWrapper>> mergedAlignedSequences = input
+    public PCollection<KV<KV<ReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>> expand(
+            PCollection<KV<SampleMetaData, List<FileWrapper>>> input) {
+        PCollection<KV<KV<ReadGroupMetaData, ReferenceDatabase>, FileWrapper>> mergedAlignedSequences = input
                 .apply("Align reads transform", alignTransform)
                 .apply("Sort aligned results", ParDo.of(sortFn))
-                .apply("Prepare for merge", MapElements.via(new SimpleFunction<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>,
-                        KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, FileWrapper>>() {
+                .apply("Prepare for merge", MapElements.via(new SimpleFunction<KV<KV<SampleMetaData, ReferenceDatabase>, FileWrapper>,
+                        KV<KV<ReadGroupMetaData, ReferenceDatabase>, FileWrapper>>() {
                     @Override
-                    public KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, FileWrapper> apply(
-                            KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper> input) {
-                        GeneReadGroupMetaData geneReafdGroupMetaData = input.getKey().getKey();
+                    public KV<KV<ReadGroupMetaData, ReferenceDatabase>, FileWrapper> apply(
+                            KV<KV<SampleMetaData, ReferenceDatabase>, FileWrapper> input) {
+                        ReadGroupMetaData geneReafdGroupMetaData = input.getKey().getKey();
                         ReferenceDatabase referenceDatabase = input.getKey().getValue();
                         return KV.of(KV.of(geneReafdGroupMetaData, referenceDatabase), input.getValue());
                     }
@@ -53,7 +53,7 @@ public class AlignAndPostProcessTransform extends PTransform<PCollection<KV<Gene
                 .apply("Group by meta data and reference", GroupByKey.create())
                 .apply("IterToList utils 2", new ValueIterableToValueListTransform<>())
                 .apply("Merge aligned results", ParDo.of(mergeFn));
-        PCollection<KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, FileWrapper>> bamIndexes =
+        PCollection<KV<KV<ReadGroupMetaData, ReferenceDatabase>, FileWrapper>> bamIndexes =
                 mergedAlignedSequences.apply("Create BAM index", ParDo.of(createBamIndexFn));
 
         final TupleTag<FileWrapper> mergedAlignedSequencesTag = new TupleTag<>();
@@ -63,11 +63,11 @@ public class AlignAndPostProcessTransform extends PTransform<PCollection<KV<Gene
                 KeyedPCollectionTuple.of(mergedAlignedSequencesTag, mergedAlignedSequences)
                         .and(bamIndexesTag, bamIndexes)
                         .apply("Co-Group merged results and indexes", CoGroupByKey.create())
-                        .apply("Prepare uris output", MapElements.via(new SimpleFunction<KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, CoGbkResult>,
-                                KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>>() {
+                        .apply("Prepare uris output", MapElements.via(new SimpleFunction<KV<KV<ReadGroupMetaData, ReferenceDatabase>, CoGbkResult>,
+                                KV<KV<ReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>>() {
                             @Override
-                            public KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris> apply(
-                                    KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, CoGbkResult> input) {
+                            public KV<KV<ReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris> apply(
+                                    KV<KV<ReadGroupMetaData, ReferenceDatabase>, CoGbkResult> input) {
                                 CoGbkResult coGbkResult = input.getValue();
                                 FileWrapper mergedAlignedSequenceFileWrapper = coGbkResult.getOnly(mergedAlignedSequencesTag);
                                 FileWrapper bamIndexFileWrapper = coGbkResult.getOnly(bamIndexesTag);

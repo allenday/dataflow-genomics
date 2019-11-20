@@ -3,7 +3,7 @@ package com.google.allenday.genomics.core.processing.other;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.model.BamWithIndexUris;
-import com.google.allenday.genomics.core.model.GeneReadGroupMetaData;
+import com.google.allenday.genomics.core.model.ReadGroupMetaData;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.processing.DeepVariantService;
 import com.google.allenday.genomics.core.utils.ResourceProvider;
@@ -14,7 +14,7 @@ import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeepVariantFn extends DoFn<KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>, KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, String>> {
+public class DeepVariantFn extends DoFn<KV<KV<ReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>, KV<KV<ReadGroupMetaData, ReferenceDatabase>, String>> {
 
     private Logger LOG = LoggerFactory.getLogger(DeepVariantFn.class);
 
@@ -42,9 +42,9 @@ public class DeepVariantFn extends DoFn<KV<KV<GeneReadGroupMetaData, ReferenceDa
     public void processElement(ProcessContext c) {
         LOG.info(String.format("Start of Deep Variant: %s", c.element().toString()));
 
-        KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris> input = c.element();
+        KV<KV<ReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris> input = c.element();
         ReferenceDatabase referenceDatabase = input.getKey().getValue();
-        GeneReadGroupMetaData geneReadGroupMetaData = input.getKey().getKey();
+        ReadGroupMetaData geneReadGroupMetaData = input.getKey().getKey();
         BamWithIndexUris bamWithIndexUris = input.getValue();
 
         if (geneReadGroupMetaData == null || bamWithIndexUris == null || referenceDatabase == null) {

@@ -14,7 +14,7 @@ import java.util.UUID;
  *
  */
 @DefaultCoder(AvroCoder.class)
-public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serializable {
+public class SampleMetaData extends ReadGroupMetaData implements Serializable {
 
     private final static String IS_PAIRED_FLAG = "PAIRED";
 
@@ -28,10 +28,10 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
     @Nullable
     private String comment;
 
-    public GeneExampleMetaData() {
+    public SampleMetaData() {
     }
 
-    public GeneExampleMetaData(String sraSample, String runId, String libraryLayout, String srcRawMetaData) {
+    public SampleMetaData(String sraSample, String runId, String libraryLayout, String srcRawMetaData) {
         super(sraSample);
         this.runId = runId;
         this.libraryLayout = libraryLayout;
@@ -66,18 +66,18 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
         return sampleName;
     }
 
-    public GeneExampleMetaData setSampleName(String sampleName) {
+    public SampleMetaData setSampleName(String sampleName) {
         this.sampleName = sampleName;
         return this;
     }
 
-    public static GeneExampleMetaData fromCsvLine(Parser parser, String csvLine) throws Parser.CsvParseException {
+    public static SampleMetaData fromCsvLine(Parser parser, String csvLine) throws Parser.CsvParseException {
         return parser.parse(csvLine);
     }
 
-    public static GeneExampleMetaData createSingleEndUnique(String rawMetaData) {
+    public static SampleMetaData createSingleEndUnique(String rawMetaData) {
         String uniqueName = UUID.randomUUID().toString();
-        return new GeneExampleMetaData(
+        return new SampleMetaData(
                 "sraSample_" + uniqueName,
                 "runId_" + uniqueName,
                 "SINGLE",
@@ -89,7 +89,7 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
-        GeneExampleMetaData that = (GeneExampleMetaData) o;
+        SampleMetaData that = (SampleMetaData) o;
         return Objects.equals(runId, that.runId) &&
                 Objects.equals(libraryLayout, that.libraryLayout) &&
                 Objects.equals(sampleName, that.sampleName) &&
@@ -104,7 +104,7 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
 
     @Override
     public String toString() {
-        return "GeneExampleMetaData{" +
+        return "SampleMetaData{" +
                 "runId='" + runId + '\'' +
                 ", libraryLayout='" + libraryLayout + '\'' +
                 ", sampleName='" + sampleName + '\'' +
@@ -138,12 +138,12 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
 
     public abstract static class Parser implements Serializable {
 
-        public GeneExampleMetaData parse(String csvLine) throws CsvParseException {
+        public SampleMetaData parse(String csvLine) throws CsvParseException {
             String[] partsFromCsvLine = getPartsFromCsvLine(csvLine);
             return processParts(partsFromCsvLine, csvLine);
         }
 
-        public abstract GeneExampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException;
+        public abstract SampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException;
 
         public String[] getPartsFromCsvLine(String csvLine) {
             String[] parts = csvLine.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");

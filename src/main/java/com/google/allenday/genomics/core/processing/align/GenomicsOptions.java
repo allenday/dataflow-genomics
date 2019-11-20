@@ -14,16 +14,16 @@ public class GenomicsOptions {
     private final String ANOMALY_PATH_PATTERN = "%s/anomaly_examples/";
 
     private String resultBucket;
-    private List<String> geneReferences;
+    private List<String> referenceGenomes;
     private String allReferencesDirGcsUri;
     private long memoryOutputLimit;
 
     private String outputDir;
 
-    public GenomicsOptions(String resultBucket, List<String> geneReferences,
+    public GenomicsOptions(String resultBucket, List<String> referenceGenomes,
                            String allReferencesDirGcsUri, String outputDir, long memoryOutputLimit) {
         this.resultBucket = resultBucket;
-        this.geneReferences = geneReferences;
+        this.referenceGenomes = referenceGenomes;
         this.allReferencesDirGcsUri = allReferencesDirGcsUri;
         this.outputDir = outputDir;
         this.memoryOutputLimit = memoryOutputLimit;
@@ -47,8 +47,8 @@ public class GenomicsOptions {
         return resultBucket;
     }
 
-    public List<String> getGeneReferences() {
-        return geneReferences;
+    public List<String> getReferenceGenomes() {
+        return referenceGenomes;
     }
 
     public String getAllReferencesDirGcsUri() {

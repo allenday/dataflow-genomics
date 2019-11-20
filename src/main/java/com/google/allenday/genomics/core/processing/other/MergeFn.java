@@ -2,7 +2,7 @@ package com.google.allenday.genomics.core.processing.other;
 
 import com.google.allenday.genomics.core.processing.SamBamManipulationService;
 import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.GeneReadGroupMetaData;
+import com.google.allenday.genomics.core.model.ReadGroupMetaData;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class MergeFn extends DoFn<KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, List<FileWrapper>>, KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, FileWrapper>> {
+public class MergeFn extends DoFn<KV<KV<ReadGroupMetaData, ReferenceDatabase>, List<FileWrapper>>, KV<KV<ReadGroupMetaData, ReferenceDatabase>, FileWrapper>> {
 
 
     private Logger LOG = LoggerFactory.getLogger(MergeFn.class);
@@ -45,14 +45,14 @@ public class MergeFn extends DoFn<KV<KV<GeneReadGroupMetaData, ReferenceDatabase
     public void processElement(ProcessContext c) {
         LOG.info(String.format("Merge of sort with input: %s", c.element().toString()));
 
-        KV<GeneReadGroupMetaData, ReferenceDatabase> geneReadGroupMetaDataAndReference = c.element().getKey();
+        KV<ReadGroupMetaData, ReferenceDatabase> geneReadGroupMetaDataAndReference = c.element().getKey();
 
         if (geneReadGroupMetaDataAndReference == null) {
             LOG.error("Data error");
             LOG.error("geneReadGroupMetaDataAndReference: " + geneReadGroupMetaDataAndReference);
             return;
         }
-        GeneReadGroupMetaData geneReadGroupMetaData = geneReadGroupMetaDataAndReference.getKey();
+        ReadGroupMetaData geneReadGroupMetaData = geneReadGroupMetaDataAndReference.getKey();
         ReferenceDatabase referenceDatabase = geneReadGroupMetaDataAndReference.getValue();
 
         List<FileWrapper> fileWrapperList = c.element().getValue();

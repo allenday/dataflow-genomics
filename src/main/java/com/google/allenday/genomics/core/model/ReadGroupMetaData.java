@@ -13,7 +13,7 @@ import java.util.Objects;
  *
  */
 @DefaultCoder(AvroCoder.class)
-public class GeneReadGroupMetaData implements Serializable {
+public class ReadGroupMetaData implements Serializable {
 
     protected int avgSpotLen;
     @Nullable
@@ -61,10 +61,10 @@ public class GeneReadGroupMetaData implements Serializable {
     protected String sraStudy;
 
 
-    public GeneReadGroupMetaData() {
+    public ReadGroupMetaData() {
     }
 
-    public GeneReadGroupMetaData(String sraSample) {
+    public ReadGroupMetaData(String sraSample) {
         this.sraSample = sraSample;
     }
 
@@ -166,107 +166,107 @@ public class GeneReadGroupMetaData implements Serializable {
         return (T) this;
     }
 
-    public GeneReadGroupMetaData setBioSample(String bioSample) {
+    public ReadGroupMetaData setBioSample(String bioSample) {
         this.bioSample = bioSample;
         return this;
     }
 
-    public GeneReadGroupMetaData setDatastoreProvider(String datastoreProvider) {
+    public ReadGroupMetaData setDatastoreProvider(String datastoreProvider) {
         this.datastoreProvider = datastoreProvider;
         return this;
     }
 
-    public GeneReadGroupMetaData setDatastoreRegion(String datastoreRegion) {
+    public ReadGroupMetaData setDatastoreRegion(String datastoreRegion) {
         this.datastoreRegion = datastoreRegion;
         return this;
     }
 
-    public GeneReadGroupMetaData setExperiment(String experiment) {
+    public ReadGroupMetaData setExperiment(String experiment) {
         this.experiment = experiment;
         return this;
     }
 
-    public GeneReadGroupMetaData setInsertSize(int insertSize) {
+    public ReadGroupMetaData setInsertSize(int insertSize) {
         this.insertSize = insertSize;
         return this;
     }
 
-    public GeneReadGroupMetaData setLibraryName(String libraryName) {
+    public ReadGroupMetaData setLibraryName(String libraryName) {
         this.libraryName = libraryName;
         return this;
     }
 
-    public GeneReadGroupMetaData setNumBases(int numBases) {
+    public ReadGroupMetaData setNumBases(int numBases) {
         this.numBases = numBases;
         return this;
     }
 
-    public GeneReadGroupMetaData setNumBytes(int numBytes) {
+    public ReadGroupMetaData setNumBytes(int numBytes) {
         this.numBytes = numBytes;
         return this;
     }
 
-    public GeneReadGroupMetaData setAssayType(String assayType) {
+    public ReadGroupMetaData setAssayType(String assayType) {
         this.assayType = assayType;
         return this;
     }
 
-    public GeneReadGroupMetaData setBioProject(String bioProject) {
+    public ReadGroupMetaData setBioProject(String bioProject) {
         this.bioProject = bioProject;
         return this;
     }
 
-    public GeneReadGroupMetaData setCenterName(String centerName) {
+    public ReadGroupMetaData setCenterName(String centerName) {
         this.centerName = centerName;
         return this;
     }
 
-    public GeneReadGroupMetaData setConsent(String consent) {
+    public ReadGroupMetaData setConsent(String consent) {
         this.consent = consent;
         return this;
     }
 
-    public GeneReadGroupMetaData setDatastoreFiletype(String datastoreFiletype) {
+    public ReadGroupMetaData setDatastoreFiletype(String datastoreFiletype) {
         this.datastoreFiletype = datastoreFiletype;
         return this;
     }
 
-    public GeneReadGroupMetaData setInstrument(String instrument) {
+    public ReadGroupMetaData setInstrument(String instrument) {
         this.instrument = instrument;
         return this;
     }
 
-    public GeneReadGroupMetaData setLibrarySelection(String librarySelection) {
+    public ReadGroupMetaData setLibrarySelection(String librarySelection) {
         this.librarySelection = librarySelection;
         return this;
     }
 
-    public GeneReadGroupMetaData setLibrarySource(String librarySource) {
+    public ReadGroupMetaData setLibrarySource(String librarySource) {
         this.librarySource = librarySource;
         return this;
     }
 
-    public GeneReadGroupMetaData setLoadDate(String loadDate) {
+    public ReadGroupMetaData setLoadDate(String loadDate) {
         this.loadDate = loadDate;
         return this;
     }
 
-    public GeneReadGroupMetaData setOrganism(String organism) {
+    public ReadGroupMetaData setOrganism(String organism) {
         this.organism = organism;
         return this;
     }
 
-    public GeneReadGroupMetaData setPlatform(String platform) {
+    public ReadGroupMetaData setPlatform(String platform) {
         this.platform = platform;
         return this;
     }
 
-    public GeneReadGroupMetaData setReleaseDate(String releaseDate) {
+    public ReadGroupMetaData setReleaseDate(String releaseDate) {
         this.releaseDate = releaseDate;
         return this;
     }
 
-    public GeneReadGroupMetaData setSraStudy(String sraStudy) {
+    public ReadGroupMetaData setSraStudy(String sraStudy) {
         this.sraStudy = sraStudy;
         return this;
     }*/
@@ -367,7 +367,7 @@ public class GeneReadGroupMetaData implements Serializable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        GeneReadGroupMetaData that = (GeneReadGroupMetaData) o;
+        ReadGroupMetaData that = (ReadGroupMetaData) o;
         return avgSpotLen == that.avgSpotLen &&
                 insertSize == that.insertSize &&
                 numBases == that.numBases &&
@@ -400,7 +400,7 @@ public class GeneReadGroupMetaData implements Serializable {
 
     @Override
     public String toString() {
-        return "GeneReadGroupMetaData{" +
+        return "ReadGroupMetaData{" +
                 "avgSpotLen=" + avgSpotLen +
                 ", bioSample='" + bioSample + '\'' +
                 ", datastoreProvider='" + datastoreProvider + '\'' +

@@ -4,7 +4,7 @@ import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.GeneExampleMetaData;
+import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.processing.SamBamManipulationService;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class SortFn extends DoFn<KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>, KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>> {
+public class SortFn extends DoFn<KV<KV<SampleMetaData, ReferenceDatabase>, FileWrapper>, KV<KV<SampleMetaData, ReferenceDatabase>, FileWrapper>> {
 
     private Logger LOG = LoggerFactory.getLogger(SortFn.class);
     private GCSService gcsService;
@@ -38,9 +38,9 @@ public class SortFn extends DoFn<KV<KV<GeneExampleMetaData, ReferenceDatabase>, 
     public void processElement(ProcessContext c) {
         LOG.info(String.format("Start of sort with input: %s", c.element().toString()));
 
-        KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper> input = c.element();
+        KV<KV<SampleMetaData, ReferenceDatabase>, FileWrapper> input = c.element();
         ReferenceDatabase referenceDatabase = input.getKey().getValue();
-        GeneExampleMetaData geneExampleMetaData = input.getKey().getKey();
+        SampleMetaData geneExampleMetaData = input.getKey().getKey();
         FileWrapper fileWrapper = input.getValue();
 
         if (geneExampleMetaData == null || fileWrapper == null) {

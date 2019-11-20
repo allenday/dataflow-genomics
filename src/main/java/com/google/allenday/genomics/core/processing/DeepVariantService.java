@@ -61,7 +61,7 @@ public class DeepVariantService implements Serializable {
 
     private final static int DEEP_VARIANT_STATUS_UPDATE_PERIOD = 10000;
 
-    public static enum DeepVariantArguments {
+    public enum DeepVariantArguments {
         PROJECT("project"),
         ZONES("zones"),
         DOCKER_IMAGE("docker_image"),
@@ -120,7 +120,7 @@ public class DeepVariantService implements Serializable {
         Pair<String, String> refUriWithIndex = referenceDatabase.getRefUriWithIndex(referencesProvider.getReferenceFileExtension());
 
         String outFileUri = outDirGcsUri + outFilePrefix + DEEP_VARIANT_RESULT_EXTENSION;
-        CloudLifeSciences cloudLifeSciences = null;
+        CloudLifeSciences cloudLifeSciences;
         try {
             cloudLifeSciences = buildCloudLifeSciences();
             Pipeline pipeline = new Pipeline()
@@ -160,7 +160,7 @@ public class DeepVariantService implements Serializable {
 
                     if (isProcessing) {
                         LOG.info(String.format("Deep Variant operation %s is still working (%d sec)(%s)",
-                                operationName, (System.currentTimeMillis() - start) / 1000), outFilePrefix);
+                                operationName, (System.currentTimeMillis() - start) / 1000, outFilePrefix));
                     } else {
                         success = getOperation.getError() == null;
                         msg = success

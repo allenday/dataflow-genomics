@@ -1,23 +1,14 @@
 package com.google.allenday.genomics.core.processing;
 
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
+import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
 import com.google.allenday.genomics.core.utils.ResourceProvider;
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson.JacksonFactory;
-import com.google.api.services.lifesciences.v2beta.CloudLifeSciences;
-import com.google.api.services.lifesciences.v2beta.model.*;
-import com.google.auth.http.HttpCredentialsAdapter;
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.http.HttpTransportOptions;
 import org.javatuples.Pair;
 import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
 
@@ -26,7 +17,7 @@ import java.util.*;
  * <p>
  * Example of CLI command:
  * "--project cannabis-3k "+
- * "--zones us-west1-* "+
+ * "--region us-west1-* "+
  * "--docker_image gcr.io/deepvariant-docker/deepvariant:0.8.0 "+
  * "--outfile gs://cannabis-3k-deep-variant/output.vcf "+
  * "--staging gs://cannabis-3k-deep-variant/deep-variant-staging "+
@@ -45,21 +36,36 @@ public class DeepVariantService implements Serializable {
 
     private final static String DEEP_VARIANT_RUNNER_PATH = "/opt/deepvariant_runner/bin/gcp_deepvariant_runner";
     private final static String DEEP_VARIANT_DOCKER_IMAGE = "gcr.io/deepvariant-docker/deepvariant";
-    private final static String DEEP_VARIANT_VERSION = "0.8.0";
-    private final static String DEEP_VARIANT_MODEL = "gs://deepvariant/models/DeepVariant/0.8.0/DeepVariant-inception_v3-0.8.0+data-wgs_standard";
+    private final static String DEEP_VARIANT_VERSION = "0.9.0";
+    private final static String DEEP_VARIANT_MODEL = "gs://deepvariant/models/DeepVariant/0.9.0/DeepVariant-inception_v3-0.9.0+data-wgs_standard";
 
-    private final static String DEEP_VARIANT_LOCATION_ZONE = "us-central1";
-    private final static String DEEP_VARIANT_ZONES = DEEP_VARIANT_LOCATION_ZONE + "-*";
     private final static String DEEP_VARIANT_STAGING_DIR_NAME = "deep-variant-staging";
 
-    private final static String DEEP_VARIANT_MACHINE_TYPE = "n1-standard-16";
-    private final static String DEEP_VARIANT_CREDENTIAL_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
-
-    private final static String DEEP_VARIANT_PARENT_PATH_PATTERN = "projects/%d/locations/%s";
+    private final static String DEEP_VARIANT_MACHINE_TYPE = "n1-standard-1";
 
     private final static String DEEP_VARIANT_RESULT_EXTENSION = ".vcf";
 
-    private final static int DEEP_VARIANT_STATUS_UPDATE_PERIOD = 10000;
+    private final static String DEFAULT_DEEP_VARIANT_LOCATION_REGION = "us-central1";
+    private final static int DEFAULT_MAKE_EXAMPLES_CORES_PER_WORKER = 4;
+    private final static int DEFAULT_MAKE_EXAMPLES_RAM_PER_WORKER = 20;
+    private final static int DEFAULT_MAKE_EXAMPLES_DISK_PER_WORKER = 50;
+    private final static int DEFAULT_CALL_VARIANTS_CORES_PER_WORKER = 4;
+    private final static int DEFAULT_CALL_VARIANTS_RAM_PER_WORKER = 20;
+    private final static int DEFAULT_CALL_VARIANTS_DISK_PER_WORKER = 50;
+    private final static int DEFAULT_POSTPROCESS_VARINATS_CORES = 4;
+    private final static int DEFAULT_POSTPROCESS_VARINATS_RAM = 20;
+    private final static int DEFAULT_POSTPROCESS_VARINATS_DISK = 50;
+
+    private String region;
+    private Integer makeExamplesCoresPerWorker;
+    private Integer makeExamplesRamPerWorker;
+    private Integer makeExamplesDiskPerWorker;
+    private Integer callVariantsCoresPerWorker;
+    private Integer callVariantsRamPerWorker;
+    private Integer callVariantsDiskPerWorker;
+    private Integer postprocessVariantsCores;
+    private Integer postprocessVariantsRam;
+    private Integer postprocessVariantsDisk;
 
     public enum DeepVariantArguments {
         PROJECT("project"),
@@ -72,7 +78,19 @@ public class DeepVariantService implements Serializable {
         BAI("bai"),
         REF("ref"),
         REF_BAI("ref_fai"),
-        SAMPLE_NAME("sample_name");
+        SAMPLE_NAME("sample_name"),
+        JOB_NAME_PREFIX("job_name_prefix"),
+        OPERATION_LABEL("operation_label"),
+        MAKE_EXAMPLES_CORES_PER_WORKER("make_examples_cores_per_worker"),
+        MAKE_EXAMPLES_RAM_PER_WORKER("make_examples_ram_per_worker_gb"),
+        MAKE_EXAMPLES_DISK_PER_WORKER("make_examples_disk_per_worker_gb"),
+        CALL_VARIANTS_CORES_PER_WORKER("call_variants_cores_per_worker"),
+        CALL_VARIANTS_RAM_PER_WORKER("call_variants_ram_per_worker_gb"),
+        CALL_VARIANTS_DISK_PER_WORKER("call_variants_disk_per_worker_gb"),
+        POSTPROCESS_VARINATS_CORES("postprocess_variants_cores"),
+        POSTPROCESS_VARINATS_RAM("postprocess_variants_ram_gb"),
+        POSTPROCESS_VARINATS_DISK("postprocess_variants_disk_gb"),
+        SHARDS("shards");
 
         private final String argName;
 
@@ -86,110 +104,83 @@ public class DeepVariantService implements Serializable {
     }
 
     private ReferencesProvider referencesProvider;
+    private LifeSciencesService lifeSciencesService;
 
-    public DeepVariantService(ReferencesProvider referencesProvider) {
+    public DeepVariantService(ReferencesProvider referencesProvider, LifeSciencesService lifeSciencesService) {
         this.referencesProvider = referencesProvider;
+        this.lifeSciencesService = lifeSciencesService;
     }
 
-    private CloudLifeSciences buildCloudLifeSciences() throws IOException {
-        HttpTransport httpTransport = new HttpTransportOptions.DefaultHttpTransportFactory().create();
-        JsonFactory jsonFactory = new JacksonFactory();
-
-        GoogleCredentials googleCredentials = GoogleCredentials.getApplicationDefault();
-        if (googleCredentials.createScopedRequired()) {
-            googleCredentials = googleCredentials.createScoped(Collections.singletonList(DEEP_VARIANT_CREDENTIAL_SCOPE));
-
-        }
-        HttpCredentialsAdapter httpCredentialsAdapter = new HttpCredentialsAdapter(googleCredentials);
-        return new CloudLifeSciences(httpTransport, jsonFactory, httpCredentialsAdapter);
+    public void setRegion(String region) {
+        this.region = region;
     }
 
-    private Action buildLoggingAction(String logsDir) {
-        String logsPath = logsDir + "runner_logs.log";
-        return new Action()
-                .setCommands(Arrays.asList("/bin/sh", "-c", String.format("gsutil -m -q cp /google/logs/output %s", logsPath)))
-                .setImageUri("google/cloud-sdk")
-                .setAlwaysRun(true);
+    public void setMakeExamplesCoresPerWorker(Integer makeExamplesCoresPerWorker) {
+        this.makeExamplesCoresPerWorker = makeExamplesCoresPerWorker;
     }
 
-    public Triplet<String, Boolean, String> processExampleWithDeepVariant(ResourceProvider resourceProvider,
-                                                                          String outDirGcsUri, String outFilePrefix,
-                                                                          String bamUri, String baiUri,
-                                                                          ReferenceDatabase referenceDatabase,
-                                                                          String readGroupName) {
+    public void setMakeExamplesRamPerWorker(Integer makeExamplesRamPerWorker) {
+        this.makeExamplesRamPerWorker = makeExamplesRamPerWorker;
+    }
+
+    public void setMakeExamplesDiskPerWorker(Integer makeExamplesDiskPerWorker) {
+        this.makeExamplesDiskPerWorker = makeExamplesDiskPerWorker;
+    }
+
+    public void setCallVariantsCoresPerWorker(Integer callVariantsCoresPerWorker) {
+        this.callVariantsCoresPerWorker = callVariantsCoresPerWorker;
+    }
+
+    public void setCallVariantsRamPerWorker(Integer callVariantsRamPerWorker) {
+        this.callVariantsRamPerWorker = callVariantsRamPerWorker;
+    }
+
+    public void setCallVariantsDiskPerWorker(Integer callVariantsDiskPerWorker) {
+        this.callVariantsDiskPerWorker = callVariantsDiskPerWorker;
+    }
+
+    public void setPostprocessVariantsCores(Integer postprocessVariantsCores) {
+        this.postprocessVariantsCores = postprocessVariantsCores;
+    }
+
+    public void setPostprocessVariantsRam(Integer postprocessVariantsRam) {
+        this.postprocessVariantsRam = postprocessVariantsRam;
+    }
+
+    public void setPostprocessVariantsDisk(Integer postprocessVariantsDisk) {
+        this.postprocessVariantsDisk = postprocessVariantsDisk;
+    }
+
+    public Triplet<String, Boolean, String> processSampleWithDeepVariant(ResourceProvider resourceProvider,
+                                                                         String outDirGcsUri, String outFilePrefix,
+                                                                         String bamUri, String baiUri,
+                                                                         ReferenceDatabase referenceDatabase,
+                                                                         String readGroupName) {
         Pair<String, String> refUriWithIndex = referenceDatabase.getRefUriWithIndex(referencesProvider.getReferenceFileExtension());
 
         String outFileUri = outDirGcsUri + outFilePrefix + DEEP_VARIANT_RESULT_EXTENSION;
-        CloudLifeSciences cloudLifeSciences;
-        try {
-            cloudLifeSciences = buildCloudLifeSciences();
-            Pipeline pipeline = new Pipeline()
-                    .setActions(Arrays.asList(
-                            new Action()
-                                    .setCommands(buildCommand(resourceProvider, outDirGcsUri, outFileUri, bamUri, baiUri,
-                                            refUriWithIndex.getValue0(), refUriWithIndex.getValue1(), readGroupName))
-                                    .setImageUri(DEEP_VARIANT_RUNNER_IMAGE_URI),
-                            buildLoggingAction(outDirGcsUri)
-                    ))
-                    .setResources(new Resources()
-                            .setRegions(Collections.singletonList(DEEP_VARIANT_LOCATION_ZONE))
-                            .setVirtualMachine(new VirtualMachine()
-                                    .setMachineType(DEEP_VARIANT_MACHINE_TYPE)));
 
-            RunPipelineRequest runPipelineRequest = new RunPipelineRequest().setPipeline(pipeline);
-            CloudLifeSciences.Projects.Locations.Pipelines.Run run = cloudLifeSciences
-                    .projects().locations().pipelines().run(
-                            String.format(DEEP_VARIANT_PARENT_PATH_PATTERN, resourceProvider.getProjectNumber(), DEEP_VARIANT_LOCATION_ZONE),
-                            runPipelineRequest);
-            Operation runOperation = run.execute();
-            long start = System.currentTimeMillis();
-            LOG.info(String.format("Deep Variant started with metadata %s (%s)", runOperation.getMetadata().toString(), outFilePrefix));
+        String jobNamePrefix = outFilePrefix.toLowerCase() + "_";
+        List<String> actionCommands = buildCommand(resourceProvider, outDirGcsUri, outFileUri, bamUri, baiUri,
+                refUriWithIndex.getValue0(), refUriWithIndex.getValue1(), readGroupName, jobNamePrefix);
+        ;
+        String selectedRegion = Optional.ofNullable(region).orElse(DEFAULT_DEEP_VARIANT_LOCATION_REGION);
+        Pair<Boolean, String> operationResult = lifeSciencesService.runLifesciencesPipelineWithLogging(actionCommands,
+                DEEP_VARIANT_RUNNER_IMAGE_URI, outDirGcsUri, selectedRegion, DEEP_VARIANT_MACHINE_TYPE,
+                resourceProvider.getProjectNumber(), outFilePrefix);
 
-            String operationName = runOperation.getName();
-            CloudLifeSciences.Projects.Locations.Operations.Get getStatusRequest = cloudLifeSciences
-                    .projects().locations().operations().get(operationName);
-            boolean isProcessing = true;
-
-            boolean success = false;
-            String msg = String.format("Not processed %s", outFilePrefix);
-            while (isProcessing) {
-                Thread.sleep(DEEP_VARIANT_STATUS_UPDATE_PERIOD);
-                try {
-                    Operation getOperation = getStatusRequest.execute();
-                    isProcessing = getOperation.getDone() == null || !getOperation.getDone();
-
-                    if (isProcessing) {
-                        LOG.info(String.format("Deep Variant operation %s is still working (%d sec)(%s)",
-                                operationName, (System.currentTimeMillis() - start) / 1000, outFilePrefix));
-                    } else {
-                        success = getOperation.getError() == null;
-                        msg = success
-                                ? String.format("Deep Variant operation %s finished (%d sec)(%s)", operationName, (System.currentTimeMillis() - start) / 1000, outFilePrefix)
-                                : String.format("Deep Variant operation %s failed with %s (%d sec)(%s)", operationName, getOperation.getError().getCode() + " " + getOperation.getError().getMessage(), (System.currentTimeMillis() - start) / 1000, outFilePrefix);
-
-                        LOG.info(msg);
-                    }
-                } catch (GoogleJsonResponseException googleJsonException) {
-                    LOG.error(googleJsonException.getMessage());
-                }
-            }
-            return Triplet.with(outFileUri, success, msg);
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-            LOG.error(e.getMessage());
-            return Triplet.with(outFileUri, false, e.getMessage());
-        }
+        return Triplet.with(outFileUri, operationResult.getValue0(), operationResult.getValue1());
     }
 
 
     private List<String> buildCommand(ResourceProvider resourceProvider,
                                       String outDirGcsUri, String outfileGcsUri, String bamUri, String baiUri,
                                       String ref, String refIndex,
-                                      String sampleName) {
+                                      String sampleName, String jobNamePrefix) {
         Map<DeepVariantArguments, String> args = new HashMap<>();
 
         args.put(DeepVariantArguments.PROJECT, resourceProvider.getProjectId());
-        args.put(DeepVariantArguments.ZONES, DEEP_VARIANT_ZONES);
+        args.put(DeepVariantArguments.ZONES, (region != null ? region : DEFAULT_DEEP_VARIANT_LOCATION_REGION) + "-*");
         args.put(DeepVariantArguments.DOCKER_IMAGE, DEEP_VARIANT_DOCKER_IMAGE + ":" + DEEP_VARIANT_VERSION);
         args.put(DeepVariantArguments.MODEL, DEEP_VARIANT_MODEL);
         args.put(DeepVariantArguments.STAGING, outDirGcsUri + DEEP_VARIANT_STAGING_DIR_NAME);
@@ -199,6 +190,34 @@ public class DeepVariantService implements Serializable {
         args.put(DeepVariantArguments.REF, ref);
         args.put(DeepVariantArguments.REF_BAI, refIndex);
         args.put(DeepVariantArguments.SAMPLE_NAME, sampleName);
+        args.put(DeepVariantArguments.JOB_NAME_PREFIX, jobNamePrefix);
+        args.put(DeepVariantArguments.OPERATION_LABEL, jobNamePrefix);
+
+        int makeExampleWorkersCount = 1;
+        int makeExampleCoresPerWorkerCount = makeExamplesCoresPerWorker != null
+                ? makeExamplesCoresPerWorker : DEFAULT_MAKE_EXAMPLES_CORES_PER_WORKER;
+
+        args.put(DeepVariantArguments.SHARDS, String.valueOf(makeExampleCoresPerWorkerCount*makeExampleWorkersCount));
+
+        args.put(DeepVariantArguments.MAKE_EXAMPLES_CORES_PER_WORKER, String.valueOf(makeExampleCoresPerWorkerCount));
+        args.put(DeepVariantArguments.MAKE_EXAMPLES_RAM_PER_WORKER, String.valueOf(makeExamplesRamPerWorker != null
+                ? makeExamplesRamPerWorker : DEFAULT_MAKE_EXAMPLES_RAM_PER_WORKER));
+        args.put(DeepVariantArguments.MAKE_EXAMPLES_DISK_PER_WORKER, String.valueOf(makeExamplesDiskPerWorker != null
+                ? makeExamplesDiskPerWorker : DEFAULT_MAKE_EXAMPLES_DISK_PER_WORKER));
+
+        args.put(DeepVariantArguments.CALL_VARIANTS_CORES_PER_WORKER, String.valueOf(callVariantsCoresPerWorker != null
+                ? callVariantsCoresPerWorker : DEFAULT_CALL_VARIANTS_CORES_PER_WORKER));
+        args.put(DeepVariantArguments.CALL_VARIANTS_RAM_PER_WORKER, String.valueOf(callVariantsRamPerWorker != null
+                ? callVariantsRamPerWorker : DEFAULT_CALL_VARIANTS_RAM_PER_WORKER));
+        args.put(DeepVariantArguments.CALL_VARIANTS_DISK_PER_WORKER, String.valueOf(callVariantsDiskPerWorker != null
+                ? callVariantsDiskPerWorker : DEFAULT_CALL_VARIANTS_DISK_PER_WORKER));
+
+        args.put(DeepVariantArguments.POSTPROCESS_VARINATS_CORES, String.valueOf(postprocessVariantsCores != null
+                ? postprocessVariantsCores : DEFAULT_POSTPROCESS_VARINATS_CORES));
+        args.put(DeepVariantArguments.POSTPROCESS_VARINATS_RAM, String.valueOf(postprocessVariantsRam != null
+                ? postprocessVariantsRam : DEFAULT_POSTPROCESS_VARINATS_RAM));
+        args.put(DeepVariantArguments.POSTPROCESS_VARINATS_DISK, String.valueOf(postprocessVariantsDisk != null
+                ? postprocessVariantsDisk : DEFAULT_POSTPROCESS_VARINATS_DISK));
 
         List<String> command = new ArrayList<>();
         command.add(DEEP_VARIANT_RUNNER_PATH);

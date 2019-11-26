@@ -165,6 +165,9 @@ public class DeepVariantService implements Serializable {
                 refUriWithIndex.getValue0(), refUriWithIndex.getValue1(), readGroupName, jobNamePrefix);
         ;
         String selectedRegion = Optional.ofNullable(region).orElse(DEFAULT_DEEP_VARIANT_LOCATION_REGION);
+
+        //TODO temp
+        selectedRegion = "us-west2";
         Pair<Boolean, String> operationResult = lifeSciencesService.runLifesciencesPipelineWithLogging(actionCommands,
                 DEEP_VARIANT_RUNNER_IMAGE_URI, outDirGcsUri, selectedRegion, DEEP_VARIANT_MACHINE_TYPE,
                 resourceProvider.getProjectNumber(), outFilePrefix);

@@ -15,11 +15,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class LifeSciencesService {
+public class LifeSciencesService implements Serializable {
 
     private Logger LOG = LoggerFactory.getLogger(DeepVariantService.class);
     private final static int STATUS_UPDATE_PERIOD = 10000;

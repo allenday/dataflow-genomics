@@ -57,8 +57,9 @@ public class DeepVariantFn extends DoFn<KV<KV<ReadGroupMetaData, ReferenceDataba
         String readGroupAndDb = geneReadGroupMetaData.getSraSample() + "_" + referenceDatabase.getDbName();
         String dvGcsOutputDir = gcsService.getUriFromBlob(BlobId.of(outputBucketName, gcsOutputDir + readGroupAndDb + "/"));
 
-        Triplet<String, Boolean, String> result = deepVariantService.processExampleWithDeepVariant(resourceProvider,
-                dvGcsOutputDir, readGroupAndDb, bamWithIndexUris.getBamUri(), bamWithIndexUris.getIndexUri(), referenceDatabase);
+        Triplet<String, Boolean, String> result = deepVariantService.processSampleWithDeepVariant(resourceProvider,
+                dvGcsOutputDir, readGroupAndDb, bamWithIndexUris.getBamUri(), bamWithIndexUris.getIndexUri(), referenceDatabase,
+                geneReadGroupMetaData.getSraSample());
 
         if (result.getValue1()) {
             c.output(KV.of(input.getKey(), result.getValue0()));

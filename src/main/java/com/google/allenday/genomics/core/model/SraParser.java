@@ -5,6 +5,13 @@ import org.apache.commons.validator.routines.IntegerValidator;
 
 public class SraParser extends GeneExampleMetaData.Parser {
 
+    public SraParser() {
+    }
+
+    public SraParser(Separation separation) {
+        super(separation);
+    }
+
     @Override
     public GeneExampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException {
         try {
@@ -35,6 +42,7 @@ public class SraParser extends GeneExampleMetaData.Parser {
             geneExampleMetaData.setSraStudy(csvLineParts[25]);
             return geneExampleMetaData;
         } catch (Exception e) {
+            e.printStackTrace();
             throw new CsvParseException(csvLine);
         }
     }

@@ -43,7 +43,7 @@ public class GeneExampleMetaDataTests {
         String sraStudy = "SRP006678";
 
         String csvLine = "35,SAMN00632260,gs s3 sra-sos,gs.US s3.us-east-1sra-sos.be-md sra-sos.st-va,SRX082008,0,SINGLE,CSA_AC,877,490,SRR306863,SRS214102,CSA_S_AC,RNA-Seq,PRJNA80055,MICHIGAN STATE UNIVERSITY,public,sra,Illumina Genome Analyzer IIx,cDNA,TRANSCRIPTOMIC,2014-05-30,Cannabis sativa,ILLUMINA,2011-09-30,SRP006678";
-        GeneExampleMetaData.Parser parser = new SraParser();
+        GeneExampleMetaData.Parser parser = new SraParser(GeneExampleMetaData.Parser.Separation.COMMA);
         GeneExampleMetaData geneExampleMetaData = parser.parse(csvLine);
 
         GeneExampleMetaData geneExampleMetaDataExpected = new GeneExampleMetaData(sraSample, runId, libraryLayout, csvLine);

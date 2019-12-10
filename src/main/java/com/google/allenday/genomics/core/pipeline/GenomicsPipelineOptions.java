@@ -38,4 +38,72 @@ public interface GenomicsPipelineOptions extends DataflowPipelineOptions {
     long getMemoryOutputLimit();
 
     void setMemoryOutputLimit(long value);
+
+    String getControlPipelineWorkerRegion();
+
+    void setControlPipelineWorkerRegion(String controlPipelineWorkerRegion);
+
+    String getStepsWorkerRegion();
+
+    void setStepsWorkerRegion(String stepsWorkerRegion);
+
+    Integer getMakeExamplesCoresPerWorker();
+
+    void setMakeExamplesCoresPerWorker(Integer makeExamplesCoresPerWorker);
+
+    Integer getMakeExamplesRamPerWorker();
+
+    void setMakeExamplesRamPerWorker(Integer makeExamplesRamPerWorker);
+
+    Integer getMakeExamplesDiskPerWorker();
+
+    void setMakeExamplesDiskPerWorker(Integer makeExamplesDiskPerWorker);
+
+    Integer getCallVariantsCoresPerWorker();
+
+    void setCallVariantsCoresPerWorker(Integer callVariantsCoresPerWorker);
+
+    Integer getCallVariantsRamPerWorker();
+
+    void setCallVariantsRamPerWorker(Integer callVariantsRamPerWorker);
+
+    Integer getCallVariantsDiskPerWorker();
+
+    void setCallVariantsDiskPerWorker(Integer callVariantsDiskPerWorker);
+
+    Integer getPostprocessVariantsCores();
+
+    void setPostprocessVariantsCores(Integer postprocessVariantsCores);
+
+    Integer getPostprocessVariantsRam();
+
+    void setPostprocessVariantsRam(Integer postprocessVariantsRam);
+
+    Integer getPostprocessVariantsDisk();
+
+    void setPostprocessVariantsDisk(Integer postprocessVariantsDisk);
+
+    Integer getMakeExamplesWorkers();
+
+    void setMakeExamplesWorkers(Integer makeExamplesWorkers);
+
+    Integer getCallVariantsWorkers();
+
+    void setCallVariantsWorkers(Integer callVariantsWorkers);
+
+    Boolean getPreemptible();
+
+    void setPreemptible(Boolean preemptible);
+
+    Integer getMaxPremptibleTries();
+
+    void setMaxPremptibleTries(Integer maxPremptibleTries);
+
+    Integer getMaxNonPremptibleTries();
+
+    void setMaxNonPremptibleTries(Integer maxNonPremptibleTries);
+
+    Integer getShards();
+
+    void setShards(Integer shards);
 }

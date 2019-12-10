@@ -18,6 +18,22 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
 
     private final static String IS_PAIRED_FLAG = "PAIRED";
 
+    @Nullable
+    protected Integer avgSpotLen;
+
+    @Nullable
+    protected String datastoreProvider;
+    @Nullable
+    protected String datastoreRegion;
+    @Nullable
+    protected Integer insertSize;
+    @Nullable
+    protected String libraryName;
+    @Nullable
+    protected Integer numBases;
+    @Nullable
+    protected Integer numBytes;
+
     private String runId;
     private String libraryLayout;
 
@@ -38,34 +54,6 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
         this.srcRawMetaData = srcRawMetaData;
     }
 
-    public String getRunId() {
-        return runId;
-    }
-
-    public String getSrcRawMetaData() {
-        return srcRawMetaData;
-    }
-
-    public String getComment() {
-        return comment;
-    }
-
-    public void setComment(String comment) {
-        this.comment = comment;
-    }
-
-    public boolean isPaired() {
-        return libraryLayout.equals(IS_PAIRED_FLAG);
-    }
-
-    public String getLibraryLayout() {
-        return libraryLayout;
-    }
-
-    public String getSampleName() {
-        return sampleName;
-    }
-
     public GeneExampleMetaData setSampleName(String sampleName) {
         this.sampleName = sampleName;
         return this;
@@ -84,13 +72,116 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
                 rawMetaData);
     }
 
+    public Integer getAvgSpotLen() {
+        return avgSpotLen;
+    }
+
+    public void setAvgSpotLen(Integer avgSpotLen) {
+        this.avgSpotLen = avgSpotLen;
+    }
+
+    public String getDatastoreProvider() {
+        return datastoreProvider;
+    }
+
+    public void setDatastoreProvider(String datastoreProvider) {
+        this.datastoreProvider = datastoreProvider;
+    }
+
+    public String getDatastoreRegion() {
+        return datastoreRegion;
+    }
+
+    public void setDatastoreRegion(String datastoreRegion) {
+        this.datastoreRegion = datastoreRegion;
+    }
+
+    public Integer getInsertSize() {
+        return insertSize;
+    }
+
+    public void setInsertSize(Integer insertSize) {
+        this.insertSize = insertSize;
+    }
+
+    public String getLibraryName() {
+        return libraryName;
+    }
+
+    public void setLibraryName(String libraryName) {
+        this.libraryName = libraryName;
+    }
+
+    public Integer getNumBases() {
+        return numBases;
+    }
+
+    public void setNumBases(Integer numBases) {
+        this.numBases = numBases;
+    }
+
+    public Integer getNumBytes() {
+        return numBytes;
+    }
+
+    public void setNumBytes(Integer numBytes) {
+        this.numBytes = numBytes;
+    }
+
+    public String getRunId() {
+        return runId;
+    }
+
+    public void setRunId(String runId) {
+        this.runId = runId;
+    }
+
+    public String getLibraryLayout() {
+        return libraryLayout;
+    }
+
+    public void setLibraryLayout(String libraryLayout) {
+        this.libraryLayout = libraryLayout;
+    }
+
+    public String getSampleName() {
+        return sampleName;
+    }
+
+    public String getSrcRawMetaData() {
+        return srcRawMetaData;
+    }
+
+    public void setSrcRawMetaData(String srcRawMetaData) {
+        this.srcRawMetaData = srcRawMetaData;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
+    public boolean isPaired() {
+        return libraryLayout.equals(IS_PAIRED_FLAG);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         GeneExampleMetaData that = (GeneExampleMetaData) o;
-        return Objects.equals(runId, that.runId) &&
+        return Objects.equals(avgSpotLen, that.avgSpotLen) &&
+                Objects.equals(datastoreProvider, that.datastoreProvider) &&
+                Objects.equals(datastoreRegion, that.datastoreRegion) &&
+                Objects.equals(insertSize, that.insertSize) &&
+                Objects.equals(libraryName, that.libraryName) &&
+                Objects.equals(numBases, that.numBases) &&
+                Objects.equals(numBytes, that.numBytes) &&
+                Objects.equals(runId, that.runId) &&
                 Objects.equals(libraryLayout, that.libraryLayout) &&
                 Objects.equals(sampleName, that.sampleName) &&
                 Objects.equals(srcRawMetaData, that.srcRawMetaData) &&
@@ -99,27 +190,27 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), runId, libraryLayout, sampleName, srcRawMetaData, comment);
+        return Objects.hash(super.hashCode(), avgSpotLen, datastoreProvider, datastoreRegion, insertSize, libraryName, numBases, numBytes, runId, libraryLayout, sampleName, srcRawMetaData, comment);
     }
 
     @Override
     public String toString() {
         return "GeneExampleMetaData{" +
-                "runId='" + runId + '\'' +
-                ", libraryLayout='" + libraryLayout + '\'' +
-                ", sampleName='" + sampleName + '\'' +
-                ", srcRawMetaData='" + srcRawMetaData + '\'' +
-                ", comment='" + comment + '\'' +
-                ", avgSpotLen=" + avgSpotLen +
-                ", bioSample='" + bioSample + '\'' +
+                "avgSpotLen=" + avgSpotLen +
                 ", datastoreProvider='" + datastoreProvider + '\'' +
                 ", datastoreRegion='" + datastoreRegion + '\'' +
-                ", experiment='" + experiment + '\'' +
                 ", insertSize=" + insertSize +
                 ", libraryName='" + libraryName + '\'' +
                 ", numBases=" + numBases +
                 ", numBytes=" + numBytes +
+                ", runId='" + runId + '\'' +
+                ", libraryLayout='" + libraryLayout + '\'' +
+                ", sampleName='" + sampleName + '\'' +
+                ", srcRawMetaData='" + srcRawMetaData + '\'' +
+                ", comment='" + comment + '\'' +
                 ", sraSample='" + sraSample + '\'' +
+                ", experiment='" + experiment + '\'' +
+                ", bioSample='" + bioSample + '\'' +
                 ", assayType='" + assayType + '\'' +
                 ", bioProject='" + bioProject + '\'' +
                 ", centerName='" + centerName + '\'' +
@@ -138,6 +229,26 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
 
     public abstract static class Parser implements Serializable {
 
+        public static enum Separation {
+            TAB("\t"), COMMA(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+
+            public String separationPattern;
+
+            Separation(String separationPattern) {
+                this.separationPattern = separationPattern;
+            }
+        }
+
+        public Parser() {
+            this(Separation.TAB);
+        }
+
+        public Parser(Separation separation) {
+            this.separation = separation;
+        }
+
+        private Separation separation;
+
         public GeneExampleMetaData parse(String csvLine) throws CsvParseException {
             String[] partsFromCsvLine = getPartsFromCsvLine(csvLine);
             return processParts(partsFromCsvLine, csvLine);
@@ -146,7 +257,7 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
         public abstract GeneExampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException;
 
         public String[] getPartsFromCsvLine(String csvLine) {
-            String[] parts = csvLine.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+            String[] parts = csvLine.split(separation.separationPattern);
             for (int i = 0; i < parts.length; i++) {
                 if (parts[i].length() > 0 && parts[i].charAt(0) == '"') {
                     parts[i] = parts[i].substring(1);

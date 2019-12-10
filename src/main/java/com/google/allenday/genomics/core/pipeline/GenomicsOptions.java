@@ -1,6 +1,4 @@
-package com.google.allenday.genomics.core.processing.align;
-
-import com.google.allenday.genomics.core.pipeline.GenomicsPipelineOptions;
+package com.google.allenday.genomics.core.pipeline;
 
 import java.util.List;
 
@@ -17,11 +15,13 @@ public class GenomicsOptions {
     private List<String> geneReferences;
     private String allReferencesDirGcsUri;
     private long memoryOutputLimit;
+    private DeepVariantOptions deepVariantOptions;
 
     private String outputDir;
 
     public GenomicsOptions(String resultBucket, List<String> geneReferences,
-                           String allReferencesDirGcsUri, String outputDir, long memoryOutputLimit) {
+                           String allReferencesDirGcsUri, String outputDir,
+                           long memoryOutputLimit) {
         this.resultBucket = resultBucket;
         this.geneReferences = geneReferences;
         this.allReferencesDirGcsUri = allReferencesDirGcsUri;
@@ -40,6 +40,30 @@ public class GenomicsOptions {
                 alignerPipelineOptions.getAllReferencesDirGcsUri(),
                 alignerPipelineOptions.getOutputDir(),
                 alignerPipelineOptions.getMemoryOutputLimit());
+
+        DeepVariantOptions deepVariantOptions = new DeepVariantOptions();
+        deepVariantOptions.setControlPipelineWorkerRegion(alignerPipelineOptions.getControlPipelineWorkerRegion());
+        deepVariantOptions.setStepsWorkerRegion(alignerPipelineOptions.getStepsWorkerRegion());
+
+        deepVariantOptions.setMakeExamplesCoresPerWorker(alignerPipelineOptions.getMakeExamplesCoresPerWorker());
+        deepVariantOptions.setMakeExamplesRamPerWorker(alignerPipelineOptions.getMakeExamplesRamPerWorker());
+        deepVariantOptions.setMakeExamplesDiskPerWorker(alignerPipelineOptions.getMakeExamplesDiskPerWorker());
+
+        deepVariantOptions.setCallVariantsCoresPerWorker(alignerPipelineOptions.getCallVariantsCoresPerWorker());
+        deepVariantOptions.setCallVariantsRamPerWorker(alignerPipelineOptions.getCallVariantsRamPerWorker());
+        deepVariantOptions.setCallVariantsDiskPerWorker(alignerPipelineOptions.getCallVariantsDiskPerWorker());
+
+        deepVariantOptions.setPostprocessVariantsCores(alignerPipelineOptions.getPostprocessVariantsCores());
+        deepVariantOptions.setPostprocessVariantsRam(alignerPipelineOptions.getPostprocessVariantsRam());
+        deepVariantOptions.setPostprocessVariantsDisk(alignerPipelineOptions.getPostprocessVariantsDisk());
+
+        deepVariantOptions.setMakeExamplesWorkers(alignerPipelineOptions.getMakeExamplesWorkers());
+        deepVariantOptions.setCallVariantsWorkers(alignerPipelineOptions.getCallVariantsWorkers());
+        deepVariantOptions.setPreemptible(alignerPipelineOptions.getPreemptible());
+        deepVariantOptions.setMaxPremptibleTries(alignerPipelineOptions.getMaxNonPremptibleTries());
+        deepVariantOptions.setMaxNonPremptibleTries(alignerPipelineOptions.getMaxNonPremptibleTries());
+        deepVariantOptions.setShards(alignerPipelineOptions.getShards());
+        genomicsOptions.setDeepVariantOptions(deepVariantOptions);
         return genomicsOptions;
     }
 
@@ -86,5 +110,13 @@ public class GenomicsOptions {
 
     public String getCustomOutputDirPattern(String patternSuffix) {
         return outputDir + patternSuffix;
+    }
+
+    public DeepVariantOptions getDeepVariantOptions() {
+        return deepVariantOptions;
+    }
+
+    public void setDeepVariantOptions(DeepVariantOptions deepVariantOptions) {
+        this.deepVariantOptions = deepVariantOptions;
     }
 }

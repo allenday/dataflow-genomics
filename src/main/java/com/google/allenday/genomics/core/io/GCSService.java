@@ -141,7 +141,7 @@ public class GCSService {
         LOG.info(String.format("Free disk space: %d", fileUtils.getFreeDiskSpace()));
     }
 
-    public String readBlob(IoUtils ioUtils, String bucketName, String blobName) throws IOException {
+    public String readBlob(IoUtils ioUtils, String bucketName, String blobName) throws IOException, NullPointerException {
         Blob blob = getBlob(bucketName, blobName);
         ReadChannel reader = blob.reader();
 

@@ -58,7 +58,7 @@ public class GcsServiceTests {
     }
 
     @Test
-    public void testReadBlob() throws IOException {
+    public void testReadBlob() throws Exception {
         FileUtils fileUtilsMock = Mockito.mock(FileUtils.class);
         Storage storageMock = Mockito.mock(Storage.class);
         IoUtils ioUtilsMock = Mockito.mock(IoUtils.class);

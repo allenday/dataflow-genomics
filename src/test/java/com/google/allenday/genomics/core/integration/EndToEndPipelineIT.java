@@ -8,6 +8,7 @@ import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.io.UriProvider;
 import com.google.allenday.genomics.core.model.GeneExampleMetaData;
+import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
 import com.google.allenday.genomics.core.processing.DeepVariantService;
 import com.google.allenday.genomics.core.processing.SamBamManipulationService;
@@ -67,6 +68,11 @@ public class EndToEndPipelineIT implements Serializable {
     public final transient TestPipeline testPipeline = TestPipeline.create();
 
     public class TestSraParser extends GeneExampleMetaData.Parser {
+
+        public TestSraParser(Separation separation) {
+            super(separation);
+        }
+
         @Override
         public GeneExampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException {
             return new GeneExampleMetaData(csvLineParts[0], csvLineParts[1], csvLineParts[2], csvLine);
@@ -100,7 +106,7 @@ public class EndToEndPipelineIT implements Serializable {
         String dvResultGcsPath = gcsService.getUriFromBlob(BlobId.of(testBucket, String.format(DV_RESULT_GCS_DIR_PATH_PATTERN, jobTime)));
 
         ReferencesProvider referencesProvider = new ReferencesProvider(fileUtils, allReferencesDirGcsUri);
-        DeepVariantService deepVariantService = new DeepVariantService(referencesProvider, new LifeSciencesService());
+        DeepVariantService deepVariantService = new DeepVariantService(referencesProvider, new LifeSciencesService(), new DeepVariantOptions());
 
         TransformIoHandler alignTransformIoHandler = new TransformIoHandler(testBucket, String.format(ALIGN_RESULT_GCS_DIR_PATH_PATTERN, jobTime), 300, fileUtils);
         TransformIoHandler sortTransformIoHandler = new TransformIoHandler(testBucket, String.format(SORT_RESULT_GCS_DIR_PATH_PATTERN, jobTime), 300, fileUtils);
@@ -117,7 +123,7 @@ public class EndToEndPipelineIT implements Serializable {
 
         testPipeline
                 .apply(new ParseSourceCsvTransform(inputCsvUriAndProvider.getValue0(),
-                        new TestSraParser(),
+                        new TestSraParser(GeneExampleMetaData.Parser.Separation.COMMA),
                         inputCsvUriAndProvider.getValue1(), fileUtils))
                 .apply(new AlignAndPostProcessTransform("AlignAndPostProcessTransform", alignTransform, sortFn, mergeFn, createBamIndexFn))
 

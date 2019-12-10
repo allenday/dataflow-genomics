@@ -23,6 +23,7 @@ public class ParseCsvLineFn extends DoFn<String, GeneExampleMetaData> {
             c.output(geneExampleMetaData);
         } catch (GeneExampleMetaData.Parser.CsvParseException e) {
             LOG.error(e.getMessage());
+            e.printStackTrace();
         }
     }
 }

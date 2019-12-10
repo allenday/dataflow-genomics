@@ -1,6 +1,5 @@
 package com.google.allenday.genomics.core.processing;
 
-import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
 import com.google.allenday.genomics.core.utils.ResourceProvider;
 import org.javatuples.Pair;
@@ -23,6 +22,7 @@ public class VcfToBqService implements Serializable {
     private final static String VCF_TO_BQ_MACHINE_TYPE = "n1-standard-1";
 
 
+    private Boolean append = true;
     private String region;
 
     public enum DeepVariantArguments {
@@ -32,6 +32,7 @@ public class VcfToBqService implements Serializable {
         TEMP_LOCATION("temp_location"),
         JOB_NAME("job_name"),
         RUNNER("runner"),
+        APPEND("append"),
         REGION("region");
 
         private final String argName;
@@ -46,16 +47,18 @@ public class VcfToBqService implements Serializable {
     }
 
     private LifeSciencesService lifeSciencesService;
-    private FileUtils fileUtils;
     private String vcfToBqTablePathPattern;
     private String tempAndLogsGcsPathPrefix;
+    private String jobStartTime;
 
     public VcfToBqService(LifeSciencesService lifeSciencesService,
-                          FileUtils fileUtils, String vcfToBqTablePathPattern, String tempAndLogsGcsPathPrefix) {
+                          String vcfToBqTablePathPattern,
+                          String tempAndLogsGcsPathPrefix,
+                          String jobStartTime) {
         this.lifeSciencesService = lifeSciencesService;
-        this.fileUtils = fileUtils;
         this.vcfToBqTablePathPattern = vcfToBqTablePathPattern;
         this.tempAndLogsGcsPathPrefix = tempAndLogsGcsPathPrefix;
+        this.jobStartTime = jobStartTime;
     }
 
     public void setRegion(String region) {
@@ -66,7 +69,10 @@ public class VcfToBqService implements Serializable {
                                                     String referenceName,
                                                     String vcfFileUri) {
 
-        String jobTag = fileUtils.changeFileExtension(fileUtils.getFilenameFromPath(vcfFileUri), "");
+        String[] parts = vcfFileUri.split("/");
+        String suffix = parts[parts.length - 1].contains("*") ? parts[parts.length - 2] : parts[parts.length - 1];
+
+        String jobTag = jobStartTime + "_" + referenceName + "_" + suffix;
         String outputPath = tempAndLogsGcsPathPrefix + jobTag + "/";
 
         String outputTable = String.format(vcfToBqTablePathPattern, referenceName);
@@ -96,6 +102,9 @@ public class VcfToBqService implements Serializable {
         args.put(DeepVariantArguments.JOB_NAME, jobName);
         args.put(DeepVariantArguments.RUNNER, DEFAULT_VCF_TO_BQ_DATAFLOW_RUNNER);
         args.put(DeepVariantArguments.REGION, region != null ? region : DEFAULT_VCF_TO_BQ_LOCATION_REGION);
+        if (append) {
+            args.put(DeepVariantArguments.APPEND, "");
+        }
 
         List<String> command = new ArrayList<>();
         command.add(VCF_TO_BQ_SCRIPT_PATH);

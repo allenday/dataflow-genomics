@@ -33,6 +33,24 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
     protected Integer numBases;
     @Nullable
     protected Integer numBytes;
+    @Nullable
+    protected String experiment;
+    @Nullable
+    protected String instrument;
+    @Nullable
+    protected String platform;
+    @Nullable
+    protected String loadDate;
+    @Nullable
+    protected String releaseDate;
+    @Nullable
+    protected String assayType;
+    @Nullable
+    protected String centerName;
+    @Nullable
+    protected String librarySelection;
+    @Nullable
+    protected String librarySource;
 
     private String runId;
     private String libraryLayout;
@@ -168,6 +186,78 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
         return libraryLayout.equals(IS_PAIRED_FLAG);
     }
 
+    public String getExperiment() {
+        return experiment;
+    }
+
+    public void setExperiment(String experiment) {
+        this.experiment = experiment;
+    }
+
+    public String getInstrument() {
+        return instrument;
+    }
+
+    public void setInstrument(String instrument) {
+        this.instrument = instrument;
+    }
+
+    public String getPlatform() {
+        return platform;
+    }
+
+    public void setPlatform(String platform) {
+        this.platform = platform;
+    }
+
+    public String getLoadDate() {
+        return loadDate;
+    }
+
+    public void setLoadDate(String loadDate) {
+        this.loadDate = loadDate;
+    }
+
+    public String getReleaseDate() {
+        return releaseDate;
+    }
+
+    public void setReleaseDate(String releaseDate) {
+        this.releaseDate = releaseDate;
+    }
+
+    public String getAssayType() {
+        return assayType;
+    }
+
+    public void setAssayType(String assayType) {
+        this.assayType = assayType;
+    }
+
+    public String getCenterName() {
+        return centerName;
+    }
+
+    public void setCenterName(String centerName) {
+        this.centerName = centerName;
+    }
+
+    public String getLibrarySelection() {
+        return librarySelection;
+    }
+
+    public void setLibrarySelection(String librarySelection) {
+        this.librarySelection = librarySelection;
+    }
+
+    public String getLibrarySource() {
+        return librarySource;
+    }
+
+    public void setLibrarySource(String librarySource) {
+        this.librarySource = librarySource;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -181,6 +271,15 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
                 Objects.equals(libraryName, that.libraryName) &&
                 Objects.equals(numBases, that.numBases) &&
                 Objects.equals(numBytes, that.numBytes) &&
+                Objects.equals(experiment, that.experiment) &&
+                Objects.equals(instrument, that.instrument) &&
+                Objects.equals(platform, that.platform) &&
+                Objects.equals(loadDate, that.loadDate) &&
+                Objects.equals(releaseDate, that.releaseDate) &&
+                Objects.equals(assayType, that.assayType) &&
+                Objects.equals(centerName, that.centerName) &&
+                Objects.equals(librarySelection, that.librarySelection) &&
+                Objects.equals(librarySource, that.librarySource) &&
                 Objects.equals(runId, that.runId) &&
                 Objects.equals(libraryLayout, that.libraryLayout) &&
                 Objects.equals(sampleName, that.sampleName) &&
@@ -190,7 +289,7 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), avgSpotLen, datastoreProvider, datastoreRegion, insertSize, libraryName, numBases, numBytes, runId, libraryLayout, sampleName, srcRawMetaData, comment);
+        return Objects.hash(super.hashCode(), avgSpotLen, datastoreProvider, datastoreRegion, insertSize, libraryName, numBases, numBytes, experiment, instrument, platform, loadDate, releaseDate, assayType, centerName, librarySelection, librarySource, runId, libraryLayout, sampleName, srcRawMetaData, comment);
     }
 
     @Override
@@ -203,26 +302,26 @@ public class GeneExampleMetaData extends GeneReadGroupMetaData implements Serial
                 ", libraryName='" + libraryName + '\'' +
                 ", numBases=" + numBases +
                 ", numBytes=" + numBytes +
+                ", experiment='" + experiment + '\'' +
+                ", instrument='" + instrument + '\'' +
+                ", platform='" + platform + '\'' +
+                ", loadDate='" + loadDate + '\'' +
+                ", releaseDate='" + releaseDate + '\'' +
+                ", assayType='" + assayType + '\'' +
+                ", centerName='" + centerName + '\'' +
+                ", librarySelection='" + librarySelection + '\'' +
+                ", librarySource='" + librarySource + '\'' +
                 ", runId='" + runId + '\'' +
                 ", libraryLayout='" + libraryLayout + '\'' +
                 ", sampleName='" + sampleName + '\'' +
                 ", srcRawMetaData='" + srcRawMetaData + '\'' +
                 ", comment='" + comment + '\'' +
                 ", sraSample='" + sraSample + '\'' +
-                ", experiment='" + experiment + '\'' +
                 ", bioSample='" + bioSample + '\'' +
-                ", assayType='" + assayType + '\'' +
                 ", bioProject='" + bioProject + '\'' +
-                ", centerName='" + centerName + '\'' +
                 ", consent='" + consent + '\'' +
                 ", datastoreFiletype='" + datastoreFiletype + '\'' +
-                ", instrument='" + instrument + '\'' +
-                ", librarySelection='" + librarySelection + '\'' +
-                ", librarySource='" + librarySource + '\'' +
-                ", loadDate='" + loadDate + '\'' +
                 ", organism='" + organism + '\'' +
-                ", platform='" + platform + '\'' +
-                ", releaseDate='" + releaseDate + '\'' +
                 ", sraStudy='" + sraStudy + '\'' +
                 '}';
     }

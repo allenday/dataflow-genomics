@@ -7,7 +7,7 @@ import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.io.UriProvider;
-import com.google.allenday.genomics.core.model.GeneExampleMetaData;
+import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
 import com.google.allenday.genomics.core.processing.DeepVariantService;
@@ -67,15 +67,15 @@ public class EndToEndPipelineIT implements Serializable {
     @Rule
     public final transient TestPipeline testPipeline = TestPipeline.create();
 
-    public class TestSraParser extends GeneExampleMetaData.Parser {
+    public class TestSraParser extends SampleMetaData.Parser {
 
         public TestSraParser(Separation separation) {
             super(separation);
         }
 
         @Override
-        public GeneExampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException {
-            return new GeneExampleMetaData(csvLineParts[0], csvLineParts[1], csvLineParts[2], csvLine);
+        public SampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException {
+            return new SampleMetaData(csvLineParts[0], csvLineParts[1], csvLineParts[2], csvLine);
         }
     }
 
@@ -90,8 +90,8 @@ public class EndToEndPipelineIT implements Serializable {
                 .ofNullable(System.getenv("TEST_BUCKET"))
                 .orElse("cannabis-3k-results");
 
-        GeneExampleMetaData testGeneExampleMetaData =
-                new GeneExampleMetaData(TEST_EXAMPLE_SRA, "TestRun", "SINGLE", "testSrcRawMetaData");
+        SampleMetaData testSampleMetaData =
+                new SampleMetaData(TEST_EXAMPLE_SRA, "TestRun", "SINGLE", "testSrcRawMetaData");
 
         GCSService gcsService = GCSService.initialize(fileUtils);
         Pair<String, UriProvider> inputCsvUriAndProvider = prepareInputData(gcsService, fileUtils, testBucket, TEST_SINGLE_END_INPUT_FILE, TEST_CSV_FILE);
@@ -123,7 +123,7 @@ public class EndToEndPipelineIT implements Serializable {
 
         testPipeline
                 .apply(new ParseSourceCsvTransform(inputCsvUriAndProvider.getValue0(),
-                        new TestSraParser(GeneExampleMetaData.Parser.Separation.COMMA),
+                        new TestSraParser(SampleMetaData.Parser.Separation.COMMA),
                         inputCsvUriAndProvider.getValue1(), fileUtils))
                 .apply(new AlignAndPostProcessTransform("AlignAndPostProcessTransform", alignTransform, sortFn, mergeFn, createBamIndexFn))
 
@@ -149,7 +149,7 @@ public class EndToEndPipelineIT implements Serializable {
                 Channels.newChannel(new ByteArrayInputStream(csvLine.getBytes())));
         UriProvider uriProvider = new UriProvider(bucketName, new UriProvider.ProviderRule() {
             @Override
-            public List<String> provideAccordinglyRule(GeneExampleMetaData geneExampleMetaData, String srcBucket) {
+            public List<String> provideAccordinglyRule(SampleMetaData geneExampleMetaData, String srcBucket) {
                 return Collections.singletonList(String.format("gs://%s/%s", srcBucket,
                         TEST_GCS_INPUT_DATA_DIR + geneExampleMetaData.getRunId() + ".bfast.fastq"));
             }

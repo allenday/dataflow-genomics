@@ -13,7 +13,7 @@ import java.util.Objects;
  *
  */
 @DefaultCoder(AvroCoder.class)
-public class GeneReadGroupMetaData implements Serializable {
+public class ReadGroupMetaData implements Serializable {
 
     @Nullable
     protected String sraSample;
@@ -31,10 +31,10 @@ public class GeneReadGroupMetaData implements Serializable {
     protected String sraStudy;
 
 
-    public GeneReadGroupMetaData() {
+    public ReadGroupMetaData() {
     }
 
-    public GeneReadGroupMetaData(String sraSample) {
+    public ReadGroupMetaData(String sraSample) {
         this.sraSample = sraSample;
     }
 
@@ -100,7 +100,7 @@ public class GeneReadGroupMetaData implements Serializable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        GeneReadGroupMetaData that = (GeneReadGroupMetaData) o;
+        ReadGroupMetaData that = (ReadGroupMetaData) o;
         return Objects.equals(sraSample, that.sraSample) &&
                 Objects.equals(bioSample, that.bioSample) &&
                 Objects.equals(bioProject, that.bioProject) &&
@@ -117,7 +117,7 @@ public class GeneReadGroupMetaData implements Serializable {
 
     @Override
     public String toString() {
-        return "GeneReadGroupMetaData{" +
+        return "ReadGroupMetaData{" +
                 "sraSample='" + sraSample + '\'' +
                 ", bioSample='" + bioSample + '\'' +
                 ", bioProject='" + bioProject + '\'' +

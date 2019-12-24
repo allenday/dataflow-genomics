@@ -1,6 +1,6 @@
 package com.google.allenday.genomics.core.io;
 
-import com.google.allenday.genomics.core.model.GeneExampleMetaData;
+import com.google.allenday.genomics.core.model.SampleMetaData;
 
 import java.io.Serializable;
 import java.util.List;
@@ -19,11 +19,11 @@ public class UriProvider implements Serializable {
         this.providerRule = providerRule;
     }
 
-    public List<String> provide(GeneExampleMetaData geneExampleMetaData) {
+    public List<String> provide(SampleMetaData geneExampleMetaData) {
         return providerRule.provideAccordinglyRule(geneExampleMetaData, srcBucket);
     }
 
     public interface ProviderRule extends Serializable{
-        List<String> provideAccordinglyRule(GeneExampleMetaData geneExampleMetaData, String srcBucket);
+        List<String> provideAccordinglyRule(SampleMetaData geneExampleMetaData, String srcBucket);
     }
 }

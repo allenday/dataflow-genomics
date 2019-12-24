@@ -4,7 +4,7 @@ import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.GeneReadGroupMetaData;
+import com.google.allenday.genomics.core.model.ReadGroupMetaData;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.processing.SamBamManipulationService;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -14,8 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class CreateBamIndexFn extends DoFn<KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, FileWrapper>,
-        KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, FileWrapper>> {
+public class CreateBamIndexFn extends DoFn<KV<KV<ReadGroupMetaData, ReferenceDatabase>, FileWrapper>,
+        KV<KV<ReadGroupMetaData, ReferenceDatabase>, FileWrapper>> {
 
     private Logger LOG = LoggerFactory.getLogger(CreateBamIndexFn.class);
     private GCSService gcsService;
@@ -39,8 +39,8 @@ public class CreateBamIndexFn extends DoFn<KV<KV<GeneReadGroupMetaData, Referenc
     public void processElement(ProcessContext c) {
         LOG.info(String.format("Start of sort with input: %s", c.element().toString()));
 
-        KV<KV<GeneReadGroupMetaData, ReferenceDatabase>, FileWrapper> input = c.element();
-        GeneReadGroupMetaData geneReadGroupMetaData = input.getKey().getKey();
+        KV<KV<ReadGroupMetaData, ReferenceDatabase>, FileWrapper> input = c.element();
+        ReadGroupMetaData geneReadGroupMetaData = input.getKey().getKey();
         FileWrapper fileWrapper = input.getValue();
 
         if (geneReadGroupMetaData == null || fileWrapper == null) {

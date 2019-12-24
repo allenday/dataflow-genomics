@@ -4,7 +4,7 @@ import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.GeneExampleMetaData;
+import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class AlignFn extends DoFn<KV<KV<GeneExampleMetaData, List<String>>, List<FileWrapper>>, KV<KV<GeneExampleMetaData, ReferenceDatabase>, FileWrapper>> {
+public class AlignFn extends DoFn<KV<KV<SampleMetaData, List<String>>, List<FileWrapper>>, KV<KV<SampleMetaData, ReferenceDatabase>, FileWrapper>> {
 
     private Logger LOG = LoggerFactory.getLogger(AlignFn.class);
     private GCSService gcsService;
@@ -47,8 +47,8 @@ public class AlignFn extends DoFn<KV<KV<GeneExampleMetaData, List<String>>, List
     public void processElement(ProcessContext c) {
         LOG.info(String.format("Start of processing with input: %s", c.element().toString()));
 
-        KV<GeneExampleMetaData, List<String>> kvMetaDataRefs = c.element().getKey();
-        GeneExampleMetaData geneExampleMetaData = kvMetaDataRefs.getKey();
+        KV<SampleMetaData, List<String>> kvMetaDataRefs = c.element().getKey();
+        SampleMetaData geneExampleMetaData = kvMetaDataRefs.getKey();
         List<String> referenceNames = kvMetaDataRefs.getValue();
 
         List<FileWrapper> fileWrapperList = c.element().getValue();

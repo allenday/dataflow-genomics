@@ -1,16 +1,16 @@
 package com.google.allenday.genomics.core.csv;
 
-import com.google.allenday.genomics.core.model.GeneExampleMetaData;
+import com.google.allenday.genomics.core.model.SampleMetaData;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ParseCsvLineFn extends DoFn<String, GeneExampleMetaData> {
+public class ParseCsvLineFn extends DoFn<String, SampleMetaData> {
 
     private Logger LOG = LoggerFactory.getLogger(ParseCsvLineFn.class);
-    private GeneExampleMetaData.Parser csvParser;
+    private SampleMetaData.Parser csvParser;
 
-    public ParseCsvLineFn(GeneExampleMetaData.Parser csvParser) {
+    public ParseCsvLineFn(SampleMetaData.Parser csvParser) {
         this.csvParser = csvParser;
     }
 
@@ -19,9 +19,9 @@ public class ParseCsvLineFn extends DoFn<String, GeneExampleMetaData> {
         String input = c.element();
         LOG.info(String.format("Parse %s", input));
         try {
-            GeneExampleMetaData geneExampleMetaData = GeneExampleMetaData.fromCsvLine(csvParser, input);
+            SampleMetaData geneExampleMetaData = SampleMetaData.fromCsvLine(csvParser, input);
             c.output(geneExampleMetaData);
-        } catch (GeneExampleMetaData.Parser.CsvParseException e) {
+        } catch (SampleMetaData.Parser.CsvParseException e) {
             LOG.error(e.getMessage());
             e.printStackTrace();
         }

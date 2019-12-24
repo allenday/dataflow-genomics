@@ -3,7 +3,7 @@ package com.google.allenday.genomics.core.model;
 
 import org.apache.commons.validator.routines.IntegerValidator;
 
-public class SraParser extends GeneExampleMetaData.Parser {
+public class SraParser extends SampleMetaData.Parser {
 
     public SraParser() {
     }
@@ -13,9 +13,9 @@ public class SraParser extends GeneExampleMetaData.Parser {
     }
 
     @Override
-    public GeneExampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException {
+    public SampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException {
         try {
-            GeneExampleMetaData geneExampleMetaData = new GeneExampleMetaData(csvLineParts[11], csvLineParts[10], csvLineParts[6],
+            SampleMetaData geneExampleMetaData = new SampleMetaData(csvLineParts[11], csvLineParts[10], csvLineParts[6],
                     csvLine)
                     .setSampleName(csvLineParts[12]);
             geneExampleMetaData.setAvgSpotLen(IntegerValidator.getInstance().validate(csvLineParts[0]));

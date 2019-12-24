@@ -14,6 +14,7 @@ public class ReferenceProviderTests {
 
     private final static String ALL_REFERENCES_DIR_GCS_URI = "allReferencesDirGcsUri";
     private final static String REFERENCE_NAME = "refName";
+    private final static String REFERENCE_EXTENSION = ".fa";
 
     @Test
     public void testFindReference() {
@@ -30,9 +31,9 @@ public class ReferenceProviderTests {
         Mockito.when(fileUtilsMock.exists(Mockito.anyString()))
                 .thenReturn(false);
         Mockito.when(blobMock.getName())
-                .thenReturn(REFERENCE_NAME);
+                .thenReturn(REFERENCE_NAME+REFERENCE_EXTENSION);
 
-        ReferencesProvider referencesProvider = new ReferencesProvider(fileUtilsMock, ALL_REFERENCES_DIR_GCS_URI);
+        ReferencesProvider referencesProvider = new ReferencesProvider(fileUtilsMock, ALL_REFERENCES_DIR_GCS_URI, REFERENCE_EXTENSION);
 
         referencesProvider.findReference(gcsServiceMock, REFERENCE_NAME);
 

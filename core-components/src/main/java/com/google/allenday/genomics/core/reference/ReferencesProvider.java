@@ -54,7 +54,7 @@ public class ReferencesProvider implements Serializable {
         List<String> dbFilesUris = new ArrayList<>();
         gcsService.getAllBlobsIn(blobIdFromUri.getBucket(), blobIdFromUri.getName())
                 .stream()
-                .filter(blob -> blob.getName().contains(referenceName))
+                .filter(blob -> blob.getName().endsWith(referenceName+referenceFileExtension))
                 .forEach(blob -> {
                     dbFilesUris.add(gcsService.getUriFromBlob(blob.getBlobId()));
 

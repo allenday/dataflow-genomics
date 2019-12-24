@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static htsjdk.samtools.ValidationStringency.LENIENT;
+
 public class SamBamManipulationService implements Serializable {
     private static final Log LOG = Log.getInstance(SamBamManipulationService.class);
 
@@ -38,10 +40,13 @@ public class SamBamManipulationService implements Serializable {
 
     public String sortSam(String inputFilePath, String workDir,
                           String outPrefix, String outSuffix) throws IOException {
-        String alignedSamName = fileUtils.getFilenameFromPath(inputFilePath);
         String alignedSortedBamPath = workDir + outPrefix + "_" + outSuffix + SORTED_BAM_FILE_SUFFIX;
 
-        final SamReader reader = SamReaderFactory.makeDefault().open(new File(inputFilePath));
+        final SamReader reader = SamReaderFactory.makeDefault()
+                //TODO check
+                .validationStringency(LENIENT)
+                .open(new File(inputFilePath));
+
         reader.getFileHeader().setSortOrder(SAMFileHeader.SortOrder.coordinate);
 
         SAMFileWriter samFileWriter = new SAMFileWriterFactory()
@@ -82,12 +87,16 @@ public class SamBamManipulationService implements Serializable {
     public List<SAMRecord> samRecordsFromBamFile(String inputFilePath) throws IOException {
         List<SAMRecord> samRecords = new ArrayList<>();
 
-        final SamReader reader = SamReaderFactory.makeDefault().open(new File(inputFilePath));
+        final SamReader reader = samReaderFromBamFile(inputFilePath, ValidationStringency.DEFAULT_STRINGENCY);
         for (SAMRecord record : reader) {
             samRecords.add(record);
         }
         reader.close();
         return samRecords;
+    }
+
+    public SamReader samReaderFromBamFile(String inputFilePath, ValidationStringency validationStringency) throws IOException {
+        return SamReaderFactory.makeDefault().validationStringency(validationStringency).open(new File(inputFilePath));
     }
 
     public String mergeBamFiles(List<String> localBamPaths, String workDir,

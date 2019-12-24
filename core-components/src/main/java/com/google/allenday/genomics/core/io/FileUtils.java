@@ -92,8 +92,10 @@ public class FileUtils implements Serializable {
 
     public void deleteDir(String dirPath) {
         try {
+            LOG.info(String.format("Free disk space: %d", getFreeDiskSpace()));
             org.apache.commons.io.FileUtils.deleteDirectory(new File(dirPath));
             LOG.info(String.format("Dir %s deleted", dirPath));
+            LOG.info(String.format("Free disk space: %d", getFreeDiskSpace()));
         } catch (IOException e) {
             LOG.error(e.getMessage());
         }

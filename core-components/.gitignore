@@ -1,0 +1,7 @@
+target/
+.idea/
+*.iml
+*.iws
+
+# maven temporary
+dependency-reduced-pom.xml

@@ -9,6 +9,7 @@ public class GenomicsOptions {
     private final String MERGED_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
     private final String BAM_INDEX_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
     private final String DEEP_VARIANT_OUTPUT_PATH_PATTERN = "%s/result_dv/";
+    private final String VCF_TO_BQ_PATH_PATTERN = "%s/vcf_to_bq/";
     private final String ANOMALY_PATH_PATTERN = "%s/anomaly_examples/";
 
     private String resultBucket;
@@ -17,6 +18,7 @@ public class GenomicsOptions {
     private long memoryOutputLimit;
     private DeepVariantOptions deepVariantOptions;
 
+    private String vcfBqDatasetAndTablePattern;
     private String outputDir;
 
     public GenomicsOptions(String resultBucket, List<String> geneReferences,
@@ -62,8 +64,9 @@ public class GenomicsOptions {
         deepVariantOptions.setPreemptible(alignerPipelineOptions.getPreemptible());
         deepVariantOptions.setMaxPremptibleTries(alignerPipelineOptions.getMaxNonPremptibleTries());
         deepVariantOptions.setMaxNonPremptibleTries(alignerPipelineOptions.getMaxNonPremptibleTries());
-        deepVariantOptions.setShards(alignerPipelineOptions.getShards());
+        deepVariantOptions.setDeepVariantShards(alignerPipelineOptions.getDeepVariantShards());
         genomicsOptions.setDeepVariantOptions(deepVariantOptions);
+        genomicsOptions.setVcfBqDatasetAndTablePattern(alignerPipelineOptions.getVcfBqDatasetAndTablePattern());
         return genomicsOptions;
     }
 
@@ -108,6 +111,10 @@ public class GenomicsOptions {
         return outputDir + DEEP_VARIANT_OUTPUT_PATH_PATTERN;
     }
 
+    public String getVcfToBqOutputDirPattern() {
+        return outputDir + VCF_TO_BQ_PATH_PATTERN;
+    }
+
     public String getCustomOutputDirPattern(String patternSuffix) {
         return outputDir + patternSuffix;
     }
@@ -118,5 +125,13 @@ public class GenomicsOptions {
 
     public void setDeepVariantOptions(DeepVariantOptions deepVariantOptions) {
         this.deepVariantOptions = deepVariantOptions;
+    }
+
+    public void setVcfBqDatasetAndTablePattern(String vcfBqDatasetAndTablePattern) {
+        this.vcfBqDatasetAndTablePattern = vcfBqDatasetAndTablePattern;
+    }
+
+    public String getVcfBqDatasetAndTablePattern() {
+        return vcfBqDatasetAndTablePattern;
     }
 }

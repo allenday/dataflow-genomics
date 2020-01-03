@@ -146,7 +146,7 @@ public class DeepVariantService implements Serializable {
         deepVariantOptions.getPreemptible().filter(value -> value).ifPresent(value -> args.put(DeepVariantArguments.PREEMPTIBLE, ""));
         deepVariantOptions.getMaxPremptibleTries().ifPresent(value -> args.put(DeepVariantArguments.MAX_PREEMPTIBLE_TRIES, String.valueOf(value)));
         deepVariantOptions.getMaxNonPremptibleTries().ifPresent(value -> args.put(DeepVariantArguments.MAX_NON_PREEMPTIBLE_TRIES, String.valueOf(value)));
-        deepVariantOptions.getShards().ifPresent(value -> args.put(DeepVariantArguments.SHARDS, String.valueOf(value)));
+        deepVariantOptions.getDeepVariantShards().ifPresent(value -> args.put(DeepVariantArguments.SHARDS, String.valueOf(value)));
 
         List<String> command = new ArrayList<>();
         command.add(DEEP_VARIANT_RUNNER_PATH);

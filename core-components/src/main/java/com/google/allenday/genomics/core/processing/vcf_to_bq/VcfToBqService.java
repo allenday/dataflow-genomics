@@ -1,7 +1,9 @@
-package com.google.allenday.genomics.core.processing;
+package com.google.allenday.genomics.core.processing.vcf_to_bq;
 
+import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
 import com.google.allenday.genomics.core.utils.ResourceProvider;
+import com.google.cloud.storage.BlobId;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,16 +50,19 @@ public class VcfToBqService implements Serializable {
 
     private LifeSciencesService lifeSciencesService;
     private String vcfToBqTablePathPattern;
-    private String tempAndLogsGcsPathPrefix;
+    private String tempAndLogsGcsDirPrefix;
+    private String tempAndLogsBucket;
     private String jobStartTime;
 
     public VcfToBqService(LifeSciencesService lifeSciencesService,
                           String vcfToBqTablePathPattern,
-                          String tempAndLogsGcsPathPrefix,
+                          String tempAndLogsBucket,
+                          String tempAndLogsGcsDirPrefix,
                           String jobStartTime) {
         this.lifeSciencesService = lifeSciencesService;
         this.vcfToBqTablePathPattern = vcfToBqTablePathPattern;
-        this.tempAndLogsGcsPathPrefix = tempAndLogsGcsPathPrefix;
+        this.tempAndLogsBucket = tempAndLogsBucket;
+        this.tempAndLogsGcsDirPrefix = tempAndLogsGcsDirPrefix;
         this.jobStartTime = jobStartTime;
     }
 
@@ -65,7 +70,8 @@ public class VcfToBqService implements Serializable {
         this.region = region;
     }
 
-    public Pair<Boolean, String> convertVcfFileToBq(ResourceProvider resourceProvider,
+    public Pair<Boolean, String> convertVcfFileToBq(GCSService gcsService,
+                                                    ResourceProvider resourceProvider,
                                                     String referenceName,
                                                     String vcfFileUri) {
 
@@ -73,7 +79,7 @@ public class VcfToBqService implements Serializable {
         String suffix = parts[parts.length - 1].contains("*") ? parts[parts.length - 2] : parts[parts.length - 1];
 
         String jobTag = jobStartTime + "_" + referenceName + "_" + suffix;
-        String outputPath = tempAndLogsGcsPathPrefix + jobTag + "/";
+        String outputPath = gcsService.getUriFromBlob(BlobId.of(tempAndLogsBucket, tempAndLogsGcsDirPrefix)) + jobTag + "/";
 
         String outputTable = String.format(vcfToBqTablePathPattern, referenceName);
         List<String> actionCommands = buildCommand(resourceProvider, VCF_TO_BQ_JOB_NAME_PREFIX + jobTag.toLowerCase().replace("_", "-"),

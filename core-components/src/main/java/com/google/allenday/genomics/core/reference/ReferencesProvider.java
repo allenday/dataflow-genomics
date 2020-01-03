@@ -54,17 +54,19 @@ public class ReferencesProvider implements Serializable {
         List<String> dbFilesUris = new ArrayList<>();
         gcsService.getAllBlobsIn(blobIdFromUri.getBucket(), blobIdFromUri.getName())
                 .stream()
-                .filter(blob -> blob.getName().endsWith(referenceName+referenceFileExtension))
+                .filter(blob -> blob.getName().contains(referenceName))
                 .forEach(blob -> {
                     dbFilesUris.add(gcsService.getUriFromBlob(blob.getBlobId()));
 
-                    if (withDownload) {
-                        String filePath = generateReferenceDir(referenceName) + fileUtils.getFilenameFromPath(blob.getName());
-                        if (fileUtils.exists(filePath)) {
-                            LOG.info(String.format("Reference %s already exists", blob.getName()));
-                        } else {
-                            fileUtils.mkdirFromUri(filePath);
-                            gcsService.downloadBlobTo(blob, filePath);
+                    if (blob.getName().endsWith(referenceName+referenceFileExtension)) {
+                        if (withDownload) {
+                            String filePath = generateReferenceDir(referenceName) + fileUtils.getFilenameFromPath(blob.getName());
+                            if (fileUtils.exists(filePath)) {
+                                LOG.info(String.format("Reference %s already exists", blob.getName()));
+                            } else {
+                                fileUtils.mkdirFromUri(filePath);
+                                gcsService.downloadBlobTo(blob, filePath);
+                            }
                         }
                     }
                 });

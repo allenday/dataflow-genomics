@@ -45,7 +45,7 @@ public class VcfToBqFn extends DoFn<KV<ReferenceDatabase, String>, KV<ReferenceD
             return;
         }
         Pair<Boolean, String> result = vcfToBqService.convertVcfFileToBq(gcsService, resourceProvider,
-                referenceDatabase.getDbName(), vcfUri);
+                fileUtils, referenceDatabase.getDbName(), vcfUri);
 
         if (result.getValue0()) {
             c.output(KV.of(input.getKey(), vcfUri));

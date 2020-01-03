@@ -9,7 +9,7 @@ public class GenomicsOptions {
     private final String MERGED_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
     private final String BAM_INDEX_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
     private final String DEEP_VARIANT_OUTPUT_PATH_PATTERN = "%s/result_dv/";
-    private final String VCF_TO_BQ_PATH_PATTERN = "%s/vcf_to_bq/";
+    private final String VCF_TO_BQ_PATH = "vcf_to_bq/";
     private final String ANOMALY_PATH_PATTERN = "%s/anomaly_examples/";
 
     private String resultBucket;
@@ -111,8 +111,8 @@ public class GenomicsOptions {
         return outputDir + DEEP_VARIANT_OUTPUT_PATH_PATTERN;
     }
 
-    public String getVcfToBqOutputDirPattern() {
-        return outputDir + VCF_TO_BQ_PATH_PATTERN;
+    public String getVcfToBqOutputDir() {
+        return outputDir + VCF_TO_BQ_PATH;
     }
 
     public String getCustomOutputDirPattern(String patternSuffix) {

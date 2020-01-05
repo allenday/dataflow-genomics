@@ -42,10 +42,7 @@ public class SamBamManipulationService implements Serializable {
                           String outPrefix, String outSuffix) throws IOException {
         String alignedSortedBamPath = workDir + outPrefix + "_" + outSuffix + SORTED_BAM_FILE_SUFFIX;
 
-        final SamReader reader = SamReaderFactory.makeDefault()
-                //TODO check
-                .validationStringency(LENIENT)
-                .open(new File(inputFilePath));
+        final SamReader reader = samReaderFromBamFile(inputFilePath, LENIENT);
 
         reader.getFileHeader().setSortOrder(SAMFileHeader.SortOrder.coordinate);
 
@@ -120,7 +117,8 @@ public class SamBamManipulationService implements Serializable {
 
             for (final Path inFile : inputPaths) {
                 IOUtil.assertFileIsReadable(inFile);
-                final SamReader in = SamReaderFactory.makeDefault().referenceSequence(Defaults.REFERENCE_FASTA).open(inFile);
+                final SamReader in = SamReaderFactory.makeDefault().validationStringency(LENIENT)
+                        .referenceSequence(Defaults.REFERENCE_FASTA).open(inFile);
                 if (INTERVALS != null) {
                     if (!in.hasIndex()) {
                         throw new RuntimeException("Merging with interval but BAM file is not indexed: " + inFile);

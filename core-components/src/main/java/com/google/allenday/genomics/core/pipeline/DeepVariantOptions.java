@@ -25,7 +25,7 @@ public class DeepVariantOptions implements Serializable {
     private Boolean preemptible;
     private Integer maxPremptibleTries;
     private Integer maxNonPremptibleTries;
-    private Integer shards;
+    private Integer deepVariantShards;
 
     public DeepVariantOptions() {
     }
@@ -158,11 +158,11 @@ public class DeepVariantOptions implements Serializable {
         this.maxNonPremptibleTries = maxNonPremptibleTries;
     }
 
-    public Optional<Integer> getShards() {
-        return Optional.ofNullable(shards);
+    public Optional<Integer> getDeepVariantShards() {
+        return Optional.ofNullable(deepVariantShards);
     }
 
-    public void setShards(Integer shards) {
-        this.shards = shards;
+    public void setDeepVariantShards(Integer deepVariantShards) {
+        this.deepVariantShards = deepVariantShards;
     }
 }

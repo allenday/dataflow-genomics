@@ -37,9 +37,8 @@ public class ReferenceProviderTests {
 
         referencesProvider.findReference(gcsServiceMock, REFERENCE_NAME);
 
-        Mockito.verify(gcsServiceMock).getBlobIdFromUri(ALL_REFERENCES_DIR_GCS_URI);
         Mockito.verify(gcsServiceMock).getAllBlobsIn(Mockito.anyString(), Mockito.anyString());
-        Mockito.verify(blobMock, Mockito.times(2)).getName();
+        Mockito.verify(blobMock, Mockito.times(3)).getName();
         Mockito.verify(gcsServiceMock).downloadBlobTo(Mockito.eq(blobMock), Mockito.anyString());
     }
 

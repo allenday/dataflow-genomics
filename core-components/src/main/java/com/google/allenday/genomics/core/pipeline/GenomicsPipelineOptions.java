@@ -103,7 +103,12 @@ public interface GenomicsPipelineOptions extends DataflowPipelineOptions {
 
     void setMaxNonPremptibleTries(Integer maxNonPremptibleTries);
 
-    Integer getShards();
+    Integer getDeepVariantShards();
 
-    void setShards(Integer shards);
+    void setDeepVariantShards(Integer shards);
+
+    @Description("BigQuery dataset and table name pattern for storing VCF results")
+    String getVcfBqDatasetAndTablePattern();
+
+    void setVcfBqDatasetAndTablePattern(String value);
 }

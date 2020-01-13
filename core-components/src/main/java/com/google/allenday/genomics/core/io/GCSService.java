@@ -159,4 +159,8 @@ public class GCSService {
     public long getBlobSize(BlobId blobId) {
         return storage.get(blobId).getSize();
     }
+
+    public boolean deleteBlobFromGcs(BlobId blobId) {
+        return storage.delete(blobId);
+    }
 }

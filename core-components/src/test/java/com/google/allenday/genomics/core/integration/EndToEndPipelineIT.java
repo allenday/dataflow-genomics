@@ -149,9 +149,9 @@ public class EndToEndPipelineIT implements Serializable {
                 Channels.newChannel(new ByteArrayInputStream(csvLine.getBytes())));
         UriProvider uriProvider = new UriProvider(bucketName, new UriProvider.ProviderRule() {
             @Override
-            public List<String> provideAccordinglyRule(SampleMetaData geneExampleMetaData, String srcBucket) {
+            public List<String> provideAccordinglyRule(SampleMetaData geneSampleMetaData, String srcBucket) {
                 return Collections.singletonList(String.format("gs://%s/%s", srcBucket,
-                        TEST_GCS_INPUT_DATA_DIR + geneExampleMetaData.getRunId() + ".bfast.fastq"));
+                        TEST_GCS_INPUT_DATA_DIR + geneSampleMetaData.getRunId() + ".bfast.fastq"));
             }
         });
         return Pair.with(gcsService.getUriFromBlob(blob.getBlobId()), uriProvider);

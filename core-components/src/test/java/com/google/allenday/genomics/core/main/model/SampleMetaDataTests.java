@@ -11,7 +11,7 @@ import java.io.IOException;
 public class SampleMetaDataTests {
 
     @Test
-    public void testGeneExampleMetaDataParser() throws IOException {
+    public void testGeneSampleMetaDataParser() throws IOException {
         String runId = "SRR306863";
         String libraryLayout = "SINGLE";
         String sampleName = "CSA_S_AC";

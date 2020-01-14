@@ -15,32 +15,32 @@ public class SraParser extends SampleMetaData.Parser {
     @Override
     public SampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException {
         try {
-            SampleMetaData geneExampleMetaData = new SampleMetaData(csvLineParts[11], csvLineParts[10], csvLineParts[6],
+            SampleMetaData geneSampleMetaData = new SampleMetaData(csvLineParts[11], csvLineParts[10], csvLineParts[6],
                     csvLine)
                     .setSampleName(csvLineParts[12]);
-            geneExampleMetaData.setAvgSpotLen(IntegerValidator.getInstance().validate(csvLineParts[0]));
-            geneExampleMetaData.setBioSample(csvLineParts[1]);
-            geneExampleMetaData.setDatastoreProvider(csvLineParts[2]);
-            geneExampleMetaData.setDatastoreRegion(csvLineParts[3]);
-            geneExampleMetaData.setExperiment(csvLineParts[4]);
-            geneExampleMetaData.setInsertSize(IntegerValidator.getInstance().validate(csvLineParts[5]));
-            geneExampleMetaData.setLibraryName(csvLineParts[7]);
-            geneExampleMetaData.setNumBases(IntegerValidator.getInstance().validate(csvLineParts[8]));
-            geneExampleMetaData.setNumBytes(IntegerValidator.getInstance().validate(csvLineParts[9]));
-            geneExampleMetaData.setAssayType(csvLineParts[13]);
-            geneExampleMetaData.setBioProject(csvLineParts[14]);
-            geneExampleMetaData.setCenterName(csvLineParts[15]);
-            geneExampleMetaData.setConsent(csvLineParts[16]);
-            geneExampleMetaData.setDatastoreFiletype(csvLineParts[17]);
-            geneExampleMetaData.setInstrument(csvLineParts[18]);
-            geneExampleMetaData.setLibrarySelection(csvLineParts[19]);
-            geneExampleMetaData.setLibrarySource(csvLineParts[20]);
-            geneExampleMetaData.setLoadDate(csvLineParts[21]);
-            geneExampleMetaData.setOrganism(csvLineParts[22]);
-            geneExampleMetaData.setPlatform(csvLineParts[23]);
-            geneExampleMetaData.setReleaseDate(csvLineParts[24]);
-            geneExampleMetaData.setSraStudy(csvLineParts[25]);
-            return geneExampleMetaData;
+            geneSampleMetaData.setAvgSpotLen(IntegerValidator.getInstance().validate(csvLineParts[0]));
+            geneSampleMetaData.setBioSample(csvLineParts[1]);
+            geneSampleMetaData.setDatastoreProvider(csvLineParts[2]);
+            geneSampleMetaData.setDatastoreRegion(csvLineParts[3]);
+            geneSampleMetaData.setExperiment(csvLineParts[4]);
+            geneSampleMetaData.setInsertSize(IntegerValidator.getInstance().validate(csvLineParts[5]));
+            geneSampleMetaData.setLibraryName(csvLineParts[7]);
+            geneSampleMetaData.setNumBases(IntegerValidator.getInstance().validate(csvLineParts[8]));
+            geneSampleMetaData.setNumBytes(IntegerValidator.getInstance().validate(csvLineParts[9]));
+            geneSampleMetaData.setAssayType(csvLineParts[13]);
+            geneSampleMetaData.setBioProject(csvLineParts[14]);
+            geneSampleMetaData.setCenterName(csvLineParts[15]);
+            geneSampleMetaData.setConsent(csvLineParts[16]);
+            geneSampleMetaData.setDatastoreFiletype(csvLineParts[17]);
+            geneSampleMetaData.setInstrument(csvLineParts[18]);
+            geneSampleMetaData.setLibrarySelection(csvLineParts[19]);
+            geneSampleMetaData.setLibrarySource(csvLineParts[20]);
+            geneSampleMetaData.setLoadDate(csvLineParts[21]);
+            geneSampleMetaData.setOrganism(csvLineParts[22]);
+            geneSampleMetaData.setPlatform(csvLineParts[23]);
+            geneSampleMetaData.setReleaseDate(csvLineParts[24]);
+            geneSampleMetaData.setSraStudy(csvLineParts[25]);
+            return geneSampleMetaData;
         } catch (Exception e) {
             e.printStackTrace();
             throw new CsvParseException(csvLine);

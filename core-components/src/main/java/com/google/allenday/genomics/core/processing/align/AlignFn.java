@@ -4,8 +4,8 @@ import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
+import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
@@ -48,34 +48,39 @@ public class AlignFn extends DoFn<KV<KV<SampleMetaData, List<String>>, List<File
         LOG.info(String.format("Start of processing with input: %s", c.element().toString()));
 
         KV<SampleMetaData, List<String>> kvMetaDataRefs = c.element().getKey();
-        SampleMetaData geneExampleMetaData = kvMetaDataRefs.getKey();
+        SampleMetaData geneSampleMetaData = kvMetaDataRefs.getKey();
         List<String> referenceNames = kvMetaDataRefs.getValue();
 
         List<FileWrapper> fileWrapperList = c.element().getValue();
 
-        if (geneExampleMetaData == null || fileWrapperList.size() == 0) {
+        if (geneSampleMetaData == null || fileWrapperList.size() == 0) {
             LOG.error("Data error");
-            LOG.error("geneExampleMetaData: " + geneExampleMetaData);
+            LOG.error("geneSampleMetaData: " + geneSampleMetaData);
             LOG.error("fileWrapperList.size(): " + fileWrapperList.size());
             return;
         }
         try {
-            String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneExampleMetaData.getRunId());
+            String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneSampleMetaData.getRunId());
             try {
                 List<String> srcFilesPaths = fileWrapperList.stream()
                         .map(geneData -> transformIoHandler.handleInputAsLocalFile(gcsService, geneData, workingDir))
                         .collect(Collectors.toList());
-
                 for (String referenceName : referenceNames) {
-                    Pair<ReferenceDatabase, String> referenceDatabaseAndFastaLocalPath = referencesProvider.findReference(gcsService, referenceName);
-                    ReferenceDatabase referenceDatabase = referenceDatabaseAndFastaLocalPath.getValue0();
-                    String localFastaPath = referenceDatabaseAndFastaLocalPath.getValue1();
+                        Pair<ReferenceDatabase, String> referenceDatabaseAndFastaLocalPath = referencesProvider.findReference(gcsService, referenceName);
+                        ReferenceDatabase referenceDatabase = referenceDatabaseAndFastaLocalPath.getValue0();
+                        String localFastaPath = referenceDatabaseAndFastaLocalPath.getValue1();
 
-                    String alignedSamPath = alignService.alignFastq(localFastaPath, srcFilesPaths,
-                            workingDir, geneExampleMetaData.getRunId(), referenceName, geneExampleMetaData.getSraSample());
-                    c.output(KV.of(KV.of(geneExampleMetaData, referenceDatabase), transformIoHandler.handleFileOutput(gcsService, alignedSamPath)));
+                    try {
+                        String alignedSamPath = alignService.alignFastq(localFastaPath, srcFilesPaths,
+                                workingDir, geneSampleMetaData.getRunId(), referenceName, geneSampleMetaData.getSraSample());
+                        c.output(KV.of(KV.of(geneSampleMetaData, referenceDatabase), transformIoHandler.handleFileOutput(gcsService, alignedSamPath)));
+                    } catch (IOException e) {
+                        LOG.error(e.getMessage());
+                        e.printStackTrace();
+                        c.output(KV.of(KV.of(geneSampleMetaData, referenceDatabase), FileWrapper.empty()));
+                    }
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 LOG.error(e.getMessage());
                 e.printStackTrace();
             } finally {

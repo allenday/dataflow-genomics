@@ -11,6 +11,7 @@ import java.util.Objects;
 public class FileWrapper implements Serializable {
 
     private DataType dataType;
+    @Nullable
     private String fileName;
     @Nullable
     private String blobUri;
@@ -22,11 +23,15 @@ public class FileWrapper implements Serializable {
         this.fileName = fileName;
     }
 
-    public static FileWrapper fromBlobUri(String blobUri, String fileName){
+    public static FileWrapper empty() {
+        return new FileWrapper(DataType.EMPTY, null);
+    }
+
+    public static FileWrapper fromBlobUri(String blobUri, String fileName) {
         return new FileWrapper(DataType.BLOB_URI, fileName).withBlobUri(blobUri);
     }
 
-    public static FileWrapper fromByteArrayContent(byte[] content, String fileName){
+    public static FileWrapper fromByteArrayContent(byte[] content, String fileName) {
         return new FileWrapper(DataType.CONTENT, fileName).withContent(content);
     }
 
@@ -44,6 +49,7 @@ public class FileWrapper implements Serializable {
         return dataType;
     }
 
+    @Nullable
     public String getFileName() {
         return fileName;
     }
@@ -60,7 +66,7 @@ public class FileWrapper implements Serializable {
 
     @DefaultCoder(SerializableCoder.class)
     public enum DataType {
-        CONTENT, BLOB_URI
+        CONTENT, BLOB_URI, EMPTY
     }
 
     @Override

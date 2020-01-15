@@ -24,11 +24,17 @@ public class ParseSourceCsvTransform extends PTransform<PBegin,
     private FileUtils fileUtils;
 
     private List<String> sraSamplesToFilter;
+    private List<String> sraSamplesToSkip;
+
     private PTransform<PCollection<KV<SampleMetaData, List<FileWrapper>>>,
             PCollection<KV<SampleMetaData, List<FileWrapper>>>> preparingTransforms;
 
     public void setSraSamplesToFilter(List<String> sraSamplesToFilter) {
         this.sraSamplesToFilter = sraSamplesToFilter;
+    }
+
+    public void setSraSamplesToSkip(List<String> sraSamplesToSkip) {
+        this.sraSamplesToSkip = sraSamplesToSkip;
     }
 
     public void setPreparingTransforms(PTransform<PCollection<KV<SampleMetaData, List<FileWrapper>>>,
@@ -57,6 +63,10 @@ public class ParseSourceCsvTransform extends PTransform<PBegin,
         if (sraSamplesToFilter != null && sraSamplesToFilter.size() > 0) {
             csvLines = csvLines
                     .apply("Filter lines", Filter.by(name -> sraSamplesToFilter.stream().anyMatch(name::contains)));
+        }
+        if (sraSamplesToSkip != null && sraSamplesToSkip.size() > 0) {
+            csvLines = csvLines
+                    .apply("Filter lines", Filter.by(name -> sraSamplesToSkip.stream().noneMatch(name::contains)));
         }
         PCollection<KV<SampleMetaData, List<FileWrapper>>> readyToAlign = csvLines
                 .apply("Parse CSV line", ParDo.of(new ParseCsvLineFn(csvParser)))

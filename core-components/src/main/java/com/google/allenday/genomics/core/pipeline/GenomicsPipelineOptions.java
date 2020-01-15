@@ -9,12 +9,6 @@ import java.util.List;
 
 public interface GenomicsPipelineOptions extends DataflowPipelineOptions {
 
-    @Description("Name of GCS bucket with all resuts data")
-    @Validation.Required
-    String getResultBucket();
-
-    void setResultBucket(String value);
-
     @Description("Fasta model reference names list")
     @Validation.Required
     List<String> getReferenceNamesList();
@@ -29,9 +23,19 @@ public interface GenomicsPipelineOptions extends DataflowPipelineOptions {
 
     @Description("GCS dir path for processing output")
     @Validation.Required
-    String getOutputDir();
+    String getOutputGcsUri();
 
-    void setOutputDir(String value);
+    void setOutputGcsUri(String value);
+
+    @Description("SRA samples to filter")
+    List<String> getSraSamplesToFilter();
+
+    void setSraSamplesToFilter(List<String> value);
+
+    @Description("SRA samples to skip")
+    List<String> getSraSamplesToSkip();
+
+    void setSraSamplesToSkip(List<String> value);
 
     @Description("Threshold to decide how to pass data between transforms")
     @Default.Long(0)

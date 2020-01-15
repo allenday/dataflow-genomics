@@ -1,12 +1,12 @@
 package com.google.allenday.genomics.core.processing.other;
 
-import com.google.allenday.genomics.core.processing.SamBamManipulationService;
-import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.ReadGroupMetaData;
-import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
+import com.google.allenday.genomics.core.model.FileWrapper;
+import com.google.allenday.genomics.core.model.ReadGroupMetaData;
+import com.google.allenday.genomics.core.model.ReferenceDatabase;
+import com.google.allenday.genomics.core.processing.SamBamManipulationService;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
@@ -41,6 +41,15 @@ public class MergeFn extends DoFn<KV<KV<ReadGroupMetaData, ReferenceDatabase>, L
         return fileWrapperList.size() < 2;
     }
 
+
+    private boolean containesEmpty(List<FileWrapper> fileWrapperList) {
+        return fileWrapperList.stream().anyMatch(fileWrapper -> {
+            assert fileWrapper.getDataType() != null;
+            return fileWrapper.getDataType().equals(FileWrapper.DataType.EMPTY);
+        });
+    }
+
+
     @ProcessElement
     public void processElement(ProcessContext c) {
         LOG.info(String.format("Merge of sort with input: %s", c.element().toString()));
@@ -63,7 +72,10 @@ public class MergeFn extends DoFn<KV<KV<ReadGroupMetaData, ReferenceDatabase>, L
             LOG.error("fileWrapperList.size(): " + fileWrapperList.size());
             return;
         }
-
+        if (containesEmpty(fileWrapperList)){
+            LOG.info(String.format("Group %s containes empty FileWrappers", geneReadGroupMetaData.toString()));
+            return;
+        }
         try {
             String workDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneReadGroupMetaData.getSraSample());
             try {

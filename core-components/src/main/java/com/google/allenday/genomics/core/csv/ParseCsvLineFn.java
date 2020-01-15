@@ -19,8 +19,8 @@ public class ParseCsvLineFn extends DoFn<String, SampleMetaData> {
         String input = c.element();
         LOG.info(String.format("Parse %s", input));
         try {
-            SampleMetaData geneExampleMetaData = SampleMetaData.fromCsvLine(csvParser, input);
-            c.output(geneExampleMetaData);
+            SampleMetaData geneSampleMetaData = SampleMetaData.fromCsvLine(csvParser, input);
+            c.output(geneSampleMetaData);
         } catch (SampleMetaData.Parser.CsvParseException e) {
             LOG.error(e.getMessage());
             e.printStackTrace();

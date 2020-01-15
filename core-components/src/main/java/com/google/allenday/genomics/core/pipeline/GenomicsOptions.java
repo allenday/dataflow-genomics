@@ -1,5 +1,8 @@
 package com.google.allenday.genomics.core.pipeline;
 
+import com.google.cloud.storage.BlobId;
+import org.javatuples.Pair;
+
 import java.util.List;
 
 public class GenomicsOptions {
@@ -10,7 +13,7 @@ public class GenomicsOptions {
     private final String BAM_INDEX_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
     private final String DEEP_VARIANT_OUTPUT_PATH_PATTERN = "%s/result_dv/";
     private final String VCF_TO_BQ_PATH = "vcf_to_bq/";
-    private final String ANOMALY_PATH_PATTERN = "%s/anomaly_examples/";
+    private final String ANOMALY_PATH_PATTERN = "%s/anomaly_samples/";
 
     private String resultBucket;
     private List<String> geneReferences;
@@ -36,11 +39,13 @@ public class GenomicsOptions {
     }
 
     public static GenomicsOptions fromAlignerPipelineOptions(GenomicsPipelineOptions alignerPipelineOptions) {
+
+        Pair<String, String> bucketDirPair = splitGcsPath(alignerPipelineOptions.getOutputGcsUri());
         GenomicsOptions genomicsOptions = new GenomicsOptions(
-                alignerPipelineOptions.getResultBucket(),
+                bucketDirPair.getValue0(),
                 alignerPipelineOptions.getReferenceNamesList(),
                 alignerPipelineOptions.getAllReferencesDirGcsUri(),
-                alignerPipelineOptions.getOutputDir(),
+                bucketDirPair.getValue1(),
                 alignerPipelineOptions.getMemoryOutputLimit());
 
         DeepVariantOptions deepVariantOptions = new DeepVariantOptions();
@@ -68,6 +73,14 @@ public class GenomicsOptions {
         genomicsOptions.setDeepVariantOptions(deepVariantOptions);
         genomicsOptions.setVcfBqDatasetAndTablePattern(alignerPipelineOptions.getVcfBqDatasetAndTablePattern());
         return genomicsOptions;
+    }
+
+    private static Pair<String, String> splitGcsPath(String uri) {
+        String workPart = uri.split("//")[1];
+        String[] parts = workPart.split("/");
+        String bucket = parts[0];
+        String name = workPart.replace(bucket + "/", "");
+        return Pair.with(bucket, name);
     }
 
     public String getResultBucket() {
@@ -121,6 +134,10 @@ public class GenomicsOptions {
 
     public DeepVariantOptions getDeepVariantOptions() {
         return deepVariantOptions;
+    }
+
+    public String getBaseOutputDir() {
+        return outputDir;
     }
 
     public void setDeepVariantOptions(DeepVariantOptions deepVariantOptions) {

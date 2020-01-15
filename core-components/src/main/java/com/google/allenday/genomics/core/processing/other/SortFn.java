@@ -4,8 +4,8 @@ import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
+import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.processing.SamBamManipulationService;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
@@ -40,21 +40,24 @@ public class SortFn extends DoFn<KV<KV<SampleMetaData, ReferenceDatabase>, FileW
 
         KV<KV<SampleMetaData, ReferenceDatabase>, FileWrapper> input = c.element();
         ReferenceDatabase referenceDatabase = input.getKey().getValue();
-        SampleMetaData geneExampleMetaData = input.getKey().getKey();
+        SampleMetaData geneSampleMetaData = input.getKey().getKey();
         FileWrapper fileWrapper = input.getValue();
 
-        if (geneExampleMetaData == null || fileWrapper == null) {
+        if (geneSampleMetaData == null || fileWrapper == null) {
             LOG.error("Data error");
-            LOG.error("geneExampleMetaData: " + geneExampleMetaData);
+            LOG.error("geneSampleMetaData: " + geneSampleMetaData);
             LOG.error("fileWrapper: " + fileWrapper);
             return;
         }
+        if (fileWrapper.getDataType() == FileWrapper.DataType.EMPTY) {
+            c.output(KV.of(input.getKey(), fileWrapper));
+        }
         try {
-            String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneExampleMetaData.getRunId());
+            String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneSampleMetaData.getRunId());
             try {
                 String inputFilePath = transformIoHandler.handleInputAsLocalFile(gcsService, fileWrapper, workingDir);
                 String alignedSortedBamPath = samBamManipulationService.sortSam(
-                        inputFilePath, workingDir, geneExampleMetaData.getRunId(), referenceDatabase.getDbName());
+                        inputFilePath, workingDir, geneSampleMetaData.getRunId(), referenceDatabase.getDbName());
 
                 c.output(KV.of(input.getKey(), transformIoHandler.handleFileOutput(gcsService, alignedSortedBamPath)));
             } catch (IOException e) {

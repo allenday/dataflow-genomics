@@ -19,11 +19,11 @@ public class UriProvider implements Serializable {
         this.providerRule = providerRule;
     }
 
-    public List<String> provide(SampleMetaData geneExampleMetaData) {
-        return providerRule.provideAccordinglyRule(geneExampleMetaData, srcBucket);
+    public List<String> provide(SampleMetaData geneSampleMetaData) {
+        return providerRule.provideAccordinglyRule(geneSampleMetaData, srcBucket);
     }
 
     public interface ProviderRule extends Serializable{
-        List<String> provideAccordinglyRule(SampleMetaData geneExampleMetaData, String srcBucket);
+        List<String> provideAccordinglyRule(SampleMetaData geneSampleMetaData, String srcBucket);
     }
 }

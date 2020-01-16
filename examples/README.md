@@ -12,6 +12,54 @@ Processing includes next steps:
 8. Variant Calling with [Deep Variant](https://github.com/google/deepvariant)
 9. Exporting VCF files into big query with [gcp-variant-transforms](https://github.com/googlegenomics/gcp-variant-transforms)
 
+### File structure
+```
+PROJECT_NAME=(specify_project_name)
+SRC_BUCKET_NAME=${PROJECT_NAME}-src
+WORKING_BUCKET_NAME=${PROJECT_NAME}-working
+```
+Structure of `SRC_BUCKET`
+```lang-none
++ ${SRC_BUCKET_NAME}/
+    + sra_csv/
+        - sra_project_1.csv
+        - sra_project_2.csv
+        - ...
++ fastq/
+    + (sra_study_name)/
+        + (sra_sample_nmae)/
+            - (sra_read_name_1)_1.fastq
+            - (sra_read_name_1)_2.fastq
+            - (sra_read_name_2)_1.fastq
+            - (sra_read_name_2)_2.fastq
+            - (sra_read_name_3)_1.fastq
++ reference/
+    + (reference_name)/
+        - (reference_name).fa
+        - (reference_name).fa.fai
+```
+Structure of `WORKING_BUCKET`. Following files structure would be created after processing:
+```lang-none
++ ${WORKING_BUCKET_NAME}/
+    + processing_output/
+        + (processing_date)/
+            + result_aligned_bam/
+                - (read_name_1)_(reference_name).bam
+            + result_sorted_bam/
+                - (read_name_1)_(reference_name).bam
+            + result_merged_bam/
+                - (sample_name_1)_(reference_name).bam
+                - (sample_name_1)_(reference_name).bam.bai
+            + result_dv/
+                + (sample_name_1)_(reference_name)/
+                    - (sample_name_1)_(reference_name).vcf
+                    - (log_filed)
+  + dataflow/
+    + temp/
+        - (dataflow_job_temp_files)
+    + staging/
+        - (dataflow_job_staging_files)
+```
 ### Example
 
 #### Per-sample (fastq => bigquery) processing job:

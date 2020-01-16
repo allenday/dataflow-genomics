@@ -1,5 +1,6 @@
 package com.google.allenday.nanostream.rice.anomaly;
 
+import com.google.allenday.genomics.core.batch.PreparingTransform;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.utils.ValueIterableToValueListTransform;
@@ -14,8 +15,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class DetectAnomalyTransform extends PTransform<PCollection<KV<SampleMetaData, List<FileWrapper>>>,
-        PCollection<KV<SampleMetaData, List<FileWrapper>>>> {
+public class DetectAnomalyTransform extends PreparingTransform {
 
     private String resultBucket;
     private String anomalyOutputPath;

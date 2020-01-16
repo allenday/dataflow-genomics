@@ -60,7 +60,7 @@ public class SortFn extends DoFn<KV<KV<SampleMetaData, ReferenceDatabase>, FileW
                             inputFilePath, workingDir, geneSampleMetaData.getRunId(), referenceDatabase.getDbName());
 
                     c.output(KV.of(input.getKey(), transformIoHandler.handleFileOutput(gcsService, alignedSortedBamPath)));
-                } catch (IOException e) {
+                } catch (Exception e) {
                     LOG.error(e.getMessage());
                     e.printStackTrace();
                     c.output(KV.of(input.getKey(), FileWrapper.empty()));

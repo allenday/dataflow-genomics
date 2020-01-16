@@ -18,7 +18,7 @@ Processing includes next steps:
 ```bash
 mvn clean package
 java -cp target/NanostreamCannabis-0.0.2.jar \
-    com.google.allenday.nanostream.cannabis.NanostreamCannabisApp \
+    com.google.allenday.nanostream.cannabis.NanostreamBatchApp \
         --project=cannabis-3k \
         --region="us-central1" \
         --workerMachineType=n1-standard-4 \
@@ -97,7 +97,7 @@ Use following commands to run processing:
 ```
 mvn clean package
 java -cp target/NanostreamCannabis-(current_version).jar \
-    com.google.allenday.nanostream.cannabis.NanostreamCannabisApp \
+    com.google.allenday.nanostream.cannabis.NanostreamBatchApp \
         --project=(gcp_project_id) \
         --region=(gcp_worker_machines_region) \
         --workerMachineType=(gcp_worker_machines_type) \

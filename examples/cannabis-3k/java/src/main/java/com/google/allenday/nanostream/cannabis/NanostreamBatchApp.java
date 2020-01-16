@@ -1,5 +1,6 @@
 package com.google.allenday.nanostream.cannabis;
 
+import com.google.allenday.genomics.core.batch.BatchProcessingPipelineOptions;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
 import com.google.allenday.genomics.core.model.BamWithIndexUris;
 import com.google.allenday.genomics.core.model.ReadGroupMetaData;
@@ -19,18 +20,18 @@ import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 
-public class NanostreamCannabisApp {
+public class NanostreamBatchApp {
 
     private final static String JOB_NAME_PREFIX = "nanostream-cannabis--";
 
     public static void main(String[] args) {
 
-        NanostreamCannabisPipelineOptions pipelineOptions = PipelineOptionsFactory.fromArgs(args)
+        BatchProcessingPipelineOptions pipelineOptions = PipelineOptionsFactory.fromArgs(args)
                 .withValidation()
-                .as(NanostreamCannabisPipelineOptions.class);
+                .as(BatchProcessingPipelineOptions.class);
         PipelineSetupUtils.prepareForInlineAlignment(pipelineOptions);
 
-        Injector injector = Guice.createInjector(new NanostreamCannabisModule.Builder()
+        Injector injector = Guice.createInjector(new NanostreamBatchModule.Builder()
                 .setFromOptions(pipelineOptions)
                 .build());
 
@@ -48,7 +49,7 @@ public class NanostreamCannabisApp {
                     .apply("Variant Calling", ParDo.of(injector.getInstance(DeepVariantFn.class)))
                     .apply("Prepare to VcfToBq transform", MapElements.via(new DvAndVcfToBqConnector()));
 
-            if (pipelineOptions.getExportVcfToBq()) {
+            if (pipelineOptions.getWithExportVcfToBq()) {
                 vcfResults
                         .apply("Export to BigQuery", ParDo.of(injector.getInstance(VcfToBqFn.class)));
             }

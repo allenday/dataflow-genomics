@@ -56,8 +56,8 @@ public class FileUtils implements Serializable {
         return Files.readAllBytes(new File(filePath).toPath());
     }
 
-    public long getFileSizeMegaBytes(String filePath) {
-        return new File(filePath).length() / (1024 * 1024);
+    public double getFileSizeMegaBytes(String filePath) {
+        return new File(filePath).length() / (double)(1024 * 1024);
     }
 
     public String getFilenameFromPath(String filePath) {

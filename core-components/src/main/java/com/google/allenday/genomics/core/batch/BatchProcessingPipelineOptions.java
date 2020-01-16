@@ -1,13 +1,11 @@
-package com.google.allenday.nanostream.cannabis;
+package com.google.allenday.genomics.core.batch;
 
 import com.google.allenday.genomics.core.pipeline.GenomicsPipelineOptions;
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.Validation;
 
-import java.util.List;
-
-public interface NanostreamCannabisPipelineOptions extends GenomicsPipelineOptions {
+public interface BatchProcessingPipelineOptions extends GenomicsPipelineOptions {
 
     @Description("Name of GCS bucket with all source data")
     @Validation.Required
@@ -22,9 +20,9 @@ public interface NanostreamCannabisPipelineOptions extends GenomicsPipelineOptio
     void setInputCsvUri(String value);
 
     @Default.Boolean(true)
-    Boolean getExportVcfToBq();
+    Boolean getWithExportVcfToBq();
 
-    void setExportVcfToBq(Boolean value);
+    void setWithExportVcfToBq(Boolean value);
 
     @Default.Boolean(true)
     Boolean getWithVariantCalling();

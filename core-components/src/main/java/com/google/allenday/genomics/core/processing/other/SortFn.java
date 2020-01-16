@@ -51,24 +51,26 @@ public class SortFn extends DoFn<KV<KV<SampleMetaData, ReferenceDatabase>, FileW
         }
         if (fileWrapper.getDataType() == FileWrapper.DataType.EMPTY) {
             c.output(KV.of(input.getKey(), fileWrapper));
-        }
-        try {
-            String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneSampleMetaData.getRunId());
+        } else {
             try {
-                String inputFilePath = transformIoHandler.handleInputAsLocalFile(gcsService, fileWrapper, workingDir);
-                String alignedSortedBamPath = samBamManipulationService.sortSam(
-                        inputFilePath, workingDir, geneSampleMetaData.getRunId(), referenceDatabase.getDbName());
+                String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneSampleMetaData.getRunId());
+                try {
+                    String inputFilePath = transformIoHandler.handleInputAsLocalFile(gcsService, fileWrapper, workingDir);
+                    String alignedSortedBamPath = samBamManipulationService.sortSam(
+                            inputFilePath, workingDir, geneSampleMetaData.getRunId(), referenceDatabase.getDbName());
 
-                c.output(KV.of(input.getKey(), transformIoHandler.handleFileOutput(gcsService, alignedSortedBamPath)));
-            } catch (IOException e) {
+                    c.output(KV.of(input.getKey(), transformIoHandler.handleFileOutput(gcsService, alignedSortedBamPath)));
+                } catch (IOException e) {
+                    LOG.error(e.getMessage());
+                    e.printStackTrace();
+                    c.output(KV.of(input.getKey(), FileWrapper.empty()));
+                } finally {
+                    fileUtils.deleteDir(workingDir);
+                }
+            } catch (RuntimeException e) {
                 LOG.error(e.getMessage());
                 e.printStackTrace();
-            } finally {
-                fileUtils.deleteDir(workingDir);
             }
-        } catch (RuntimeException e) {
-            LOG.error(e.getMessage());
-            e.printStackTrace();
         }
 
     }

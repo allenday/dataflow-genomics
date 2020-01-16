@@ -72,6 +72,12 @@
             <artifactId>google-cloud-resourcemanager</artifactId>
             <version>0.116.0-alpha</version>
         </dependency>
+        <!--di-->
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <version>4.2.2</version>
+        </dependency>
         <!--Google Auth-->
         <dependency>
             <groupId>com.google.auth</groupId>

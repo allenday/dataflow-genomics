@@ -1,4 +1,4 @@
-package com.google.allenday.nanostream.rice;
+package com.google.allenday.nanostream.cannabis;
 
 import com.google.allenday.genomics.core.batch.BatchProcessingModule;
 import com.google.allenday.genomics.core.batch.BatchProcessingPipelineOptions;
@@ -7,9 +7,9 @@ import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.UriProvider;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.utils.NameProvider;
-import com.google.allenday.nanostream.rice.anomaly.DetectAnomalyTransform;
-import com.google.allenday.nanostream.rice.anomaly.RecognizePairedReadsWithAnomalyFn;
-import com.google.allenday.nanostream.rice.io.RiceUriProvider;
+import com.google.allenday.nanostream.cannabis.anomaly.DetectAnomalyTransform;
+import com.google.allenday.nanostream.cannabis.anomaly.RecognizePairedReadsWithAnomalyFn;
+import com.google.allenday.nanostream.cannabis.io.CannabisUriProvider;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 
@@ -20,14 +20,15 @@ import java.util.List;
 /**
  *
  */
-public class NanostreamRiceModule extends BatchProcessingModule {
+public class NanostreamCannabisModule extends BatchProcessingModule {
 
-    public NanostreamRiceModule(String srcBucket,
-                                String inputCsvUri,
-                                List<String> sraSamplesToFilter,
-                                List<String> sraSamplesToSkip,
-                                String project, String region,
-                                GenomicsOptions genomicsOptions) {
+    public NanostreamCannabisModule(String srcBucket,
+                                    String inputCsvUri,
+                                    List<String> sraSamplesToFilter,
+                                    List<String> sraSamplesToSkip,
+                                    String project,
+                                    String region,
+                                    GenomicsOptions genomicsOptions) {
         super(srcBucket, inputCsvUri, sraSamplesToFilter, sraSamplesToSkip, project, region, genomicsOptions);
     }
 
@@ -51,6 +52,11 @@ public class NanostreamRiceModule extends BatchProcessingModule {
             return this;
         }
 
+        public Builder setSraSamplesToSkip(List<String> sraSamplesToSkip) {
+            this.sraSamplesToSkip = sraSamplesToSkip;
+            return this;
+        }
+
         public Builder setGenomicsOptions(GenomicsOptions genomicsOptions) {
             this.genomicsOptions = genomicsOptions;
             return this;
@@ -61,32 +67,26 @@ public class NanostreamRiceModule extends BatchProcessingModule {
             return this;
         }
 
-        public Builder setSraSamplesToSkip(List<String> sraSamplesToSkip) {
-            this.sraSamplesToSkip = sraSamplesToSkip;
-            return this;
-        }
-
         public Builder setFromOptions(BatchProcessingPipelineOptions batchProcessingPipelineOptions) {
             setInputCsvUri(batchProcessingPipelineOptions.getInputCsvUri());
             setSraSamplesToFilter(batchProcessingPipelineOptions.getSraSamplesToFilter());
+            setSraSamplesToSkip(batchProcessingPipelineOptions.getSraSamplesToSkip());
             setGenomicsOptions(GenomicsOptions.fromAlignerPipelineOptions(batchProcessingPipelineOptions));
             setSrcBucket(batchProcessingPipelineOptions.getSrcBucket());
-            setSraSamplesToSkip(batchProcessingPipelineOptions.getSraSamplesToSkip());
             region = batchProcessingPipelineOptions.getRegion();
             project = batchProcessingPipelineOptions.getProject();
             return this;
         }
 
-        public NanostreamRiceModule build() {
-            return new NanostreamRiceModule(srcBucket, inputCsvUri, sraSamplesToFilter,
-                    sraSamplesToSkip, project, region, genomicsOptions);
+        public NanostreamCannabisModule build() {
+            return new NanostreamCannabisModule(srcBucket, inputCsvUri, sraSamplesToFilter, sraSamplesToSkip, project, region, genomicsOptions);
         }
 
     }
 
     @Provides
     @Singleton
-    public RecognizePairedReadsWithAnomalyFn provideParseRiceDataFn(FileUtils fileUtils) {
+    public RecognizePairedReadsWithAnomalyFn provideParseCannabisDataFn(FileUtils fileUtils) {
         return new RecognizePairedReadsWithAnomalyFn(srcBucket, fileUtils);
     }
 
@@ -100,8 +100,7 @@ public class NanostreamRiceModule extends BatchProcessingModule {
 
     @Provides
     @Singleton
-    public UriProvider provideRiceUriProvider() {
-        return RiceUriProvider.withDefaultProviderRule(srcBucket);
+    public UriProvider provideCannabisUriProvider() {
+        return CannabisUriProvider.withDefaultProviderRule(srcBucket);
     }
-
 }

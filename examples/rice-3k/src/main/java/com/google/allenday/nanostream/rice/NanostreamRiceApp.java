@@ -1,6 +1,9 @@
 package com.google.allenday.nanostream.rice;
 
+import com.google.allenday.genomics.core.batch.BatchProcessingPipelineOptions;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
+import com.google.allenday.genomics.core.model.BamWithIndexUris;
+import com.google.allenday.genomics.core.model.ReadGroupMetaData;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.pipeline.PipelineSetupUtils;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
@@ -23,9 +26,9 @@ public class NanostreamRiceApp {
 
     public static void main(String[] args) {
 
-        NanostreamRicePipelineOptions pipelineOptions = PipelineOptionsFactory.fromArgs(args)
+        BatchProcessingPipelineOptions pipelineOptions = PipelineOptionsFactory.fromArgs(args)
                 .withValidation()
-                .as(NanostreamRicePipelineOptions.class);
+                .as(BatchProcessingPipelineOptions.class);
         PipelineSetupUtils.prepareForInlineAlignment(pipelineOptions);
 
         Injector injector = Guice.createInjector(new NanostreamRiceModule.Builder()
@@ -36,21 +39,21 @@ public class NanostreamRiceApp {
         pipelineOptions.setJobName(nameProvider.buildJobName(JOB_NAME_PREFIX, pipelineOptions.getSraSamplesToFilter()));
 
         Pipeline pipeline = Pipeline.create(pipelineOptions);
-        pipeline
-                .apply("Parse data", injector.getInstance(ParseSourceCsvTransform.class))
-                .apply("Align reads and prepare for DV", injector.getInstance(AlignAndPostProcessTransform.class))
-                ;
-//        PCollection<KV<ReferenceDatabase, String>> vcfResults = pipeline
-//                .apply("Parse data", injector.getInstance(ParseSourceCsvTransform.class))
-//                .apply("Align reads and prepare for DV", injector.getInstance(AlignAndPostProcessTransform.class))
-//                .apply("Variant Calling", ParDo.of(injector.getInstance(DeepVariantFn.class)))
-//                .apply("Prepare to VcfToBq transform", MapElements.via(new DvAndVcfToBqConnector()));
-//
-//        if (pipelineOptions.getExportVcfToBq()) {
-//            vcfResults
-//                    .apply("Export to BigQuery", ParDo.of(injector.getInstance(VcfToBqFn.class)));
-//        }
 
+        PCollection<KV<KV<ReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>> bamWithIndexUris = pipeline
+                .apply("Parse data", injector.getInstance(ParseSourceCsvTransform.class))
+                .apply("Align reads and prepare for DV", injector.getInstance(AlignAndPostProcessTransform.class));
+
+        if (pipelineOptions.getWithVariantCalling()) {
+            PCollection<KV<ReferenceDatabase, String>> vcfResults = bamWithIndexUris
+                    .apply("Variant Calling", ParDo.of(injector.getInstance(DeepVariantFn.class)))
+                    .apply("Prepare to VcfToBq transform", MapElements.via(new DvAndVcfToBqConnector()));
+
+            if (pipelineOptions.getWithExportVcfToBq()) {
+                vcfResults
+                        .apply("Export to BigQuery", ParDo.of(injector.getInstance(VcfToBqFn.class)));
+            }
+        }
         pipeline.run();
     }
 }

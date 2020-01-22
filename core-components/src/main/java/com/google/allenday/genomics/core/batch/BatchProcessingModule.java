@@ -1,10 +1,11 @@
-package com.google.allenday.nanostream.cannabis;
+package com.google.allenday.genomics.core.batch;
 
 import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
+import com.google.allenday.genomics.core.io.UriProvider;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraParser;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
@@ -23,9 +24,6 @@ import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqFn;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqService;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
 import com.google.allenday.genomics.core.utils.NameProvider;
-import com.google.allenday.nanostream.cannabis.anomaly.DetectAnomalyTransform;
-import com.google.allenday.nanostream.cannabis.anomaly.RecognizePairedReadsWithAnomalyFn;
-import com.google.allenday.nanostream.cannabis.io.CannabisUriProvider;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
@@ -38,77 +36,25 @@ import java.util.List;
 /**
  *
  */
-public class NanostreamCannabisModule extends AbstractModule {
+public abstract class BatchProcessingModule extends AbstractModule {
 
-    private String srcBucket;
-    private String inputCsvUri;
-    private List<String> sraSamplesToFilter;
-    private List<String> sraSamplesToSkip;
-    private String project;
-    private String region;
+    protected String srcBucket;
+    protected String inputCsvUri;
+    protected List<String> sraSamplesToFilter;
+    protected List<String> sraSamplesToSkip;
+    protected String project;
+    protected String region;
+    protected GenomicsOptions genomicsOptions;
 
-    private GenomicsOptions genomicsOptions;
-
-    public NanostreamCannabisModule(Builder builder) {
-        this.inputCsvUri = builder.inputCsvUri;
-        this.sraSamplesToFilter = builder.sraSamplesToFilter;
-        this.sraSamplesToSkip = builder.sraSamplesToSkip;
-        this.genomicsOptions = builder.genomicsOptions;
-        this.srcBucket = builder.srcBucket;
-        this.project = builder.project;
-        this.region = builder.region;
-    }
-
-    public static class Builder {
-        private String srcBucket;
-        private String inputCsvUri;
-        private GenomicsOptions genomicsOptions;
-        private String project;
-        private String region;
-
-        private List<String> sraSamplesToFilter;
-        private List<String> sraSamplesToSkip;
-
-        public Builder setInputCsvUri(String inputCsvUri) {
-            this.inputCsvUri = inputCsvUri;
-            return this;
-        }
-
-        public Builder setSraSamplesToFilter(List<String> sraSamplesToFilter) {
-            this.sraSamplesToFilter = sraSamplesToFilter;
-            return this;
-        }
-
-        public Builder setSraSamplesToSkip(List<String> sraSamplesToSkip) {
-            this.sraSamplesToSkip = sraSamplesToSkip;
-            return this;
-        }
-
-        public Builder setGenomicsOptions(GenomicsOptions genomicsOptions) {
-            this.genomicsOptions = genomicsOptions;
-            return this;
-        }
-
-        public Builder setSrcBucket(String srcBucket) {
-            this.srcBucket = srcBucket;
-            return this;
-        }
-
-        public Builder setFromOptions(NanostreamCannabisPipelineOptions nanostreamPipelineOptions) {
-            setInputCsvUri(nanostreamPipelineOptions.getInputCsvUri());
-            setSraSamplesToFilter(nanostreamPipelineOptions.getSraSamplesToFilter());
-            setSraSamplesToSkip(nanostreamPipelineOptions.getSraSamplesToSkip());
-            setGenomicsOptions(GenomicsOptions.fromAlignerPipelineOptions(nanostreamPipelineOptions));
-            setSrcBucket(nanostreamPipelineOptions.getSrcBucket());
-            region = nanostreamPipelineOptions.getRegion();
-            project = nanostreamPipelineOptions.getProject();
-            return this;
-        }
-
-        public NanostreamCannabisModule build() {
-            return new NanostreamCannabisModule(this);
-        }
-
+    public BatchProcessingModule(String srcBucket, String inputCsvUri, List<String> sraSamplesToFilter,
+                                 List<String> sraSamplesToSkip, String project, String region, GenomicsOptions genomicsOptions) {
+        this.srcBucket = srcBucket;
+        this.inputCsvUri = inputCsvUri;
+        this.sraSamplesToFilter = sraSamplesToFilter;
+        this.sraSamplesToSkip = sraSamplesToSkip;
+        this.project = project;
+        this.region = region;
+        this.genomicsOptions = genomicsOptions;
     }
 
     @Provides
@@ -117,19 +63,6 @@ public class NanostreamCannabisModule extends AbstractModule {
         return NameProvider.initialize();
     }
 
-    @Provides
-    @Singleton
-    public RecognizePairedReadsWithAnomalyFn provideParseCannabisDataFn(FileUtils fileUtils) {
-        return new RecognizePairedReadsWithAnomalyFn(srcBucket, fileUtils);
-    }
-
-    @Provides
-    @Singleton
-    public DetectAnomalyTransform provideGroupByPairedReadsAndFilter(RecognizePairedReadsWithAnomalyFn recognizePairedReadsWithAnomalyFn,
-                                                                     NameProvider nameProvider) {
-        return new DetectAnomalyTransform("Filter anomaly and prepare for processing", genomicsOptions.getResultBucket(),
-                String.format(genomicsOptions.getAnomalyOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()), recognizePairedReadsWithAnomalyFn);
-    }
 
     @Provides
     @Singleton
@@ -230,24 +163,19 @@ public class NanostreamCannabisModule extends AbstractModule {
         return new SraParser();
     }
 
-    @Provides
-    @Singleton
-    public CannabisUriProvider provideCannabisUriProvider() {
-        return CannabisUriProvider.withDefaultProviderRule(srcBucket);
-    }
 
     @Provides
     @Singleton
     public ParseSourceCsvTransform provideParseSourceCsvTransform(FileUtils fileUtils,
                                                                   SampleMetaData.Parser geneSampleMetaDataParser,
-                                                                  CannabisUriProvider cannabisUriProvider,
-                                                                  DetectAnomalyTransform detectAnomalyTransform) {
+                                                                  UriProvider uriProvider,
+                                                                  PreparingTransform preparingTransform) {
 
         ParseSourceCsvTransform parseSourceCsvTransform = new ParseSourceCsvTransform("Parse CSV", inputCsvUri,
-                geneSampleMetaDataParser, cannabisUriProvider, fileUtils);
+                geneSampleMetaDataParser, uriProvider, fileUtils);
         parseSourceCsvTransform.setSraSamplesToFilter(sraSamplesToFilter);
         parseSourceCsvTransform.setSraSamplesToSkip(sraSamplesToSkip);
-        parseSourceCsvTransform.setPreparingTransforms(detectAnomalyTransform);
+        parseSourceCsvTransform.setPreparingTransforms(preparingTransform);
         return parseSourceCsvTransform;
     }
 

@@ -1,12 +1,11 @@
-package com.google.allenday.nanostream.rice;
+package com.google.allenday.genomics.core.batch;
 
 import com.google.allenday.genomics.core.pipeline.GenomicsPipelineOptions;
+import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.Validation;
 
-import java.util.List;
-
-public interface NanostreamRicePipelineOptions extends GenomicsPipelineOptions {
+public interface BatchProcessingPipelineOptions extends GenomicsPipelineOptions {
 
     @Description("Name of GCS bucket with all source data")
     @Validation.Required
@@ -20,13 +19,14 @@ public interface NanostreamRicePipelineOptions extends GenomicsPipelineOptions {
 
     void setInputCsvUri(String value);
 
-    @Description("SRA samples to filter")
-    List<String> getSraSamplesToFilter();
+    @Default.Boolean(true)
+    Boolean getWithExportVcfToBq();
 
-    void setSraSamplesToFilter(List<String> value);
+    void setWithExportVcfToBq(Boolean value);
 
-    Boolean getExportVcfToBq();
+    @Default.Boolean(true)
+    Boolean getWithVariantCalling();
 
-    void setExportVcfToBq(Boolean value);
+    void setWithVariantCalling(Boolean value);
 }
 

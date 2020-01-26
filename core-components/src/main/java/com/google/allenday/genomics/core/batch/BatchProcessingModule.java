@@ -228,4 +228,10 @@ public abstract class BatchProcessingModule extends AbstractModule {
     public String provideOutputDir() {
         return genomicsOptions.getBaseOutputDir();
     }
+
+    @Provides
+    @Singleton
+    public GenomicsOptions provideGenomicsOptions() {
+        return genomicsOptions;
+    }
 }

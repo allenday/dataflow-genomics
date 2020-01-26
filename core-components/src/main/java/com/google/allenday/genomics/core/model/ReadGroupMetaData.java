@@ -24,8 +24,6 @@ public class ReadGroupMetaData implements Serializable {
     @Nullable
     protected String consent;
     @Nullable
-    protected String datastoreFiletype;
-    @Nullable
     protected String organism;
     @Nullable
     protected String sraStudy;
@@ -72,14 +70,6 @@ public class ReadGroupMetaData implements Serializable {
         this.consent = consent;
     }
 
-    public String getDatastoreFiletype() {
-        return datastoreFiletype;
-    }
-
-    public void setDatastoreFiletype(String datastoreFiletype) {
-        this.datastoreFiletype = datastoreFiletype;
-    }
-
     public String getOrganism() {
         return organism;
     }
@@ -105,14 +95,13 @@ public class ReadGroupMetaData implements Serializable {
                 Objects.equals(bioSample, that.bioSample) &&
                 Objects.equals(bioProject, that.bioProject) &&
                 Objects.equals(consent, that.consent) &&
-                Objects.equals(datastoreFiletype, that.datastoreFiletype) &&
                 Objects.equals(organism, that.organism) &&
                 Objects.equals(sraStudy, that.sraStudy);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sraSample, bioSample, bioProject, consent, datastoreFiletype, organism, sraStudy);
+        return Objects.hash(sraSample, bioSample, bioProject, consent, organism, sraStudy);
     }
 
     @Override
@@ -122,7 +111,6 @@ public class ReadGroupMetaData implements Serializable {
                 ", bioSample='" + bioSample + '\'' +
                 ", bioProject='" + bioProject + '\'' +
                 ", consent='" + consent + '\'' +
-                ", datastoreFiletype='" + datastoreFiletype + '\'' +
                 ", organism='" + organism + '\'' +
                 ", sraStudy='" + sraStudy + '\'' +
                 '}';

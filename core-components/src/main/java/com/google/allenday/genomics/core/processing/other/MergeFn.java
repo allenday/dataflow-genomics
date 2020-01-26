@@ -73,7 +73,7 @@ public class MergeFn extends DoFn<KV<KV<ReadGroupMetaData, ReferenceDatabase>, L
             return;
         }
         if (containesEmpty(fileWrapperList)){
-            LOG.info(String.format("Group %s containes empty FileWrappers", geneReadGroupMetaData.toString()));
+            LOG.info(String.format("Group %s contains empty FileWrappers", geneReadGroupMetaData.toString()));
             return;
         }
         try {

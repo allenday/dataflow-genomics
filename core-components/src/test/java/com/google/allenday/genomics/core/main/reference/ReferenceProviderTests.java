@@ -30,6 +30,8 @@ public class ReferenceProviderTests {
                 .thenReturn(blobId);
         Mockito.when(fileUtilsMock.exists(Mockito.anyString()))
                 .thenReturn(false);
+        Mockito.when(fileUtilsMock.getFilenameFromPath(Mockito.anyString()))
+                .thenReturn(REFERENCE_NAME);
         Mockito.when(blobMock.getName())
                 .thenReturn(REFERENCE_NAME+REFERENCE_EXTENSION);
 

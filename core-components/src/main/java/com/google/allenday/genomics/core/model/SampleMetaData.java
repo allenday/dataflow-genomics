@@ -51,6 +51,8 @@ public class SampleMetaData extends ReadGroupMetaData implements Serializable {
     protected String librarySelection;
     @Nullable
     protected String librarySource;
+    @Nullable
+    protected String datastoreFiletype;
 
     private String runId;
     private String libraryLayout;
@@ -258,6 +260,14 @@ public class SampleMetaData extends ReadGroupMetaData implements Serializable {
         this.librarySource = librarySource;
     }
 
+    public String getDatastoreFiletype() {
+        return datastoreFiletype;
+    }
+
+    public void setDatastoreFiletype(String datastoreFiletype) {
+        this.datastoreFiletype = datastoreFiletype;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -280,6 +290,7 @@ public class SampleMetaData extends ReadGroupMetaData implements Serializable {
                 Objects.equals(centerName, that.centerName) &&
                 Objects.equals(librarySelection, that.librarySelection) &&
                 Objects.equals(librarySource, that.librarySource) &&
+                Objects.equals(datastoreFiletype, that.datastoreFiletype) &&
                 Objects.equals(runId, that.runId) &&
                 Objects.equals(libraryLayout, that.libraryLayout) &&
                 Objects.equals(sampleName, that.sampleName) &&
@@ -289,7 +300,7 @@ public class SampleMetaData extends ReadGroupMetaData implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), avgSpotLen, datastoreProvider, datastoreRegion, insertSize, libraryName, numBases, numBytes, experiment, instrument, platform, loadDate, releaseDate, assayType, centerName, librarySelection, librarySource, runId, libraryLayout, sampleName, srcRawMetaData, comment);
+        return Objects.hash(super.hashCode(), avgSpotLen, datastoreProvider, datastoreRegion, insertSize, libraryName, numBases, numBytes, experiment, instrument, platform, loadDate, releaseDate, assayType, centerName, librarySelection, librarySource, datastoreFiletype, runId, libraryLayout, sampleName, srcRawMetaData, comment);
     }
 
     @Override
@@ -311,18 +322,12 @@ public class SampleMetaData extends ReadGroupMetaData implements Serializable {
                 ", centerName='" + centerName + '\'' +
                 ", librarySelection='" + librarySelection + '\'' +
                 ", librarySource='" + librarySource + '\'' +
+                ", datastoreFiletype='" + datastoreFiletype + '\'' +
                 ", runId='" + runId + '\'' +
                 ", libraryLayout='" + libraryLayout + '\'' +
                 ", sampleName='" + sampleName + '\'' +
                 ", srcRawMetaData='" + srcRawMetaData + '\'' +
                 ", comment='" + comment + '\'' +
-                ", sraSample='" + sraSample + '\'' +
-                ", bioSample='" + bioSample + '\'' +
-                ", bioProject='" + bioProject + '\'' +
-                ", consent='" + consent + '\'' +
-                ", datastoreFiletype='" + datastoreFiletype + '\'' +
-                ", organism='" + organism + '\'' +
-                ", sraStudy='" + sraStudy + '\'' +
                 '}';
     }
 

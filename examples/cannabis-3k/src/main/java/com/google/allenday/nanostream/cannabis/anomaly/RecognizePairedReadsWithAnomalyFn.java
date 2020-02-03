@@ -50,55 +50,61 @@ public class RecognizePairedReadsWithAnomalyFn extends DoFn<KV<SampleMetaData, L
                 BlobId blobId = gcsService.getBlobIdFromUri(originalGeneDataList.get(0).getBlobUri());
                 String dirPrefix = blobId.getName().replace(originalGeneDataList.get(0).getFileName(), "");
 
-                boolean hasAnomalyBlobs = false;
-                List<Blob> blobs = StreamSupport.stream(gcsService.getListOfBlobsInDir(srcBucket, dirPrefix).iterateAll()
-                        .spliterator(), false).collect(Collectors.toList());
                 if (!dirPrefix.contains("kannapedia")) {
-                    if (blobs.stream().map(b -> {
+                    List<Blob> blobs = StreamSupport.stream(gcsService.getListOfBlobsInDir(srcBucket, dirPrefix).iterateAll()
+                            .spliterator(), false).collect(Collectors.toList());
+
+                    boolean hasAnomalyIndexSuffix = blobs.stream().map(b -> {
                         String[] parts = b.getName().split("_");
                         return Integer.parseInt(parts[parts.length - 1].split("\\.")[0]);
-                    }).anyMatch(i -> i > 2)) {
-                        hasAnomalyBlobs = true;
+                    }).anyMatch(i -> i > 2);
+                    if (hasAnomalyIndexSuffix) {
                         geneSampleMetaData.setComment("There are to much reads in dir");
+                        logAnomaly(blobs, geneSampleMetaData);
+                    } else {
+                        originalGeneDataList
+                                .forEach(fileWrapper -> {
+                                    if (!gcsService.isExists(gcsService.getBlobIdFromUri(fileWrapper.getBlobUri()))) {
+                                        LOG.info(String.format("Blob %s doesn't exist. Trying to find blob with other SRA for %s", fileWrapper.getBlobUri(), geneSampleMetaData.toString()));
+                                        Optional<Blob> blobOpt = blobs.stream().filter(blob -> {
+                                            String searchIndex = fileWrapper.getFileName().split("\\.")[0].split("_")[1];
+
+                                            boolean containsIndex = blob.getName().contains(String.format("_%s", searchIndex));
+                                            if (blobs.size() == 2) {
+                                                return containsIndex;
+                                            } else {
+                                                int runInt = Integer.parseInt(blob.getName()
+                                                        .substring(blob.getName().lastIndexOf('/') + 1).split("_")[0]
+                                                        .substring(3));
+                                                int serchedRunInt = Integer.parseInt(geneSampleMetaData.getRunId().substring(3));
+                                                return Math.abs(serchedRunInt - runInt) == 1 && containsIndex;
+                                            }
+                                        }).findFirst();
+                                        if (blobOpt.isPresent()) {
+                                            LOG.info(String.format("Found: %s", blobOpt.get().getName()));
+                                            String fileUri = String.format("gs://%s/%s", blobOpt.get().getBucket(), blobOpt.get().getName());
+                                            String fileName = fileUtils.getFilenameFromPath(fileUri);
+                                            checkedGeneDataList.add(FileWrapper.fromBlobUri(fileUri, fileName));
+                                        } else {
+                                            logAnomaly(blobs, geneSampleMetaData);
+                                            geneSampleMetaData.setComment("File not found");
+                                        }
+                                    } else {
+                                        checkedGeneDataList.add(fileWrapper);
+                                    }
+                                });
                     }
-                }
-                if (hasAnomalyBlobs) {
-                    logAnomaly(blobs, geneSampleMetaData);
                 } else {
-                    for (FileWrapper fileWrapper : originalGeneDataList) {
-                        boolean exists = gcsService.isExists(gcsService.getBlobIdFromUri(fileWrapper.getBlobUri()));
-                        if (!exists) {
-                            LOG.info(String.format("Blob %s doesn't exist. Trying to find blob with other SRA for %s", fileWrapper.getBlobUri(), geneSampleMetaData.toString()));
-                            Optional<Blob> blobOpt = blobs.stream().filter(blob -> {
-
-                                String searchIndex = fileWrapper.getFileName().split("\\.")[0].split("_")[1];
-
-                                boolean containsIndex = blob.getName().contains(String.format("_%s", searchIndex));
-                                if (blobs.size() == 2) {
-                                    return containsIndex;
+                    originalGeneDataList
+                            .forEach(fileWrapper -> {
+                                if (!gcsService.isExists(gcsService.getBlobIdFromUri(fileWrapper.getBlobUri()))) {
+                                    logAnomaly(new ArrayList<>(), geneSampleMetaData);
+                                    geneSampleMetaData.setComment("File not found");
                                 } else {
-                                    int runInt = Integer.parseInt(blob.getName()
-                                            .substring(blob.getName().lastIndexOf('/') + 1).split("_")[0]
-                                            .substring(3));
-                                    int serchedRunInt = Integer.parseInt(geneSampleMetaData.getRunId().substring(3));
-                                    return Math.abs(serchedRunInt - runInt) == 1 && containsIndex;
+                                    checkedGeneDataList.add(fileWrapper);
                                 }
-                            }).findFirst();
-                            if (blobOpt.isPresent()) {
-                                LOG.info(String.format("Found: %s", blobOpt.get().getName()));
-                                String fileUri = String.format("gs://%s/%s", blobOpt.get().getBucket(), blobOpt.get().getName());
-                                String fileName = fileUtils.getFilenameFromPath(fileUri);
-                                checkedGeneDataList.add(FileWrapper.fromBlobUri(fileUri, fileName));
-                            } else {
-                                logAnomaly(blobs, geneSampleMetaData);
-                                geneSampleMetaData.setComment("File not found");
-                            }
-                        } else {
-                            checkedGeneDataList.add(fileWrapper);
-                        }
-                    }
+                            });
                 }
-
                 if (originalGeneDataList.size() == checkedGeneDataList.size()) {
                     c.output(KV.of(geneSampleMetaData, checkedGeneDataList));
                 } else {
@@ -116,6 +122,6 @@ public class RecognizePairedReadsWithAnomalyFn extends DoFn<KV<SampleMetaData, L
                 geneSampleMetaData.getCenterName(),
                 geneSampleMetaData.getSraSample(),
                 geneSampleMetaData.getRunId(),
-                geneSampleMetaData.getCenterName().toLowerCase().contains("kannapedia") ? "" : blobs.stream().map(BlobInfo::getName).collect(Collectors.joining(", "))));
+                blobs.stream().map(BlobInfo::getName).collect(Collectors.joining(", "))));
     }
 }

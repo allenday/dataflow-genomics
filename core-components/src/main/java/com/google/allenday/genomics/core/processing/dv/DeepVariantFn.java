@@ -1,11 +1,11 @@
-package com.google.allenday.genomics.core.processing.other;
+package com.google.allenday.genomics.core.processing.dv;
 
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.model.BamWithIndexUris;
-import com.google.allenday.genomics.core.model.ReadGroupMetaData;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
-import com.google.allenday.genomics.core.processing.DeepVariantService;
+import com.google.allenday.genomics.core.model.SraSampleId;
+import com.google.allenday.genomics.core.model.SraSampleIdReferencePair;
 import com.google.allenday.genomics.core.utils.ResourceProvider;
 import com.google.cloud.storage.BlobId;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -14,7 +14,7 @@ import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeepVariantFn extends DoFn<KV<KV<ReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>, KV<KV<ReadGroupMetaData, ReferenceDatabase>, String>> {
+public class DeepVariantFn extends DoFn<KV<SraSampleIdReferencePair, BamWithIndexUris>, KV<SraSampleIdReferencePair, String>> {
 
     private Logger LOG = LoggerFactory.getLogger(DeepVariantFn.class);
 
@@ -42,24 +42,24 @@ public class DeepVariantFn extends DoFn<KV<KV<ReadGroupMetaData, ReferenceDataba
     public void processElement(ProcessContext c) {
         LOG.info(String.format("Start of Deep Variant: %s", c.element().toString()));
 
-        KV<KV<ReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris> input = c.element();
-        ReferenceDatabase referenceDatabase = input.getKey().getValue();
-        ReadGroupMetaData geneReadGroupMetaData = input.getKey().getKey();
+        KV<SraSampleIdReferencePair, BamWithIndexUris> input = c.element();
+        ReferenceDatabase referenceDatabase = input.getKey().getReferenceDatabase();
+        SraSampleId sraSampleId = input.getKey().getSraSampleId();
         BamWithIndexUris bamWithIndexUris = input.getValue();
 
-        if (geneReadGroupMetaData == null || bamWithIndexUris == null || referenceDatabase == null) {
+        if (sraSampleId == null || bamWithIndexUris == null || referenceDatabase == null) {
             LOG.error("Data error");
             LOG.error("referenceDatabase: " + referenceDatabase);
-            LOG.error("geneReadGroupMetaData: " + geneReadGroupMetaData);
+            LOG.error("geneReadGroupMetaData: " + sraSampleId);
             LOG.error("bamWithIndexUris: " + bamWithIndexUris);
             return;
         }
-        String readGroupAndDb = geneReadGroupMetaData.getSraSample() + "_" + referenceDatabase.getDbName();
+        String readGroupAndDb = sraSampleId + "_" + referenceDatabase.getDbName();
         String dvGcsOutputDir = gcsService.getUriFromBlob(BlobId.of(outputBucketName, gcsOutputDir + readGroupAndDb + "/"));
 
         Triplet<String, Boolean, String> result = deepVariantService.processSampleWithDeepVariant(resourceProvider,
                 dvGcsOutputDir, readGroupAndDb, bamWithIndexUris.getBamUri(), bamWithIndexUris.getIndexUri(), referenceDatabase,
-                geneReadGroupMetaData.getSraSample());
+                sraSampleId.getValue());
 
         if (result.getValue1()) {
             c.output(KV.of(input.getKey(), result.getValue0()));

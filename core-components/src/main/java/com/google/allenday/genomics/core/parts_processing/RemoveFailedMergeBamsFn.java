@@ -4,6 +4,7 @@ import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleMetaData;
+import com.google.allenday.genomics.core.model.SraSampleId;
 import com.google.cloud.storage.BlobId;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
@@ -12,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class RemoveFailedMergeBamsFn extends DoFn<KV<SampleMetaData, List<FileWrapper>>, String> {
+public class RemoveFailedMergeBamsFn extends DoFn<KV<SampleMetaData, List<FileWrapper>>, SraSampleId> {
 
     private Logger LOG = LoggerFactory.getLogger(RemoveFailedMergeBamsFn.class);
 

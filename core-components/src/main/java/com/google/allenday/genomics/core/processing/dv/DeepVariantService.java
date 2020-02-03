@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.processing;
+package com.google.allenday.genomics.core.processing.dv;
 
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
@@ -23,7 +23,7 @@ import java.util.Map;
 public class DeepVariantService implements Serializable {
     private Logger LOG = LoggerFactory.getLogger(DeepVariantService.class);
 
-
+    private final static int MAX_JOB_NAME_PREFIX_LEN = 20;
     private final static String DEEP_VARIANT_RUNNER_IMAGE_URI = "gcr.io/cloud-genomics-pipelines/gcp-deepvariant-runner";
 
     private final static String DEEP_VARIANT_RUNNER_PATH = "/opt/deepvariant_runner/bin/gcp_deepvariant_runner";
@@ -35,7 +35,7 @@ public class DeepVariantService implements Serializable {
 
     private final static String DEEP_VARIANT_MACHINE_TYPE = "n1-standard-1";
 
-    private final static String DEEP_VARIANT_RESULT_EXTENSION = ".vcf";
+    public final static String DEEP_VARIANT_RESULT_EXTENSION = ".vcf";
 
 
     public enum DeepVariantArguments {
@@ -97,7 +97,7 @@ public class DeepVariantService implements Serializable {
 
         String outFileUri = outDirGcsUri + outFilePrefix + DEEP_VARIANT_RESULT_EXTENSION;
 
-        String jobNamePrefix = outFilePrefix.toLowerCase() + "_";
+        String jobNamePrefix = generateJobNamePrefix(outFilePrefix);
         List<String> actionCommands = buildCommand(resourceProvider, outDirGcsUri, outFileUri, bamUri, baiUri,
                 refUriWithIndex.getValue0(), refUriWithIndex.getValue1(), readGroupName, jobNamePrefix);
 
@@ -108,6 +108,13 @@ public class DeepVariantService implements Serializable {
         return Triplet.with(outFileUri, operationResult.getValue0(), operationResult.getValue1());
     }
 
+    private String generateJobNamePrefix(String outFilePrefix){
+        String jobNamePrefix = outFilePrefix.toLowerCase().replace("-","_").replace(".","_") + "_";
+        if (jobNamePrefix.length() > MAX_JOB_NAME_PREFIX_LEN){
+            jobNamePrefix = jobNamePrefix.substring(0, MAX_JOB_NAME_PREFIX_LEN);
+        }
+        return jobNamePrefix;
+    }
 
     private List<String> buildCommand(ResourceProvider resourceProvider,
                                       String outDirGcsUri, String outfileGcsUri, String bamUri, String baiUri,
@@ -157,5 +164,4 @@ public class DeepVariantService implements Serializable {
         LOG.info(String.format("Deep Variant command generated: \n%s\n", String.join("\n", command)));
         return command;
     }
-
 }

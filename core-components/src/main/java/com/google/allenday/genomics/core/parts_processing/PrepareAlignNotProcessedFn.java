@@ -13,10 +13,10 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.List;
 
-public class FilterAlignedFn extends DoFn<KV<SampleMetaData, List<FileWrapper>>,
+public class PrepareAlignNotProcessedFn extends DoFn<KV<SampleMetaData, List<FileWrapper>>,
         KV<KV<SampleMetaData, List<String>>, List<FileWrapper>>> {
 
-    private Logger LOG = LoggerFactory.getLogger(FilterAlignedFn.class);
+    private Logger LOG = LoggerFactory.getLogger(PrepareAlignNotProcessedFn.class);
 
     private GCSService gcsService;
 
@@ -27,8 +27,8 @@ public class FilterAlignedFn extends DoFn<KV<SampleMetaData, List<FileWrapper>>,
     private String alignedFilePattern;
 
 
-    public FilterAlignedFn(FileUtils fileUtils, List<String> references,
-                           String stagedBucket, String alignedFilePattern) {
+    public PrepareAlignNotProcessedFn(FileUtils fileUtils, List<String> references,
+                                      String stagedBucket, String alignedFilePattern) {
         this.fileUtils = fileUtils;
         this.references = references;
         this.stagedBucket = stagedBucket;

@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.processing;
+package com.google.allenday.genomics.core.processing.sam;
 
 import com.google.allenday.genomics.core.io.FileUtils;
 import htsjdk.samtools.*;
@@ -9,10 +9,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static htsjdk.samtools.ValidationStringency.LENIENT;
@@ -20,9 +17,9 @@ import static htsjdk.samtools.ValidationStringency.LENIENT;
 public class SamBamManipulationService implements Serializable {
     private static final Log LOG = Log.getInstance(SamBamManipulationService.class);
 
-    private final static String SORTED_BAM_FILE_SUFFIX = ".sorted.bam";
-    private final static String BAM_INDEX_SUFFIX = ".bai";
-    private final static String MERGE_SORTED_FILE_SUFFIX = ".merged.sorted.bam";
+    public final static String SORTED_BAM_FILE_SUFFIX = ".sorted.bam";
+    public final static String BAM_INDEX_SUFFIX = ".bai";
+    public final static String MERGE_SORTED_FILE_SUFFIX = ".merged.sorted.bam";
 
     private SAMFileHeader.SortOrder SORT_ORDER = SAMFileHeader.SortOrder.coordinate;
     private boolean ASSUME_SORTED = false;
@@ -65,13 +62,16 @@ public class SamBamManipulationService implements Serializable {
         SAMRecordIterator iterator2 = reader2.iterator();
         while (true) {
             if (iterator1.hasNext() != iterator2.hasNext()) {
+                CloserUtil.close(Arrays.asList(reader1, reader2));
                 return false;
             } else if (iterator1.hasNext()) {
                 boolean recordsEquals = iterator1.next().equals(iterator2.next());
                 if (!recordsEquals) {
+                    CloserUtil.close(Arrays.asList(reader1, reader2));
                     return false;
                 }
             } else {
+                CloserUtil.close(Arrays.asList(reader1, reader2));
                 return true;
             }
         }
@@ -198,12 +198,13 @@ public class SamBamManipulationService implements Serializable {
         return outputFileName;
     }
 
-    public String createIndex(String inputFilePath) {
+    public String createIndex(String inputFilePath) throws IOException {
         final SamReader reader = SamReaderFactory.makeDefault()
                 .enable(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS)
                 .open(new File(inputFilePath));
         String outputFilePath = inputFilePath + BAM_INDEX_SUFFIX;
         BAMIndexer.createIndex(reader, new File(outputFilePath));
+        reader.close();
         return outputFilePath;
     }
 }

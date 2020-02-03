@@ -24,10 +24,10 @@ public class AlignService implements Serializable {
     private final static String CMD_UNTAR_MINIMAP_PATTERN = "tar -xvjf %s -C %s";
     private final static String CMD_RM_MINIMAP_ARCHIVE = String.format("rm -f %s", MINIMAP_ARCHIVE_FILE_NAME);
 
-    private final static String SAM_FILE_PREFIX = ".sam";
+    public final static String SAM_FILE_PREFIX = ".sam";
 
     private final static String ALIGN_COMMAND_PATTERN = "./%s/minimap2" +
-            " -ax sr %s %s" +
+            " -ax %s %s %s" +
             " -R '@RG\\tID:%s\\tSM:%s' " +
             "> %s";
 
@@ -35,11 +35,14 @@ public class AlignService implements Serializable {
     private WorkerSetupService workerSetupService;
     private CmdExecutor cmdExecutor;
     private FileUtils fileUtils;
+    private Instrument instrument;
 
-    public AlignService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor, FileUtils fileUtils) {
+    public AlignService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor,
+                        FileUtils fileUtils, Instrument instrument) {
         this.workerSetupService = workerSetupService;
         this.cmdExecutor = cmdExecutor;
         this.fileUtils = fileUtils;
+        this.instrument = instrument;
     }
 
     public void setupMinimap2() {
@@ -60,7 +63,7 @@ public class AlignService implements Serializable {
         String alignedSamPath = workDir + alignedSamName;
 
         String joinedSrcFiles = String.join(" ", localFastqPaths);
-        String minimapCommand = String.format(ALIGN_COMMAND_PATTERN, MINIMAP_NAME, referencePath,
+        String minimapCommand = String.format(ALIGN_COMMAND_PATTERN, MINIMAP_NAME, instrument.flag, referencePath,
                 joinedSrcFiles, readGroupName, readGroupName, alignedSamPath);
 
         Triplet<Boolean, Integer, String> result = cmdExecutor.executeCommand(minimapCommand);
@@ -74,6 +77,16 @@ public class AlignService implements Serializable {
 
         public AlignException(String command, int code) {
             super(String.format("Align command %s failed with code %d", command, code));
+        }
+    }
+
+    public static enum Instrument {
+        OXFORD_NANOPORE("map-ont"), ILLUMINA("sr");
+
+        public final String flag;
+
+        Instrument(String flag) {
+            this.flag = flag;
         }
     }
 }

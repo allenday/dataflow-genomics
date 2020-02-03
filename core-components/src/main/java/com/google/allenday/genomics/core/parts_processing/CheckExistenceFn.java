@@ -4,8 +4,8 @@ import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.IoUtils;
 import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.ReadGroupMetaData;
 import com.google.allenday.genomics.core.model.SampleMetaData;
+import com.google.allenday.genomics.core.model.SraSampleId;
 import com.google.cloud.storage.BlobId;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class CheckExistenceFn extends DoFn<KV<ReadGroupMetaData, Iterable<KV<SampleMetaData, List<FileWrapper>>>>, String> {
+public class CheckExistenceFn extends DoFn<KV<SraSampleId, Iterable<KV<SampleMetaData, List<FileWrapper>>>>, String> {
 
     private Logger LOG = LoggerFactory.getLogger(CheckExistenceFn.class);
 
@@ -58,14 +58,12 @@ public class CheckExistenceFn extends DoFn<KV<ReadGroupMetaData, Iterable<KV<Sam
 
     @DoFn.ProcessElement
     public void processElement(ProcessContext c) {
-        KV<ReadGroupMetaData, Iterable<KV<SampleMetaData, List<FileWrapper>>>> input = c.element();
-        ReadGroupMetaData geneReadGroupMetaData = input.getKey();
+        KV<SraSampleId, Iterable<KV<SampleMetaData, List<FileWrapper>>>> input = c.element();
+        SraSampleId sraSampleId = input.getKey();
 
-        LOG.info(String.format("Work with %s", geneReadGroupMetaData.getSraSample()));
-        LOG.info(String.format("Work with %s", geneReadGroupMetaData.toString()));
+        LOG.info(String.format("Work with %s", sraSampleId.getValue()));
         List<String> outputElements = new ArrayList<>();
-        outputElements.add(geneReadGroupMetaData.getSraStudy());
-        outputElements.add(geneReadGroupMetaData.getSraSample());
+        outputElements.add(sraSampleId.getValue());
 
         boolean fastqSumCounted = false;
         long sumOfFastq = 0;
@@ -75,26 +73,26 @@ public class CheckExistenceFn extends DoFn<KV<ReadGroupMetaData, Iterable<KV<Sam
                 processedVcfToBq = gcsService.readBlob(ioUtils, stagedBucket, String.format(vcfToBqProcessedListFile, ref));
             } catch (Exception ignored) {
             }
-            boolean existsVcfToBq = processedVcfToBq.contains(geneReadGroupMetaData.getSraSample() + "," + ref);
+            boolean existsVcfToBq = processedVcfToBq.contains(sraSampleId + "," + ref);
             if (existsVcfToBq) {
                 outputElements.add("7_SAVED_TO_BQ");
                 continue;
             }
-            BlobId blobIdDv = BlobId.of(stagedBucket, String.format(vcfFilePattern, geneReadGroupMetaData.getSraSample(), ref));
+            BlobId blobIdDv = BlobId.of(stagedBucket, String.format(vcfFilePattern, sraSampleId, ref));
             boolean existsDv = gcsService.isExists(blobIdDv);
             if (existsDv) {
                 outputElements.add("6_Vcf_to_Bq");
                 continue;
             }
 
-            BlobId blobIdIndex = BlobId.of(stagedBucket, String.format(indexFilePattern, geneReadGroupMetaData.getSraSample(), ref));
+            BlobId blobIdIndex = BlobId.of(stagedBucket, String.format(indexFilePattern, sraSampleId, ref));
             boolean existsIndex = gcsService.isExists(blobIdIndex);
             if (existsIndex) {
                 outputElements.add("5_DV");
                 continue;
             }
 
-            BlobId blobIdMerge = BlobId.of(stagedBucket, String.format(mergedFilePattern, geneReadGroupMetaData.getSraSample(), ref));
+            BlobId blobIdMerge = BlobId.of(stagedBucket, String.format(mergedFilePattern, sraSampleId, ref));
             boolean existsMerge = gcsService.isExists(blobIdMerge);
             if (existsMerge) {
                 outputElements.add("4_Index");
@@ -138,7 +136,7 @@ public class CheckExistenceFn extends DoFn<KV<ReadGroupMetaData, Iterable<KV<Sam
             }
         }
         outputElements.add(decimalFormat.format(sumOfFastq / (float) (1024 * 1024 * 1024)));
-        BlobId blobIdMerge = BlobId.of(stagedBucket, String.format(mergedFilePattern, geneReadGroupMetaData.getSraSample(),
+        BlobId blobIdMerge = BlobId.of(stagedBucket, String.format(mergedFilePattern, sraSampleId,
                 references.get(0)));
         boolean existsMerge = gcsService.isExists(blobIdMerge);
         float mergedSortedBamSizeMb = existsMerge ? gcsService.getBlobSize(blobIdMerge) / (float) (1024 * 1024 * 1024) : 0;

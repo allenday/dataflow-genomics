@@ -66,24 +66,28 @@ public class AlignFn extends DoFn<KV<KV<SampleMetaData, List<String>>, List<File
                         .map(geneData -> transformIoHandler.handleInputAsLocalFile(gcsService, geneData, workingDir))
                         .collect(Collectors.toList());
                 for (String referenceName : referenceNames) {
-                        Pair<ReferenceDatabase, String> referenceDatabaseAndFastaLocalPath = referencesProvider.findReference(gcsService, referenceName);
-                        ReferenceDatabase referenceDatabase = referenceDatabaseAndFastaLocalPath.getValue0();
-                        String localFastaPath = referenceDatabaseAndFastaLocalPath.getValue1();
+                    Pair<ReferenceDatabase, String> referenceDatabaseAndFastaLocalPath = referencesProvider.findReference(gcsService, referenceName);
+                    ReferenceDatabase referenceDatabase = referenceDatabaseAndFastaLocalPath.getValue0();
+                    String localFastaPath = referenceDatabaseAndFastaLocalPath.getValue1();
 
                     try {
                         String alignedSamPath = alignService.alignFastq(localFastaPath, srcFilesPaths,
-                                workingDir, geneSampleMetaData.getRunId(), referenceName, geneSampleMetaData.getSraSample());
-                        c.output(KV.of(KV.of(geneSampleMetaData, referenceDatabase), transformIoHandler.handleFileOutput(gcsService, alignedSamPath)));
+                                workingDir, geneSampleMetaData.getRunId(), referenceName, geneSampleMetaData.getSraSample().getValue());
+                        FileWrapper fileWrapper = transformIoHandler.handleFileOutput(gcsService, alignedSamPath);
+                        fileUtils.deleteDir(workingDir);
+
+                        c.output(KV.of(KV.of(geneSampleMetaData, referenceDatabase), fileWrapper));
                     } catch (IOException e) {
                         LOG.error(e.getMessage());
                         e.printStackTrace();
+                        fileUtils.deleteDir(workingDir);
+
                         c.output(KV.of(KV.of(geneSampleMetaData, referenceDatabase), FileWrapper.empty()));
                     }
                 }
             } catch (Exception e) {
                 LOG.error(e.getMessage());
                 e.printStackTrace();
-            } finally {
                 fileUtils.deleteDir(workingDir);
             }
         } catch (RuntimeException e) {

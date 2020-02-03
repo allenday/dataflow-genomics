@@ -14,10 +14,10 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FilterSortedFn extends DoFn<KV<SampleMetaData, List<FileWrapper>>,
+public class PrepareSortNotProcessedFn extends DoFn<KV<SampleMetaData, List<FileWrapper>>,
         KV<KV<SampleMetaData, ReferenceDatabase>, FileWrapper>> {
 
-    private Logger LOG = LoggerFactory.getLogger(FilterSortedFn.class);
+    private Logger LOG = LoggerFactory.getLogger(PrepareSortNotProcessedFn.class);
 
     private GCSService gcsService;
 
@@ -29,8 +29,8 @@ public class FilterSortedFn extends DoFn<KV<SampleMetaData, List<FileWrapper>>,
     private String sortedFilePattern;
 
 
-    public FilterSortedFn(FileUtils fileUtils, List<String> references,
-                          String stagedBucket, String alignedFilePattern, String sortedFilePattern) {
+    public PrepareSortNotProcessedFn(FileUtils fileUtils, List<String> references,
+                                     String stagedBucket, String alignedFilePattern, String sortedFilePattern) {
         this.fileUtils = fileUtils;
         this.references = references;
         this.stagedBucket = stagedBucket;

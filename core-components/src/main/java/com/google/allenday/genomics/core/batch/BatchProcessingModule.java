@@ -10,16 +10,16 @@ import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraParser;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
-import com.google.allenday.genomics.core.processing.DeepVariantService;
-import com.google.allenday.genomics.core.processing.SamBamManipulationService;
 import com.google.allenday.genomics.core.processing.align.AlignFn;
 import com.google.allenday.genomics.core.processing.align.AlignService;
 import com.google.allenday.genomics.core.processing.align.AlignTransform;
+import com.google.allenday.genomics.core.processing.dv.DeepVariantFn;
+import com.google.allenday.genomics.core.processing.dv.DeepVariantService;
 import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
-import com.google.allenday.genomics.core.processing.other.CreateBamIndexFn;
-import com.google.allenday.genomics.core.processing.other.DeepVariantFn;
-import com.google.allenday.genomics.core.processing.other.MergeFn;
-import com.google.allenday.genomics.core.processing.other.SortFn;
+import com.google.allenday.genomics.core.processing.sam.CreateBamIndexFn;
+import com.google.allenday.genomics.core.processing.sam.MergeFn;
+import com.google.allenday.genomics.core.processing.sam.SamBamManipulationService;
+import com.google.allenday.genomics.core.processing.sam.SortFn;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqFn;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqService;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
@@ -90,8 +90,9 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public AlignService provideAlignService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor, FileUtils fileUtils) {
-        return new AlignService(workerSetupService, cmdExecutor, fileUtils);
+    public AlignService provideAlignService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor, FileUtils fileUtils,
+                                            AlignService.Instrument instrument) {
+        return new AlignService(workerSetupService, cmdExecutor, fileUtils, instrument);
     }
 
     @Provides

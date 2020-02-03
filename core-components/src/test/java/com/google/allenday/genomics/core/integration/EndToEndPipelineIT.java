@@ -10,15 +10,15 @@ import com.google.allenday.genomics.core.io.UriProvider;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
-import com.google.allenday.genomics.core.processing.DeepVariantService;
-import com.google.allenday.genomics.core.processing.SamBamManipulationService;
+import com.google.allenday.genomics.core.processing.dv.DeepVariantService;
+import com.google.allenday.genomics.core.processing.sam.SamBamManipulationService;
 import com.google.allenday.genomics.core.processing.align.AlignFn;
 import com.google.allenday.genomics.core.processing.align.AlignService;
 import com.google.allenday.genomics.core.processing.align.AlignTransform;
 import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
-import com.google.allenday.genomics.core.processing.other.CreateBamIndexFn;
-import com.google.allenday.genomics.core.processing.other.MergeFn;
-import com.google.allenday.genomics.core.processing.other.SortFn;
+import com.google.allenday.genomics.core.processing.sam.CreateBamIndexFn;
+import com.google.allenday.genomics.core.processing.sam.MergeFn;
+import com.google.allenday.genomics.core.processing.sam.SortFn;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -110,10 +110,10 @@ public class EndToEndPipelineIT implements Serializable {
 
         TransformIoHandler alignTransformIoHandler = new TransformIoHandler(testBucket, String.format(ALIGN_RESULT_GCS_DIR_PATH_PATTERN, jobTime), 300, fileUtils);
         TransformIoHandler sortTransformIoHandler = new TransformIoHandler(testBucket, String.format(SORT_RESULT_GCS_DIR_PATH_PATTERN, jobTime), 300, fileUtils);
-        TransformIoHandler mergeTransformIoHandler = new TransformIoHandler(testBucket, mergeResultGcsPath, 300, fileUtils);
-        TransformIoHandler indexTransformIoHandler = new TransformIoHandler(testBucket, indexResultGcsPath, 300, fileUtils);
+        TransformIoHandler mergeTransformIoHandler = new TransformIoHandler(testBucket, mergeResultGcsPath, 0, fileUtils);
+        TransformIoHandler indexTransformIoHandler = new TransformIoHandler(testBucket, indexResultGcsPath, 0, fileUtils);
 
-        AlignFn alignFn = new AlignFn(new AlignService(new WorkerSetupService(cmdExecutor), cmdExecutor, fileUtils),
+        AlignFn alignFn = new AlignFn(new AlignService(new WorkerSetupService(cmdExecutor), cmdExecutor, fileUtils, AlignService.Instrument.ILLUMINA),
                 referencesProvider,
                 alignTransformIoHandler, fileUtils);
         AlignTransform alignTransform = new AlignTransform("Align reads transform", alignFn, Collections.singletonList(TEST_REFERENCE_NAME));

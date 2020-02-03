@@ -16,8 +16,8 @@ public class SraParser extends SampleMetaData.Parser {
     public SampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException {
         try {
             SampleMetaData geneSampleMetaData = new SampleMetaData(csvLineParts[11], csvLineParts[10], csvLineParts[6],
-                    csvLine)
-                    .setSampleName(csvLineParts[12]);
+                    csvLine);
+            geneSampleMetaData.setSampleName(csvLineParts[12]);
             geneSampleMetaData.setAvgSpotLen(IntegerValidator.getInstance().validate(csvLineParts[0]));
             geneSampleMetaData.setBioSample(csvLineParts[1]);
             geneSampleMetaData.setDatastoreProvider(csvLineParts[2]);

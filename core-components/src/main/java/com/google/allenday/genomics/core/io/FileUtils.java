@@ -20,22 +20,22 @@ public class FileUtils implements Serializable {
         os.close();
     }
 
-    public String getCurrentPath(){
+    public String getCurrentPath() {
         Path currentRelativePath = Paths.get("");
         String currentPath = currentRelativePath.toAbsolutePath().toString();
-        if (currentPath.charAt(currentPath.length() - 1) != '/'){
+        if (currentPath.charAt(currentPath.length() - 1) != '/') {
             currentPath = currentPath + '/';
         }
         return currentPath;
     }
 
-    public String makeDirByCurrentTimestampAndSuffix(String suffix) throws RuntimeException{
+    public String makeDirByCurrentTimestampAndSuffix(String suffix) throws RuntimeException {
         String workingDir = getCurrentPath() + System.currentTimeMillis() + "_" + suffix + "/";
         mkdirFromUri(workingDir);
         return workingDir;
     }
 
-    public void mkdirFromUri(String path) throws RuntimeException{
+    public void mkdirFromUri(String path) throws RuntimeException {
         Path dir;
         if (path.charAt(path.length() - 1) != '/') {
             dir = Paths.get(path).getParent();
@@ -57,11 +57,11 @@ public class FileUtils implements Serializable {
     }
 
     public double getFileSizeMegaBytes(String filePath) {
-        return new File(filePath).length() / (double)(1024 * 1024);
+        return new File(filePath).length() / (double) (1024 * 1024);
     }
 
     public String getFilenameFromPath(String filePath) {
-        if (filePath.charAt(filePath.length() - 1) == '/'){
+        if (filePath.charAt(filePath.length() - 1) == '/') {
             throw new RuntimeException("There is no file in path");
         }
         if (filePath.contains("/")) {
@@ -101,15 +101,19 @@ public class FileUtils implements Serializable {
         }
     }
 
+    public long getFreeDiskSpace(String path) {
+        return new File(path).getFreeSpace();
+    }
+
     public long getFreeDiskSpace() {
-        return new File("/").getFreeSpace();
+        return getFreeDiskSpace("/");
     }
 
     public boolean exists(String filePath) {
         return Files.exists(Paths.get(filePath));
     }
 
-    public boolean contentEquals(File file1, File file2) throws IOException{
+    public boolean contentEquals(File file1, File file2) throws IOException {
         return org.apache.commons.io.FileUtils.contentEquals(file1, file2);
     }
 

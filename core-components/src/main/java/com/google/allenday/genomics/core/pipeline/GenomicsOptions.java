@@ -1,19 +1,18 @@
 package com.google.allenday.genomics.core.pipeline;
 
-import com.google.cloud.storage.BlobId;
 import org.javatuples.Pair;
 
 import java.util.List;
 
 public class GenomicsOptions {
 
-    private final String ALIGNED_OUTPUT_PATH_PATTERN = "%s/result_aligned_bam/";
-    private final String SORTED_OUTPUT_PATH_PATTERN = "%s/result_sorted_bam/";
-    private final String MERGED_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
-    private final String BAM_INDEX_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
-    private final String DEEP_VARIANT_OUTPUT_PATH_PATTERN = "%s/result_dv/";
-    private final String VCF_TO_BQ_PATH = "vcf_to_bq/";
-    private final String ANOMALY_PATH_PATTERN = "%s/anomaly_samples/";
+    public final static String ALIGNED_OUTPUT_PATH_PATTERN = "%s/result_aligned_bam/";
+    public final static String SORTED_OUTPUT_PATH_PATTERN = "%s/result_sorted_bam/";
+    public final static String MERGED_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
+    public final static String BAM_INDEX_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
+    public final static String DEEP_VARIANT_OUTPUT_PATH_PATTERN = "%s/result_dv/";
+    public final static String VCF_TO_BQ_PATH = "vcf_to_bq/";
+    public final static String ANOMALY_PATH_PATTERN = "%s/anomaly_samples/";
 
     private String resultBucket;
     private List<String> geneReferences;

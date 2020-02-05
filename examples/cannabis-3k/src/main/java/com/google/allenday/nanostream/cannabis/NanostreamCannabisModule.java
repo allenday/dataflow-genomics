@@ -6,6 +6,7 @@ import com.google.allenday.genomics.core.batch.PreparingTransform;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.UriProvider;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
+import com.google.allenday.genomics.core.processing.align.AlignService;
 import com.google.allenday.genomics.core.utils.NameProvider;
 import com.google.allenday.nanostream.cannabis.anomaly.DetectAnomalyTransform;
 import com.google.allenday.nanostream.cannabis.anomaly.RecognizePairedReadsWithAnomalyFn;
@@ -15,11 +16,7 @@ import com.google.inject.Singleton;
 
 import java.util.List;
 
-//TODO
 
-/**
- *
- */
 public class NanostreamCannabisModule extends BatchProcessingModule {
 
     public NanostreamCannabisModule(String srcBucket,
@@ -102,5 +99,11 @@ public class NanostreamCannabisModule extends BatchProcessingModule {
     @Singleton
     public UriProvider provideCannabisUriProvider() {
         return CannabisUriProvider.withDefaultProviderRule(srcBucket);
+    }
+
+    @Provides
+    @Singleton
+    public AlignService.Instrument provideInstrument() {
+        return AlignService.Instrument.ILLUMINA;
     }
 }

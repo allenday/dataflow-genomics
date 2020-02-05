@@ -53,7 +53,6 @@ public class RecognizePairedReadsWithAnomalyFn extends DoFn<KV<SampleMetaData, L
                         checkedGeneDataList.add(fileWrapper);
                     }
                 }
-
                 if (originalGeneDataList.size() == checkedGeneDataList.size()) {
                     c.output(KV.of(geneSampleMetaData, checkedGeneDataList));
                 } else {

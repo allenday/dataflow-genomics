@@ -3,11 +3,11 @@ package com.google.allenday.nanostream.cannabis;
 import com.google.allenday.genomics.core.batch.BatchProcessingPipelineOptions;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
 import com.google.allenday.genomics.core.model.BamWithIndexUris;
-import com.google.allenday.genomics.core.model.ReadGroupMetaData;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
+import com.google.allenday.genomics.core.model.SraSampleIdReferencePair;
 import com.google.allenday.genomics.core.pipeline.PipelineSetupUtils;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
-import com.google.allenday.genomics.core.processing.other.DeepVariantFn;
+import com.google.allenday.genomics.core.processing.dv.DeepVariantFn;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqFn;
 import com.google.allenday.genomics.core.utils.NameProvider;
 import com.google.allenday.nanostream.cannabis.vcf_to_bq.DvAndVcfToBqConnector;
@@ -20,12 +20,12 @@ import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 
+
 public class NanostreamCannabisApp {
 
     private final static String JOB_NAME_PREFIX = "nanostream-cannabis--";
 
     public static void main(String[] args) {
-
         BatchProcessingPipelineOptions pipelineOptions = PipelineOptionsFactory.fromArgs(args)
                 .withValidation()
                 .as(BatchProcessingPipelineOptions.class);
@@ -40,7 +40,7 @@ public class NanostreamCannabisApp {
 
         Pipeline pipeline = Pipeline.create(pipelineOptions);
 
-        PCollection<KV<KV<ReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>> bamWithIndexUris = pipeline
+        PCollection<KV<SraSampleIdReferencePair, BamWithIndexUris>> bamWithIndexUris = pipeline
                 .apply("Parse data", injector.getInstance(ParseSourceCsvTransform.class))
                 .apply("Align reads and prepare for DV", injector.getInstance(AlignAndPostProcessTransform.class));
 

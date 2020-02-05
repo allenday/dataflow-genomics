@@ -1,12 +1,11 @@
-package com.google.allenday.genomics.core.processing.other;
+package com.google.allenday.genomics.core.processing.sam;
 
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.ReadGroupMetaData;
-import com.google.allenday.genomics.core.model.ReferenceDatabase;
-import com.google.allenday.genomics.core.processing.SamBamManipulationService;
+import com.google.allenday.genomics.core.model.SraSampleId;
+import com.google.allenday.genomics.core.model.SraSampleIdReferencePair;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
@@ -14,8 +13,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class CreateBamIndexFn extends DoFn<KV<KV<ReadGroupMetaData, ReferenceDatabase>, FileWrapper>,
-        KV<KV<ReadGroupMetaData, ReferenceDatabase>, FileWrapper>> {
+public class CreateBamIndexFn extends DoFn<KV<SraSampleIdReferencePair, FileWrapper>,
+        KV<SraSampleIdReferencePair, FileWrapper>> {
 
     private Logger LOG = LoggerFactory.getLogger(CreateBamIndexFn.class);
     private GCSService gcsService;
@@ -39,27 +38,27 @@ public class CreateBamIndexFn extends DoFn<KV<KV<ReadGroupMetaData, ReferenceDat
     public void processElement(ProcessContext c) {
         LOG.info(String.format("Start of sort with input: %s", c.element().toString()));
 
-        KV<KV<ReadGroupMetaData, ReferenceDatabase>, FileWrapper> input = c.element();
-        ReadGroupMetaData geneReadGroupMetaData = input.getKey().getKey();
+        KV<SraSampleIdReferencePair, FileWrapper> input = c.element();
+        SraSampleId sraSampleId = input.getKey().getSraSampleId();
         FileWrapper fileWrapper = input.getValue();
 
-        if (geneReadGroupMetaData == null || fileWrapper == null) {
+        if (sraSampleId == null || fileWrapper == null) {
             LOG.error("Data error");
-            LOG.error("geneReadGroupMetaData: " + geneReadGroupMetaData);
+            LOG.error("sraSample: " + sraSampleId);
             LOG.error("fileWrapper: " + fileWrapper);
             return;
         }
-        String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneReadGroupMetaData.getSraSample());
+
+        String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(sraSampleId.getValue());
         try {
             String inputFilePath = transformIoHandler.handleInputAsLocalFile(gcsService, fileWrapper, workingDir);
-            String indexBamPath = samBamManipulationService.createIndex(
-                    inputFilePath);
-
-            c.output(KV.of(input.getKey(), transformIoHandler.saveFileToGcsOutput(gcsService, indexBamPath)));
+            String indexBamPath = samBamManipulationService.createIndex(inputFilePath);
+            FileWrapper fileWrapperToOutput = transformIoHandler.saveFileToGcsOutput(gcsService, indexBamPath);
+            fileUtils.deleteDir(workingDir);
+            c.output(KV.of(input.getKey(), fileWrapperToOutput));
         } catch (IOException e) {
             LOG.error(e.getMessage());
             e.printStackTrace();
-        } finally {
             fileUtils.deleteDir(workingDir);
         }
     }

@@ -5,6 +5,7 @@ import org.apache.beam.sdk.coders.DefaultCoder;
 import org.javatuples.Pair;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 @DefaultCoder(AvroCoder.class)
@@ -16,6 +17,10 @@ public class ReferenceDatabase implements Serializable {
     private List<String> dbFilesUris;
 
     public ReferenceDatabase() {
+    }
+
+    public static ReferenceDatabase onlyName(String dbName) {
+        return new ReferenceDatabase(dbName, new ArrayList<>());
     }
 
     public ReferenceDatabase(String dbName, List<String> dbFilesUris) {

@@ -12,8 +12,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReferencesProvider implements Serializable {
-    private static Logger LOG = LoggerFactory.getLogger(ReferencesProvider.class);
+public class ReferenceProvider implements Serializable {
+    private static Logger LOG = LoggerFactory.getLogger(ReferenceProvider.class);
 
     private static final String DEFAULT_REFERENCE_FILE_EXTENSION = ".fa";
     private static final String DEFAULT_ALL_REFERENCE_LOCAL_DIR = "reference/";
@@ -23,15 +23,15 @@ public class ReferencesProvider implements Serializable {
     private String allReferencesLocalDir;
     private String referenceFileExtension;
 
-    public ReferencesProvider(FileUtils fileUtils, String allReferencesDirGcsUri) {
+    public ReferenceProvider(FileUtils fileUtils, String allReferencesDirGcsUri) {
         this(fileUtils, allReferencesDirGcsUri, DEFAULT_REFERENCE_FILE_EXTENSION, DEFAULT_ALL_REFERENCE_LOCAL_DIR);
     }
 
-    public ReferencesProvider(FileUtils fileUtils, String allReferencesDirGcsUri, String referenceFileExtension) {
+    public ReferenceProvider(FileUtils fileUtils, String allReferencesDirGcsUri, String referenceFileExtension) {
         this(fileUtils, allReferencesDirGcsUri, referenceFileExtension, DEFAULT_ALL_REFERENCE_LOCAL_DIR);
     }
 
-    public ReferencesProvider(FileUtils fileUtils, String allReferencesDirGcsUri, String referenceFileExtension, String allReferencesLocalDir) {
+    public ReferenceProvider(FileUtils fileUtils, String allReferencesDirGcsUri, String referenceFileExtension, String allReferencesLocalDir) {
         this.fileUtils = fileUtils;
         this.allReferencesDirGcsUri = allReferencesDirGcsUri;
         this.referenceFileExtension = referenceFileExtension;

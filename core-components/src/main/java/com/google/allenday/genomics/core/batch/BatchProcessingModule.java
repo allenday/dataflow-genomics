@@ -27,15 +27,10 @@ import com.google.allenday.genomics.core.utils.NameProvider;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.google.inject.name.Named;
 
 import java.util.List;
 
-//TODO
 
-/**
- *
- */
 public abstract class BatchProcessingModule extends AbstractModule {
 
     protected String srcBucket;
@@ -216,23 +211,5 @@ public abstract class BatchProcessingModule extends AbstractModule {
     public VcfToBqFn provideVcfToBqFn(VcfToBqService vcfToBqService, FileUtils fileUtils) {
 
         return new VcfToBqFn(vcfToBqService, fileUtils);
-    }
-
-    @Provides
-    @Named("resultBucket")
-    public String provideResultBucket() {
-        return genomicsOptions.getResultBucket();
-    }
-
-    @Provides
-    @Named("outputDir")
-    public String provideOutputDir() {
-        return genomicsOptions.getBaseOutputDir();
-    }
-
-    @Provides
-    @Singleton
-    public GenomicsOptions provideGenomicsOptions() {
-        return genomicsOptions;
     }
 }

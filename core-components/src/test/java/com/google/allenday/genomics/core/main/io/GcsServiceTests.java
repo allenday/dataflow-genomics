@@ -34,7 +34,7 @@ public class GcsServiceTests {
         Integer firstCallContentLength = 10;
 
         Mockito.when(readableByteChannelMock.read(Mockito.any())).thenReturn(firstCallContentLength).thenReturn(0);
-        Mockito.when(storageMock.writer(Mockito.any())).thenReturn(writeChannelMock);
+        Mockito.when(storageMock.writer(Mockito.any(BlobInfo.class))).thenReturn(writeChannelMock);
         gcsService.writeToGcs(bucketName, blobName, readableByteChannelMock);
 
         Mockito.verify(storageMock).writer(BlobInfo.newBuilder(BlobId.of(bucketName, blobName)).build());
@@ -77,7 +77,7 @@ public class GcsServiceTests {
         Mockito.when(blobMock.reader()).thenReturn(readChannelMock);
         Mockito.when(readChannelMock.read(Mockito.any())).thenReturn(firstCallContentLength).thenReturn(0);
         Mockito.when(ioUtilsMock.getStringContentFromByteBuffer(Mockito.any())).thenReturn(content);
-        String result = gcsService.readBlob(ioUtilsMock, bucketName, blobName);
+        String result = gcsService.readBlob(BlobId.of(bucketName, blobName), ioUtilsMock);
 
         Mockito.verify(ioUtilsMock, Mockito.times(1)).getStringContentFromByteBuffer(Mockito.any());
         Assert.assertEquals(content, result);

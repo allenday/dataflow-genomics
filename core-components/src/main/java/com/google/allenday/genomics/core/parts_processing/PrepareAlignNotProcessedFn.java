@@ -22,17 +22,14 @@ public class PrepareAlignNotProcessedFn extends DoFn<KV<SampleMetaData, List<Fil
 
     private FileUtils fileUtils;
     private List<String> references;
-    private String stagedBucket;
 
-    private String alignedFilePattern;
+    private StagingPathsBulder stagingPathsBulder;
 
 
-    public PrepareAlignNotProcessedFn(FileUtils fileUtils, List<String> references,
-                                      String stagedBucket, String alignedFilePattern) {
+    public PrepareAlignNotProcessedFn(FileUtils fileUtils, List<String> references, StagingPathsBulder stagingPathsBulder) {
         this.fileUtils = fileUtils;
         this.references = references;
-        this.stagedBucket = stagedBucket;
-        this.alignedFilePattern = alignedFilePattern;
+        this.stagingPathsBulder = stagingPathsBulder;
     }
 
     @Setup
@@ -47,7 +44,7 @@ public class PrepareAlignNotProcessedFn extends DoFn<KV<SampleMetaData, List<Fil
 
         for (String ref : references) {
 
-            BlobId blobIdAlign = BlobId.of(stagedBucket, String.format(alignedFilePattern, geneSampleMetaData.getRunId(), ref));
+            BlobId blobIdAlign = stagingPathsBulder.buildAlignedBlobId(geneSampleMetaData.getRunId(), ref);
             boolean exists = gcsService.isExists(blobIdAlign);
             if (!exists) {
                 LOG.info(String.format("Pass to %s: %s", "ALIGN", geneSampleMetaData.getRunId()));

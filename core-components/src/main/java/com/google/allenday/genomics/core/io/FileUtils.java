@@ -62,11 +62,20 @@ public class FileUtils implements Serializable {
 
     public String getFilenameFromPath(String filePath) {
         if (filePath.charAt(filePath.length() - 1) == '/') {
-            throw new RuntimeException("There is no file in path");
+            throw new NoFileNameException(filePath);
         }
         if (filePath.contains("/")) {
             return filePath.split("/")[filePath.split("/").length - 1];
         } else {
+            return filePath;
+        }
+    }
+
+    public String getDirFromPath(String filePath) {
+        try {
+            String filenameFromPath = getFilenameFromPath(filePath);
+            return filePath.replace(filenameFromPath, "");
+        } catch (NoFileNameException exc) {
             return filePath;
         }
     }
@@ -119,5 +128,11 @@ public class FileUtils implements Serializable {
 
     public InputStream getInputStreamFromFile(String filePath) throws FileNotFoundException {
         return new FileInputStream(filePath);
+    }
+
+    public class NoFileNameException extends RuntimeException {
+        public NoFileNameException(String path) {
+            super(String.format("There is no file in path: %s", path));
+        }
     }
 }

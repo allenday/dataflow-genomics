@@ -21,18 +21,13 @@ public class PrepareMergeNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<Sa
 
     private FileUtils fileUtils;
     private List<String> references;
-    private String stagedBucket;
 
-    private String mergedFilePattern;
-    private String sortedFilePattern;
+    private StagingPathsBulder stagingPathsBulder;
 
-    public PrepareMergeNotProcessedFn(FileUtils fileUtils, List<String> references,
-                                      String stagedBucket, String mergedFilePattern, String sortedFilePattern) {
+    public PrepareMergeNotProcessedFn(FileUtils fileUtils, List<String> references, StagingPathsBulder stagingPathsBulder) {
         this.fileUtils = fileUtils;
         this.references = references;
-        this.stagedBucket = stagedBucket;
-        this.sortedFilePattern = sortedFilePattern;
-        this.mergedFilePattern = mergedFilePattern;
+        this.stagingPathsBulder = stagingPathsBulder;
     }
 
     @Setup
@@ -50,13 +45,13 @@ public class PrepareMergeNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<Sa
         Iterable<SampleMetaData> geneSampleMetaDataIterable = input.getValue();
 
         for (String ref : references) {
-            BlobId blobIdMerge = BlobId.of(stagedBucket, String.format(mergedFilePattern, sraSampleId.getValue(), ref));
+            BlobId blobIdMerge = stagingPathsBulder.buildMergedBlobId(sraSampleId.getValue(), ref);
             boolean mergeExists = gcsService.isExists(blobIdMerge);
             if (!mergeExists) {
                 boolean redyToMerge = true;
                 List<FileWrapper> fileWrappers = new ArrayList<>();
                 for (SampleMetaData geneSampleMetaData : geneSampleMetaDataIterable) {
-                    BlobId blobIdSort = BlobId.of(stagedBucket, String.format(sortedFilePattern, geneSampleMetaData.getRunId(), ref));
+                    BlobId blobIdSort = stagingPathsBulder.buildSortedBlobId(geneSampleMetaData.getRunId(), ref);
                     boolean sortExists = gcsService.isExists(blobIdSort);
                     String uriFromBlob = gcsService.getUriFromBlob(blobIdSort);
                     fileWrappers.add(FileWrapper.fromBlobUri(uriFromBlob,

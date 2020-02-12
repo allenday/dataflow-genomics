@@ -21,27 +21,21 @@ public class RemoveFailedMergeBamsFn extends DoFn<KV<SampleMetaData, List<FileWr
 
     private FileUtils fileUtils;
     private List<String> references;
-    private String stagedBucket;
 
-    private String sortedFilePattern;
-    private String mergedFilePattern;
+    private StagingPathsBulder stagingPathsBulder;
 
     private boolean onlyLog;
 
 
-    public RemoveFailedMergeBamsFn(FileUtils fileUtils, List<String> references,
-                                   String stagedBucket, String sortedFilePattern, String mergedFilePattern) {
-        this(fileUtils, references, stagedBucket, sortedFilePattern, mergedFilePattern, false);
+    public RemoveFailedMergeBamsFn(FileUtils fileUtils, List<String> references, StagingPathsBulder stagingPathsBulder) {
+        this(fileUtils, references, stagingPathsBulder, false);
     }
 
-    public RemoveFailedMergeBamsFn(FileUtils fileUtils, List<String> references,
-                                   String stagedBucket, String sortedFilePattern, String mergedFilePattern,
+    public RemoveFailedMergeBamsFn(FileUtils fileUtils, List<String> references, StagingPathsBulder stagingPathsBulder,
                                    boolean onlyLog) {
         this.fileUtils = fileUtils;
         this.references = references;
-        this.stagedBucket = stagedBucket;
-        this.sortedFilePattern = sortedFilePattern;
-        this.mergedFilePattern = mergedFilePattern;
+        this.stagingPathsBulder = stagingPathsBulder;
         this.onlyLog = onlyLog;
     }
 
@@ -57,8 +51,8 @@ public class RemoveFailedMergeBamsFn extends DoFn<KV<SampleMetaData, List<FileWr
 
 
         for (String ref : references) {
-            BlobId blobIdSort = BlobId.of(stagedBucket, String.format(sortedFilePattern, geneSampleMetaData.getRunId(), ref));
-            BlobId blobIdMerge = BlobId.of(stagedBucket, String.format(mergedFilePattern, geneSampleMetaData.getSraSample(), ref));
+            BlobId blobIdSort = stagingPathsBulder.buildSortedBlobId(geneSampleMetaData.getRunId(), ref);
+            BlobId blobIdMerge = stagingPathsBulder.buildMergedBlobId(geneSampleMetaData.getSraSample().getValue(), ref);
             boolean existsSort = gcsService.isExists(blobIdSort);
             boolean existsMerge = gcsService.isExists(blobIdMerge);
 

@@ -27,28 +27,15 @@ public class CheckExistenceFn extends DoFn<KV<SraSampleId, Iterable<KV<SampleMet
     private List<String> references;
     private GCSService gcsService;
     private DecimalFormat decimalFormat = new DecimalFormat("#.###");
-    private String stagedBucket;
 
-    private String alignedFilePattern;
-    private String sortedFilePattern;
-    private String mergedFilePattern;
-    private String indexFilePattern;
-    private String vcfFilePattern;
-    private String vcfToBqProcessedListFile;
+    private StagingPathsBulder stagingPathsBulder;
 
-    public CheckExistenceFn(FileUtils fileUtils, IoUtils ioUtils, List<String> references, String stagedBucket,
-                            String alignedFilePattern, String sortedFilePattern, String mergedFilePattern,
-                            String indexFilePattern, String vcfFilePattern, String vcfToBqProcessedListFile) {
+    public CheckExistenceFn(FileUtils fileUtils, IoUtils ioUtils, List<String> references,
+                            StagingPathsBulder stagingPathsBulder) {
         this.fileUtils = fileUtils;
         this.ioUtils = ioUtils;
         this.references = references;
-        this.stagedBucket = stagedBucket;
-        this.alignedFilePattern = alignedFilePattern;
-        this.sortedFilePattern = sortedFilePattern;
-        this.mergedFilePattern = mergedFilePattern;
-        this.indexFilePattern = indexFilePattern;
-        this.vcfFilePattern = vcfFilePattern;
-        this.vcfToBqProcessedListFile = vcfToBqProcessedListFile;
+        this.stagingPathsBulder = stagingPathsBulder;
     }
 
     @Setup
@@ -70,7 +57,7 @@ public class CheckExistenceFn extends DoFn<KV<SraSampleId, Iterable<KV<SampleMet
         for (String ref : references) {
             String processedVcfToBq = "";
             try {
-                processedVcfToBq = gcsService.readBlob(ioUtils, stagedBucket, String.format(vcfToBqProcessedListFile, ref));
+                processedVcfToBq = gcsService.readBlob(stagingPathsBulder.getVcfToBqProcessedListFileBlobId(), ioUtils);
             } catch (Exception ignored) {
             }
             boolean existsVcfToBq = processedVcfToBq.contains(sraSampleId + "," + ref);
@@ -78,21 +65,21 @@ public class CheckExistenceFn extends DoFn<KV<SraSampleId, Iterable<KV<SampleMet
                 outputElements.add("7_SAVED_TO_BQ");
                 continue;
             }
-            BlobId blobIdDv = BlobId.of(stagedBucket, String.format(vcfFilePattern, sraSampleId, ref));
+            BlobId blobIdDv = stagingPathsBulder.buildVcfFileBlobId(sraSampleId.getValue(), ref);
             boolean existsDv = gcsService.isExists(blobIdDv);
             if (existsDv) {
                 outputElements.add("6_Vcf_to_Bq");
                 continue;
             }
 
-            BlobId blobIdIndex = BlobId.of(stagedBucket, String.format(indexFilePattern, sraSampleId, ref));
+            BlobId blobIdIndex = stagingPathsBulder.buildIndexBlobId(sraSampleId.getValue(), ref);
             boolean existsIndex = gcsService.isExists(blobIdIndex);
             if (existsIndex) {
                 outputElements.add("5_DV");
                 continue;
             }
 
-            BlobId blobIdMerge = BlobId.of(stagedBucket, String.format(mergedFilePattern, sraSampleId, ref));
+            BlobId blobIdMerge = stagingPathsBulder.buildMergedBlobId(sraSampleId.getValue(), ref);
             boolean existsMerge = gcsService.isExists(blobIdMerge);
             if (existsMerge) {
                 outputElements.add("4_Index");
@@ -102,10 +89,12 @@ public class CheckExistenceFn extends DoFn<KV<SraSampleId, Iterable<KV<SampleMet
             int alignExistenceCounter = 0;
             int sortExistenceCounter = 0;
 
+            outputElements.add(String.valueOf(StreamSupport.stream(input.getValue().spliterator(), false).count()));
+
             for (KV<SampleMetaData, List<FileWrapper>> geneSampleMetaDataAndUris : input.getValue()) {
                 SampleMetaData geneSampleMetaData = geneSampleMetaDataAndUris.getKey();
-                BlobId blobIdAlign = BlobId.of(stagedBucket, String.format(alignedFilePattern, geneSampleMetaData.getRunId(), ref));
-                BlobId blobIdSort = BlobId.of(stagedBucket, String.format(sortedFilePattern, geneSampleMetaData.getRunId(), ref));
+                BlobId blobIdAlign = stagingPathsBulder.buildAlignedBlobId(geneSampleMetaData.getRunId(), ref);
+                BlobId blobIdSort = stagingPathsBulder.buildSortedBlobId(geneSampleMetaData.getRunId(), ref);
                 boolean existsAlign = gcsService.isExists(blobIdAlign);
                 boolean existsSort = gcsService.isExists(blobIdSort);
 
@@ -136,8 +125,8 @@ public class CheckExistenceFn extends DoFn<KV<SraSampleId, Iterable<KV<SampleMet
             }
         }
         outputElements.add(decimalFormat.format(sumOfFastq / (float) (1024 * 1024 * 1024)));
-        BlobId blobIdMerge = BlobId.of(stagedBucket, String.format(mergedFilePattern, sraSampleId,
-                references.get(0)));
+        BlobId blobIdMerge = stagingPathsBulder.buildMergedBlobId(sraSampleId.getValue(), references.get(0));
+
         boolean existsMerge = gcsService.isExists(blobIdMerge);
         float mergedSortedBamSizeMb = existsMerge ? gcsService.getBlobSize(blobIdMerge) / (float) (1024 * 1024 * 1024) : 0;
         outputElements.add(decimalFormat.format(mergedSortedBamSizeMb));

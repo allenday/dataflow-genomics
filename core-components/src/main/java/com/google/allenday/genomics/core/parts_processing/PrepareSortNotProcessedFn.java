@@ -23,19 +23,14 @@ public class PrepareSortNotProcessedFn extends DoFn<KV<SampleMetaData, List<File
 
     private FileUtils fileUtils;
     private List<String> references;
-    private String stagedBucket;
 
-    private String alignedFilePattern;
-    private String sortedFilePattern;
+    private StagingPathsBulder stagingPathsBulder;
 
 
-    public PrepareSortNotProcessedFn(FileUtils fileUtils, List<String> references,
-                                     String stagedBucket, String alignedFilePattern, String sortedFilePattern) {
+    public PrepareSortNotProcessedFn(FileUtils fileUtils, List<String> references, StagingPathsBulder stagingPathsBulder) {
         this.fileUtils = fileUtils;
         this.references = references;
-        this.stagedBucket = stagedBucket;
-        this.alignedFilePattern = alignedFilePattern;
-        this.sortedFilePattern = sortedFilePattern;
+        this.stagingPathsBulder = stagingPathsBulder;
     }
 
     @Setup
@@ -49,8 +44,8 @@ public class PrepareSortNotProcessedFn extends DoFn<KV<SampleMetaData, List<File
         SampleMetaData geneSampleMetaData = input.getKey();
 
         for (String ref : references) {
-            BlobId blobIdSort = BlobId.of(stagedBucket, String.format(sortedFilePattern, geneSampleMetaData.getRunId(), ref));
-            BlobId blobIdAlign = BlobId.of(stagedBucket, String.format(alignedFilePattern, geneSampleMetaData.getRunId(), ref));
+            BlobId blobIdSort = stagingPathsBulder.buildSortedBlobId(geneSampleMetaData.getRunId(), ref);
+            BlobId blobIdAlign = stagingPathsBulder.buildAlignedBlobId(geneSampleMetaData.getRunId(), ref);
 
             boolean existsAligned = gcsService.isExists(blobIdAlign);
             boolean existsSorted = gcsService.isExists(blobIdSort);
@@ -61,7 +56,6 @@ public class PrepareSortNotProcessedFn extends DoFn<KV<SampleMetaData, List<File
                 c.output(KV.of(KV.of(geneSampleMetaData, new ReferenceDatabase(ref, new ArrayList<>())), FileWrapper.fromBlobUri(
                         uriFromBlob,
                         new FileUtils().getFilenameFromPath(uriFromBlob))));
-                ;
             }
         }
     }

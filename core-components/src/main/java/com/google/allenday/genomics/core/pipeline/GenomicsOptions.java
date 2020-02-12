@@ -11,7 +11,7 @@ public class GenomicsOptions {
     public final static String MERGED_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
     public final static String BAM_INDEX_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
     public final static String DEEP_VARIANT_OUTPUT_PATH_PATTERN = "%s/result_dv/";
-    public final static String VCF_TO_BQ_PATH = "vcf_to_bq/";
+    public final static String VCF_TO_BQ_PATH = "/vcf_to_bq/";
     public final static String ANOMALY_PATH_PATTERN = "%s/anomaly_samples/";
 
     private String resultBucket;

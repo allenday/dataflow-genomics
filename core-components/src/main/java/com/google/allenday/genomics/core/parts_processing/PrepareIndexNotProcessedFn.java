@@ -20,18 +20,12 @@ public class PrepareIndexNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<Sa
 
     private FileUtils fileUtils;
     private List<String> references;
-    private String stagedBucket;
+    private StagingPathsBulder stagingPathsBulder;
 
-    private String mergedFilePattern;
-    private String indexFilePattern;
-
-    public PrepareIndexNotProcessedFn(FileUtils fileUtils, List<String> references,
-                                      String stagedBucket, String mergedFilePattern, String indexFilePattern) {
+    public PrepareIndexNotProcessedFn(FileUtils fileUtils, List<String> references, StagingPathsBulder stagingPathsBulder) {
         this.fileUtils = fileUtils;
         this.references = references;
-        this.stagedBucket = stagedBucket;
-        this.mergedFilePattern = mergedFilePattern;
-        this.indexFilePattern = indexFilePattern;
+        this.stagingPathsBulder = stagingPathsBulder;
     }
 
     @Setup
@@ -47,9 +41,9 @@ public class PrepareIndexNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<Sa
         SraSampleId sraSampleId = input.getKey();
 
         for (String ref : references) {
-            BlobId blobIdMerge = BlobId.of(stagedBucket, String.format(mergedFilePattern, sraSampleId.getValue(), ref));
+            BlobId blobIdMerge = stagingPathsBulder.buildMergedBlobId(sraSampleId.getValue(), ref);
             boolean mergeExists = gcsService.isExists(blobIdMerge);
-            BlobId blobIdIndex = BlobId.of(stagedBucket, String.format(indexFilePattern, sraSampleId.getValue(), ref));
+            BlobId blobIdIndex = stagingPathsBulder.buildIndexBlobId(sraSampleId.getValue(), ref);
             boolean indexExists = gcsService.isExists(blobIdIndex);
             if (mergeExists && !indexExists) {
                 String uriFromBlob = gcsService.getUriFromBlob(blobIdMerge);

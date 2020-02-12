@@ -7,6 +7,8 @@ import java.util.List;
 
 public class UriProvider implements Serializable {
 
+    public final static String FASTQ_EXTENSION = ".fastq";
+
     private String srcBucket;
     private ProviderRule providerRule;
 
@@ -23,7 +25,7 @@ public class UriProvider implements Serializable {
         return providerRule.provideAccordinglyRule(geneSampleMetaData, srcBucket);
     }
 
-    public interface ProviderRule extends Serializable{
+    public interface ProviderRule extends Serializable {
         List<String> provideAccordinglyRule(SampleMetaData geneSampleMetaData, String srcBucket);
     }
 }

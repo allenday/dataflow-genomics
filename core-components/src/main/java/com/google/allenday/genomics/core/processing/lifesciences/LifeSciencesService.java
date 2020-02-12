@@ -4,7 +4,7 @@ import com.google.allenday.genomics.core.processing.dv.DeepVariantService;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson.JacksonFactory;
+import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.lifesciences.v2beta.CloudLifeSciences;
 import com.google.api.services.lifesciences.v2beta.model.*;
 import com.google.auth.http.HttpCredentialsAdapter;

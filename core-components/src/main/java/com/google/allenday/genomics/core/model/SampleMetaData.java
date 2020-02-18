@@ -79,11 +79,12 @@ public class SampleMetaData implements Serializable {
     public SampleMetaData() {
     }
 
-    public SampleMetaData(String sraSample, String runId, String libraryLayout, String srcRawMetaData) {
+    public SampleMetaData(String sraSample, String runId, String libraryLayout, String platform, String srcRawMetaData) {
         this.sraSample = SraSampleId.create(sraSample);
         this.runId = runId;
         this.libraryLayout = libraryLayout;
         this.srcRawMetaData = srcRawMetaData;
+        this.platform = platform;
     }
 
     public static SampleMetaData fromCsvLine(Parser parser, String csvLine) throws Parser.CsvParseException {
@@ -92,13 +93,12 @@ public class SampleMetaData implements Serializable {
 
     public static SampleMetaData createUnique(String rawMetaData, String libraryLayout, String platform) {
         String uniqueName = UUID.randomUUID().toString();
-        SampleMetaData sampleMetaData = new SampleMetaData(
+        return new SampleMetaData(
                 "sraSample_" + uniqueName,
                 "runId_" + uniqueName,
                 libraryLayout,
+                platform,
                 rawMetaData);
-        sampleMetaData.setPlatform(platform);
-        return sampleMetaData;
     }
 
     public Integer getAvgSpotLen() {

@@ -3,8 +3,8 @@ package com.google.allenday.genomics.core.main.processing.align;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;
+import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.processing.align.AlignFn;
 import com.google.allenday.genomics.core.processing.align.AlignService;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
@@ -67,7 +67,8 @@ public class AlignFnTest implements Serializable {
             add(FileWrapper.fromByteArrayContent("2".getBytes(), "input_2.fastq"));
         }};
 
-        SampleMetaData geneSampleMetaData = new SampleMetaData("tes_sra_sample", "test_run", "Single", "");
+        SampleMetaData geneSampleMetaData = new SampleMetaData("tes_sra_sample", "test_run",
+                "Single", AlignService.Instrument.ILLUMINA.name(), "");
 
         PCollection<KV<KV<SampleMetaData, ReferenceDatabase>, FileWrapper>> alignedData = testPipeline
                 .apply(Create.of(KV.of(KV.of(geneSampleMetaData, referenceList), fileWrapperList)))

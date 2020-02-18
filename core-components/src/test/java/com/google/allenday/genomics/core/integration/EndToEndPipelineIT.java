@@ -90,9 +90,6 @@ public class EndToEndPipelineIT implements Serializable {
                 .ofNullable(System.getenv("TEST_BUCKET"))
                 .orElse("cannabis-3k-results");
 
-        SampleMetaData testSampleMetaData =
-                new SampleMetaData(TEST_EXAMPLE_SRA, "TestRun", "SINGLE", AlignService.Instrument.ILLUMINA.name(), "testSrcRawMetaData");
-
         GCSService gcsService = GCSService.initialize(fileUtils);
         Pair<String, UriProvider> inputCsvUriAndProvider = prepareInputData(gcsService, fileUtils, testBucket, TEST_SINGLE_END_INPUT_FILE, TEST_CSV_FILE);
         String allReferencesDirGcsUri = prepareReference(gcsService, fileUtils, testBucket);
@@ -144,7 +141,7 @@ public class EndToEndPipelineIT implements Serializable {
         gcsService.writeToGcs(bucketName, TEST_GCS_INPUT_DATA_DIR + testInputDataFile,
                 Channels.newChannel(getClass().getClassLoader().getResourceAsStream(testInputDataFile)));
         String csvLine = String.join(",", new String[]{
-                TEST_EXAMPLE_SRA, "test_read_10000", "SINGLE"});
+                TEST_EXAMPLE_SRA, "test_read_10000", "SINGLE", AlignService.Instrument.ILLUMINA.name()});
         Blob blob = gcsService.writeToGcs(bucketName, TEST_GCS_INPUT_DATA_DIR + testInputCsvFileName,
                 Channels.newChannel(new ByteArrayInputStream(csvLine.getBytes())));
         UriProvider uriProvider = new UriProvider(bucketName, new UriProvider.ProviderRule() {

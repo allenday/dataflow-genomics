@@ -16,8 +16,6 @@ import java.util.UUID;
 @DefaultCoder(AvroCoder.class)
 public class SampleMetaData implements Serializable {
 
-    private final static String IS_PAIRED_FLAG = "PAIRED";
-
     @Nullable
     protected Integer avgSpotLen;
 
@@ -194,7 +192,7 @@ public class SampleMetaData implements Serializable {
     }
 
     public boolean isPaired() {
-        return libraryLayout.equals(IS_PAIRED_FLAG);
+        return libraryLayout.equals(LibraryLayout.PAIRED.name());
     }
 
     public String getExperiment() {
@@ -450,6 +448,10 @@ public class SampleMetaData implements Serializable {
                 super(String.format("Exception occurred while %s was parsing", csvLine));
             }
         }
+    }
+
+    public static enum LibraryLayout {
+        SINGLE, PAIRED
     }
 }
 

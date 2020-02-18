@@ -35,14 +35,12 @@ public class AlignService implements Serializable {
     private WorkerSetupService workerSetupService;
     private CmdExecutor cmdExecutor;
     private FileUtils fileUtils;
-    private Instrument instrument;
 
     public AlignService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor,
-                        FileUtils fileUtils, Instrument instrument) {
+                        FileUtils fileUtils) {
         this.workerSetupService = workerSetupService;
         this.cmdExecutor = cmdExecutor;
         this.fileUtils = fileUtils;
-        this.instrument = instrument;
     }
 
     public void setupMinimap2() {
@@ -58,7 +56,14 @@ public class AlignService implements Serializable {
 
 
     public String alignFastq(String referencePath, List<String> localFastqPaths, String workDir,
-                             String outPrefix, String outSuffix, String readGroupName) {
+                             String outPrefix, String outSuffix, String readGroupName, String instrumentName) {
+        Instrument instrument = null;
+        try {
+            instrument = Instrument.valueOf(instrumentName);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException(String.format("Instrument %s is not supported", instrumentName));
+
+        }
         String alignedSamName = outPrefix + "_" + outSuffix + SAM_FILE_PREFIX;
         String alignedSamPath = workDir + alignedSamName;
 

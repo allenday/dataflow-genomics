@@ -90,13 +90,15 @@ public class SampleMetaData implements Serializable {
         return parser.parse(csvLine);
     }
 
-    public static SampleMetaData createSingleEndUnique(String rawMetaData) {
+    public static SampleMetaData createUnique(String rawMetaData, String libraryLayout, String platform) {
         String uniqueName = UUID.randomUUID().toString();
-        return new SampleMetaData(
+        SampleMetaData sampleMetaData = new SampleMetaData(
                 "sraSample_" + uniqueName,
                 "runId_" + uniqueName,
-                "SINGLE",
+                libraryLayout,
                 rawMetaData);
+        sampleMetaData.setPlatform(platform);
+        return sampleMetaData;
     }
 
     public Integer getAvgSpotLen() {

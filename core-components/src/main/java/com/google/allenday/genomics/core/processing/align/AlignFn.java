@@ -71,8 +71,13 @@ public class AlignFn extends DoFn<KV<KV<SampleMetaData, List<String>>, List<File
                     String localFastaPath = referenceDatabaseAndFastaLocalPath.getValue1();
 
                     try {
-                        String alignedSamPath = alignService.alignFastq(localFastaPath, srcFilesPaths,
-                                workingDir, geneSampleMetaData.getRunId(), referenceName, geneSampleMetaData.getSraSample().getValue());
+                        String alignedSamPath = alignService.alignFastq(
+                                localFastaPath,
+                                srcFilesPaths,
+                                workingDir, geneSampleMetaData.getRunId(),
+                                referenceName,
+                                geneSampleMetaData.getSraSample().getValue(),
+                                geneSampleMetaData.getPlatform());
                         FileWrapper fileWrapper = transformIoHandler.handleFileOutput(gcsService, alignedSamPath);
                         fileUtils.deleteDir(workingDir);
 

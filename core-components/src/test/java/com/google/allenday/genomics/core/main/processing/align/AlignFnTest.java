@@ -54,7 +54,7 @@ public class AlignFnTest implements Serializable {
             }
         };
 
-        Mockito.when(alignServiceMock.alignFastq(anyString(), any(), anyString(), anyString(), anyString(), anyString())).thenReturn(resultName);
+        Mockito.when(alignServiceMock.alignFastq(anyString(), any(), anyString(), anyString(), anyString(), anyString(), any())).thenReturn(resultName);
         for (String reference : referenceList) {
             Mockito.when(referencesProvider.findReference(any(), eq(reference))).thenReturn(Pair.with(new ReferenceDatabase(reference, Collections.emptyList()),
                     "ref_path"));

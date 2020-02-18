@@ -12,8 +12,7 @@ from google.cloud import pubsub
 
 
 def ack_msg(subscription_path, ack_id):
-    subscriber.acknowledge(subscription_path, ack_id)
-
+    subscriber.acknowledge(subscription_path, [ack_id])
 
 def process_pubsub_msg(subscription_path, ack_id, message):
     logging.info("Received message: {}".format(message))
@@ -99,8 +98,6 @@ def exists_blob(bucket_name, blob_name, project):
 
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
-    subscriber = pubsub.SubscriberClient()
-    gcs_client = storage.Client()
 
     if len(sys.argv) < 4:
         logging.info(
@@ -111,15 +108,17 @@ if __name__ == "__main__":
     subscription = sys.argv[2]
     dest_gcs_dir_uri = sys.argv[3]
 
+    subscriber = pubsub.SubscriberClient()
+    gcs_client = storage.Client(project=project)
+
     dest_bucket, dest_dir = parse_file_to_bucket_and_filename(dest_gcs_dir_uri)
     logging.info("dest_bucket:{}, dest_dir:{}".format(dest_bucket, dest_dir))
     work_dir = "temp"
 
-    subscriber = pubsub.SubscriberClient()
     subscription_path = subscriber.subscription_path(project, subscription)
 
     while True:
-        response = subscriber.pull(subscription_path, max_messages=1)
+        response = subscriber.pull(subscription_path, max_messages=1, timeout=1200)
         counter = 0
         for received_message in response.received_messages:
             message = received_message.message

@@ -1,5 +1,6 @@
 package com.google.allenday.genomics.core.pipeline;
 
+import org.apache.beam.sdk.options.ValueProvider;
 import org.javatuples.Pair;
 
 import java.util.List;
@@ -15,7 +16,7 @@ public class GenomicsOptions {
     public final static String ANOMALY_PATH_PATTERN = "%s/anomaly_samples/";
 
     private String resultBucket;
-    private List<String> geneReferences;
+    private ValueProvider<List<String>> geneReferences;
     private String allReferencesDirGcsUri;
     private long memoryOutputLimit;
     private DeepVariantOptions deepVariantOptions;
@@ -23,7 +24,7 @@ public class GenomicsOptions {
     private String vcfBqDatasetAndTablePattern;
     private String outputDir;
 
-    public GenomicsOptions(String resultBucket, List<String> geneReferences,
+    public GenomicsOptions(String resultBucket, ValueProvider<List<String>> geneReferences,
                            String allReferencesDirGcsUri, String outputDir,
                            long memoryOutputLimit) {
         this.resultBucket = resultBucket;
@@ -86,7 +87,7 @@ public class GenomicsOptions {
         return resultBucket;
     }
 
-    public List<String> getGeneReferences() {
+    public ValueProvider<List<String>> getGeneReferences() {
         return geneReferences;
     }
 

@@ -113,7 +113,8 @@ public class EndToEndPipelineIT implements Serializable {
         AlignFn alignFn = new AlignFn(new AlignService(new WorkerSetupService(cmdExecutor), cmdExecutor, fileUtils),
                 referencesProvider,
                 alignTransformIoHandler, fileUtils);
-        AlignTransform alignTransform = new AlignTransform("Align reads transform", alignFn, Collections.singletonList(TEST_REFERENCE_NAME));
+
+        AlignTransform alignTransform = new AlignTransform("Align reads transform", alignFn, testPipeline.newProvider(Collections.singletonList(TEST_REFERENCE_NAME)));
         SortFn sortFn = new SortFn(sortTransformIoHandler, samBamManipulationService, fileUtils);
         MergeFn mergeFn = new MergeFn(mergeTransformIoHandler, samBamManipulationService, fileUtils);
         CreateBamIndexFn createBamIndexFn = new CreateBamIndexFn(indexTransformIoHandler, samBamManipulationService, fileUtils);

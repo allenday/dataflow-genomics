@@ -16,8 +16,6 @@ import java.util.UUID;
 @DefaultCoder(AvroCoder.class)
 public class SampleMetaData implements Serializable {
 
-    private final static String IS_PAIRED_FLAG = "PAIRED";
-
     @Nullable
     protected Integer avgSpotLen;
 
@@ -79,23 +77,25 @@ public class SampleMetaData implements Serializable {
     public SampleMetaData() {
     }
 
-    public SampleMetaData(String sraSample, String runId, String libraryLayout, String srcRawMetaData) {
+    public SampleMetaData(String sraSample, String runId, String libraryLayout, String platform, String srcRawMetaData) {
         this.sraSample = SraSampleId.create(sraSample);
         this.runId = runId;
         this.libraryLayout = libraryLayout;
         this.srcRawMetaData = srcRawMetaData;
+        this.platform = platform;
     }
 
     public static SampleMetaData fromCsvLine(Parser parser, String csvLine) throws Parser.CsvParseException {
         return parser.parse(csvLine);
     }
 
-    public static SampleMetaData createSingleEndUnique(String rawMetaData) {
+    public static SampleMetaData createUnique(String rawMetaData, String libraryLayout, String platform) {
         String uniqueName = UUID.randomUUID().toString();
         return new SampleMetaData(
                 "sraSample_" + uniqueName,
                 "runId_" + uniqueName,
-                "SINGLE",
+                libraryLayout,
+                platform,
                 rawMetaData);
     }
 
@@ -192,7 +192,7 @@ public class SampleMetaData implements Serializable {
     }
 
     public boolean isPaired() {
-        return libraryLayout.equals(IS_PAIRED_FLAG);
+        return libraryLayout.equals(LibraryLayout.PAIRED.name());
     }
 
     public String getExperiment() {
@@ -448,6 +448,10 @@ public class SampleMetaData implements Serializable {
                 super(String.format("Exception occurred while %s was parsing", csvLine));
             }
         }
+    }
+
+    public static enum LibraryLayout {
+        SINGLE, PAIRED
     }
 }
 

@@ -10,14 +10,14 @@ import com.google.allenday.genomics.core.io.UriProvider;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
-import com.google.allenday.genomics.core.processing.dv.DeepVariantService;
-import com.google.allenday.genomics.core.processing.sam.SamBamManipulationService;
 import com.google.allenday.genomics.core.processing.align.AlignFn;
 import com.google.allenday.genomics.core.processing.align.AlignService;
 import com.google.allenday.genomics.core.processing.align.AlignTransform;
+import com.google.allenday.genomics.core.processing.dv.DeepVariantService;
 import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
 import com.google.allenday.genomics.core.processing.sam.CreateBamIndexFn;
 import com.google.allenday.genomics.core.processing.sam.MergeFn;
+import com.google.allenday.genomics.core.processing.sam.SamBamManipulationService;
 import com.google.allenday.genomics.core.processing.sam.SortFn;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
 import com.google.cloud.storage.Blob;
@@ -75,7 +75,7 @@ public class EndToEndPipelineIT implements Serializable {
 
         @Override
         public SampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException {
-            return new SampleMetaData(csvLineParts[0], csvLineParts[1], csvLineParts[2], csvLine);
+            return new SampleMetaData(csvLineParts[0], csvLineParts[1], csvLineParts[2], csvLineParts[3], csvLine);
         }
     }
 
@@ -89,9 +89,6 @@ public class EndToEndPipelineIT implements Serializable {
         String testBucket = Optional
                 .ofNullable(System.getenv("TEST_BUCKET"))
                 .orElse("cannabis-3k-results");
-
-        SampleMetaData testSampleMetaData =
-                new SampleMetaData(TEST_EXAMPLE_SRA, "TestRun", "SINGLE", "testSrcRawMetaData");
 
         GCSService gcsService = GCSService.initialize(fileUtils);
         Pair<String, UriProvider> inputCsvUriAndProvider = prepareInputData(gcsService, fileUtils, testBucket, TEST_SINGLE_END_INPUT_FILE, TEST_CSV_FILE);
@@ -113,10 +110,11 @@ public class EndToEndPipelineIT implements Serializable {
         TransformIoHandler mergeTransformIoHandler = new TransformIoHandler(testBucket, mergeResultGcsPath, 0, fileUtils);
         TransformIoHandler indexTransformIoHandler = new TransformIoHandler(testBucket, indexResultGcsPath, 0, fileUtils);
 
-        AlignFn alignFn = new AlignFn(new AlignService(new WorkerSetupService(cmdExecutor), cmdExecutor, fileUtils, AlignService.Instrument.ILLUMINA),
+        AlignFn alignFn = new AlignFn(new AlignService(new WorkerSetupService(cmdExecutor), cmdExecutor, fileUtils),
                 referencesProvider,
                 alignTransformIoHandler, fileUtils);
-        AlignTransform alignTransform = new AlignTransform("Align reads transform", alignFn, Collections.singletonList(TEST_REFERENCE_NAME));
+
+        AlignTransform alignTransform = new AlignTransform("Align reads transform", alignFn, testPipeline.newProvider(Collections.singletonList(TEST_REFERENCE_NAME)));
         SortFn sortFn = new SortFn(sortTransformIoHandler, samBamManipulationService, fileUtils);
         MergeFn mergeFn = new MergeFn(mergeTransformIoHandler, samBamManipulationService, fileUtils);
         CreateBamIndexFn createBamIndexFn = new CreateBamIndexFn(indexTransformIoHandler, samBamManipulationService, fileUtils);
@@ -144,7 +142,7 @@ public class EndToEndPipelineIT implements Serializable {
         gcsService.writeToGcs(bucketName, TEST_GCS_INPUT_DATA_DIR + testInputDataFile,
                 Channels.newChannel(getClass().getClassLoader().getResourceAsStream(testInputDataFile)));
         String csvLine = String.join(",", new String[]{
-                TEST_EXAMPLE_SRA, "test_read_10000", "SINGLE"});
+                TEST_EXAMPLE_SRA, "test_read_10000", "SINGLE", AlignService.Instrument.ILLUMINA.name()});
         Blob blob = gcsService.writeToGcs(bucketName, TEST_GCS_INPUT_DATA_DIR + testInputCsvFileName,
                 Channels.newChannel(new ByteArrayInputStream(csvLine.getBytes())));
         UriProvider uriProvider = new UriProvider(bucketName, new UriProvider.ProviderRule() {

@@ -85,9 +85,8 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public AlignService provideAlignService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor, FileUtils fileUtils,
-                                            AlignService.Instrument instrument) {
-        return new AlignService(workerSetupService, cmdExecutor, fileUtils, instrument);
+    public AlignService provideAlignService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor, FileUtils fileUtils) {
+        return new AlignService(workerSetupService, cmdExecutor, fileUtils);
     }
 
     @Provides

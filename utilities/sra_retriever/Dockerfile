@@ -15,4 +15,4 @@ COPY sra_retriever.py /sra_retriever/sra_retriever.py
 
 ENV PATH="/usr/local/ncbi/sra-tools/bin:${PATH}"
 
-CMD python3 sra_retriever.py $PROJECT $SUBSRIPTION $DEST_GCS_DIR_URI
+CMD python3 sra_retriever.py $PROJECT $SUBSRIPTION $DEST_GCS_DIR_URI $SUCCESS_TOPIC $FAILED_TOPIC

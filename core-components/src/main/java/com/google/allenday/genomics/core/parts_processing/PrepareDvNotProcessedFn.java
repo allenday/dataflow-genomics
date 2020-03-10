@@ -6,8 +6,9 @@ import com.google.allenday.genomics.core.model.BamWithIndexUris;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraSampleId;
 import com.google.allenday.genomics.core.model.SraSampleIdReferencePair;
-import com.google.allenday.genomics.core.reference.ReferencesProvider;
+import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.cloud.storage.BlobId;
+import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
@@ -16,25 +17,26 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public class PrepareDvNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<SampleMetaData>>, KV<SraSampleIdReferencePair, BamWithIndexUris>> {
+public class PrepareDvNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<SampleMetaData>>,
+        KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, BamWithIndexUris>>> {
 
     private Logger LOG = LoggerFactory.getLogger(PrepareDvNotProcessedFn.class);
 
-    private ReferencesProvider referencesProvider;
-    private List<String> references;
+    private ValueProvider<List<String>> referencesVP;
     private int minThresholdMb;
     private int maxThresholdMb;
     private StagingPathsBulder stagingPathsBulder;
+    private ValueProvider<String> allReferencesDirGcsUri;
 
     private GCSService gcsService;
 
-    public PrepareDvNotProcessedFn(ReferencesProvider referencesProvider, List<String> references, int minThresholdMb,
-                                   int maxThresholdMb, StagingPathsBulder stagingPathsBulder) {
-        this.referencesProvider = referencesProvider;
-        this.references = references;
+    public PrepareDvNotProcessedFn(ValueProvider<List<String>> referencesVP, int minThresholdMb,
+                                   int maxThresholdMb, StagingPathsBulder stagingPathsBulder, ValueProvider<String> allReferencesDirGcsUri) {
+        this.referencesVP = referencesVP;
         this.minThresholdMb = minThresholdMb;
         this.maxThresholdMb = maxThresholdMb;
         this.stagingPathsBulder = stagingPathsBulder;
+        this.allReferencesDirGcsUri = allReferencesDirGcsUri;
     }
 
     @Setup
@@ -49,6 +51,7 @@ public class PrepareDvNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<Sampl
         @Nonnull
         SraSampleId sraSampleId = input.getKey();
 
+        List<String> references = referencesVP.get();
         for (String ref : references) {
             BlobId blobIdMerge = stagingPathsBulder.buildMergedBlobId(sraSampleId.getValue(), ref);
             BlobId blobIdIndex = stagingPathsBulder.buildIndexBlobId(sraSampleId.getValue(), ref);
@@ -64,8 +67,11 @@ public class PrepareDvNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<Sampl
                 float sizeMb = gcsService.getBlobSize(blobIdMerge) / (float) (1024 * 1024);
                 if (sizeMb >= minThresholdMb && sizeMb <= maxThresholdMb) {
                     LOG.info(String.format("Pass to processing stage: %s", sraSampleId.getValue()));
-                    c.output(KV.of(new SraSampleIdReferencePair(sraSampleId, referencesProvider.getReferenceDd(gcsService, ref)),
-                            bamWithIndexUris));
+
+                    ReferenceDatabaseSource referenceDatabaseSource =
+                            new ReferenceDatabaseSource.ByNameAndUriSchema(ref, allReferencesDirGcsUri.get());
+                    c.output(KV.of(new SraSampleIdReferencePair(sraSampleId, referenceDatabaseSource.getName()),
+                            KV.of(referenceDatabaseSource, bamWithIndexUris)));
                 }
             }
 

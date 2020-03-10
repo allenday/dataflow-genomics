@@ -4,9 +4,9 @@ import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.model.SraSampleId;
 import com.google.allenday.genomics.core.model.SraSampleIdReferencePair;
+import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
@@ -16,7 +16,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class MergeFn extends DoFn<KV<SraSampleIdReferencePair, List<FileWrapper>>, KV<SraSampleIdReferencePair, FileWrapper>> {
+public class MergeFn extends DoFn<KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, List<FileWrapper>>>,
+        KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, FileWrapper>>> {
 
 
     private Logger LOG = LoggerFactory.getLogger(MergeFn.class);
@@ -37,7 +38,7 @@ public class MergeFn extends DoFn<KV<SraSampleIdReferencePair, List<FileWrapper>
         gcsService = GCSService.initialize(fileUtils);
     }
 
-    private boolean isNothingToMerge(List<FileWrapper> fileWrapperList) {
+    private boolean isNothingToMerge(List fileWrapperList) {
         return fileWrapperList.size() < 2;
     }
 
@@ -62,48 +63,49 @@ public class MergeFn extends DoFn<KV<SraSampleIdReferencePair, List<FileWrapper>
             return;
         }
         SraSampleId sraSampleId = sraSampleIdReferencePair.getSraSampleId();
-        ReferenceDatabase referenceDatabase = sraSampleIdReferencePair.getReferenceDatabase();
 
-        List<FileWrapper> fileWrapperList = c.element().getValue();
+        KV<ReferenceDatabaseSource, List<FileWrapper>> fnValue = c.element().getValue();
+        ReferenceDatabaseSource referenceDatabaseSource = fnValue.getKey();
+        List<FileWrapper> fileWrappers = fnValue.getValue();
 
-        if (sraSampleId == null || fileWrapperList.size() == 0) {
+        if (sraSampleId == null || fileWrappers.size() == 0) {
             LOG.error("Data error");
             LOG.error("sraSampleId: " + sraSampleId);
-            LOG.error("fileWrapperList.size(): " + fileWrapperList.size());
+            LOG.error("fileWrappers.size(): " + fileWrappers.size());
             return;
         }
-        if (containesEmpty(fileWrapperList)) {
+        if (containesEmpty(fileWrappers)) {
             LOG.info(String.format("Group %s contains empty FileWrappers", sraSampleId));
             return;
         }
         try {
             String workDir = fileUtils.makeDirByCurrentTimestampAndSuffix(sraSampleId.getValue());
             try {
-                if (isNothingToMerge(fileWrapperList)) {
-                    fileWrapperList.stream().findFirst().ifPresent(inputGeneData -> {
+                if (isNothingToMerge(fileWrappers)) {
+                    fileWrappers.stream().findFirst().ifPresent(fileWrapper -> {
                                 String mergedFilename =
-                                        samBamManipulationService.generateMergedFileName(sraSampleId.getValue(), referenceDatabase.getDbName());
-                                FileWrapper fileWrapper = transformIoHandler.handleInputAndCopyToGcs(
-                                        inputGeneData,
-                                        gcsService,
-                                        mergedFilename,
-                                        workDir);
+                                        samBamManipulationService.generateMergedFileName(sraSampleId.getValue(),
+                                                referenceDatabaseSource.getName());
+                                FileWrapper fileWrapperMerged = transformIoHandler.handleInputAndCopyToGcs(
+                                        fileWrapper, gcsService, mergedFilename, workDir);
                                 fileUtils.deleteDir(workDir);
 
-                                c.output(KV.of(sraSampleIdReferencePair, fileWrapper));
+                                c.output(KV.of(sraSampleIdReferencePair, KV.of(referenceDatabaseSource, fileWrapperMerged)));
+
                             }
                     );
                 } else {
-                    List<String> localBamPaths = fileWrapperList.stream()
+                    List<String> localBamPaths = fileWrappers.stream()
                             .map(geneData -> transformIoHandler.handleInputAsLocalFile(gcsService, geneData, workDir))
                             .collect(Collectors.toList());
 
                     String mergedFileName = samBamManipulationService.mergeBamFiles(localBamPaths, workDir,
-                            sraSampleId.getValue(), referenceDatabase.getDbName());
-                    FileWrapper fileWrapper = transformIoHandler.saveFileToGcsOutput(gcsService, mergedFileName);
+                            sraSampleId.getValue(), referenceDatabaseSource.getName());
+                    FileWrapper fileWrapperMerged = transformIoHandler.saveFileToGcsOutput(gcsService, mergedFileName);
                     fileUtils.deleteDir(workDir);
 
-                    c.output(KV.of(sraSampleIdReferencePair, fileWrapper));
+                    c.output(KV.of(sraSampleIdReferencePair, KV.of(referenceDatabaseSource, fileWrapperMerged)));
+
                 }
             } catch (IOException e) {
                 LOG.error(e.getMessage());

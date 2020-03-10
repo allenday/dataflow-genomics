@@ -2,8 +2,13 @@ package com.google.allenday.genomics.core.parts_processing;
 
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
-import com.google.allenday.genomics.core.model.*;
+import com.google.allenday.genomics.core.model.FileWrapper;
+import com.google.allenday.genomics.core.model.SampleMetaData;
+import com.google.allenday.genomics.core.model.SraSampleId;
+import com.google.allenday.genomics.core.model.SraSampleIdReferencePair;
+import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.cloud.storage.BlobId;
+import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
@@ -13,21 +18,26 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PrepareMergeNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<SampleMetaData>>, KV<SraSampleIdReferencePair, List<FileWrapper>>> {
+public class PrepareMergeNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<SampleMetaData>>,
+        KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, List<FileWrapper>>>> {
 
     private Logger LOG = LoggerFactory.getLogger(PrepareMergeNotProcessedFn.class);
 
     private GCSService gcsService;
 
     private FileUtils fileUtils;
-    private List<String> references;
+    private ValueProvider<List<String>> referencesVP;
 
     private StagingPathsBulder stagingPathsBulder;
+    private ValueProvider<String> allReferencesDirGcsUri;
 
-    public PrepareMergeNotProcessedFn(FileUtils fileUtils, List<String> references, StagingPathsBulder stagingPathsBulder) {
+    public PrepareMergeNotProcessedFn(FileUtils fileUtils, ValueProvider<List<String>> referencesVP,
+                                      StagingPathsBulder stagingPathsBulder,
+                                      ValueProvider<String> allReferencesDirGcsUri) {
         this.fileUtils = fileUtils;
-        this.references = references;
+        this.referencesVP = referencesVP;
         this.stagingPathsBulder = stagingPathsBulder;
+        this.allReferencesDirGcsUri = allReferencesDirGcsUri;
     }
 
     @Setup
@@ -44,6 +54,7 @@ public class PrepareMergeNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<Sa
 
         Iterable<SampleMetaData> geneSampleMetaDataIterable = input.getValue();
 
+        List<String> references = referencesVP.get();
         for (String ref : references) {
             BlobId blobIdMerge = stagingPathsBulder.buildMergedBlobId(sraSampleId.getValue(), ref);
             boolean mergeExists = gcsService.isExists(blobIdMerge);
@@ -62,7 +73,10 @@ public class PrepareMergeNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<Sa
                     }
                 }
                 if (redyToMerge) {
-                    c.output(KV.of(new SraSampleIdReferencePair(sraSampleId, ReferenceDatabase.onlyName(ref)), fileWrappers));
+                    ReferenceDatabaseSource referenceDatabaseSource =
+                            new ReferenceDatabaseSource.ByNameAndUriSchema(ref, allReferencesDirGcsUri.get());
+                    c.output(KV.of(new SraSampleIdReferencePair(sraSampleId, referenceDatabaseSource.getName()),
+                            KV.of(referenceDatabaseSource, fileWrappers)));
                 }
             }
         }

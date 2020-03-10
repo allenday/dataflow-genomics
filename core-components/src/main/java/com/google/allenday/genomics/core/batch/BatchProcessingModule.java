@@ -10,6 +10,7 @@ import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraParser;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
+import com.google.allenday.genomics.core.processing.align.AddReferenceDataSourceFn;
 import com.google.allenday.genomics.core.processing.align.AlignFn;
 import com.google.allenday.genomics.core.processing.align.AlignService;
 import com.google.allenday.genomics.core.processing.align.AlignTransform;
@@ -62,7 +63,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Provides
     @Singleton
     public ReferencesProvider provideReferencesProvider(FileUtils fileUtils) {
-        return new ReferencesProvider(fileUtils, genomicsOptions.getAllReferencesDirGcsUri());
+        return new ReferencesProvider(fileUtils);
     }
 
     @Provides
@@ -125,10 +126,24 @@ public abstract class BatchProcessingModule extends AbstractModule {
         return new AlignFn(alignService, referencesProvider, alignIoHandler, fileUtils);
     }
 
+
     @Provides
     @Singleton
-    public AlignTransform provideAlignTransform(AlignFn alignFn) {
-        return new AlignTransform("Align reads transform", alignFn, genomicsOptions.getGeneReferences());
+    public AddReferenceDataSourceFn provideAddReferenceDataSourceFn() {
+        if (genomicsOptions.getRefDataJsonString() != null) {
+            return new AddReferenceDataSourceFn.Explicitly(genomicsOptions.getRefDataJsonString());
+        } else if (genomicsOptions.getGeneReferences() != null && genomicsOptions.getAllReferencesDirGcsUri() != null) {
+            return new AddReferenceDataSourceFn.FromNameAndDirPath(genomicsOptions.getAllReferencesDirGcsUri(),
+                    genomicsOptions.getGeneReferences());
+        } else {
+            throw new RuntimeException("You must provide refDataJsonString or allReferencesDirGcsUri+gneReferences");
+        }
+    }
+
+    @Provides
+    @Singleton
+    public AlignTransform provideAlignTransform(AlignFn alignFn, AddReferenceDataSourceFn addReferenceDataSourceFn) {
+        return new AlignTransform("Align reads transform", alignFn, addReferenceDataSourceFn);
     }
 
     @Provides
@@ -182,17 +197,17 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public DeepVariantService provideDeepVariantService(ReferencesProvider referencesProvider, LifeSciencesService lifeSciencesService) {
-        DeepVariantService deepVariantService = new DeepVariantService(referencesProvider, lifeSciencesService,
-                genomicsOptions.getDeepVariantOptions());
-        return deepVariantService;
+    public DeepVariantService provideDeepVariantService(LifeSciencesService lifeSciencesService) {
+        return new DeepVariantService(lifeSciencesService, genomicsOptions.getDeepVariantOptions());
     }
 
     @Provides
     @Singleton
-    public DeepVariantFn provideDeepVariantFn(DeepVariantService deepVariantService, FileUtils fileUtils, NameProvider nameProvider) {
+    public DeepVariantFn provideDeepVariantFn(DeepVariantService deepVariantService, FileUtils fileUtils, ReferencesProvider referencesProvider, NameProvider nameProvider) {
 
-        return new DeepVariantFn(deepVariantService, fileUtils, genomicsOptions.getResultBucket(), String.format(genomicsOptions.getDeepVariantOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()));
+        return new DeepVariantFn(deepVariantService, fileUtils, referencesProvider,
+                genomicsOptions.getResultBucket(), String.format(genomicsOptions.getDeepVariantOutputDirPattern(),
+                nameProvider.getCurrentTimeInDefaultFormat()));
     }
 
     @Provides

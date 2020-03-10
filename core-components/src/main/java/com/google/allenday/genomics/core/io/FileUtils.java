@@ -1,5 +1,6 @@
 package com.google.allenday.genomics.core.io;
 
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,6 +89,15 @@ public class FileUtils implements Serializable {
         }
     }
 
+    public Pair<String, String> splitFilenameAndExtension(String filenameWithExtension) {
+        if (filenameWithExtension.contains(".")) {
+            String name = filenameWithExtension.split("\\.")[0];
+            return Pair.with(name, filenameWithExtension.replace(name, ""));
+        } else {
+            return Pair.with(filenameWithExtension, "");
+        }
+    }
+
 
     public void deleteFile(String filePath) {
         File fileToDelete = new File(filePath);
@@ -128,6 +138,11 @@ public class FileUtils implements Serializable {
 
     public InputStream getInputStreamFromFile(String filePath) throws FileNotFoundException {
         return new FileInputStream(filePath);
+    }
+
+    private File createTempFileFromUri(String uri) throws IOException {
+        String filenameFromPath = getFilenameFromPath(uri);
+        return File.createTempFile(filenameFromPath, null);
     }
 
     public class NoFileNameException extends RuntimeException {

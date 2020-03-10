@@ -3,7 +3,6 @@ package com.google.allenday.genomics.core.parts_processing;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.IoUtils;
-import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqFn;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -24,7 +23,8 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
     private SaveVcfToBqResults saveVcfToBqResults;
     private VcfToBqFn vcfToBqFn;
 
-    public VcfToBqBatchTransform(PrepareVcfToBqBatchFn prepareVcfToBqBatchFn, SaveVcfToBqResults saveVcfToBqResults, VcfToBqFn vcfToBqFn) {
+    public VcfToBqBatchTransform(PrepareVcfToBqBatchFn prepareVcfToBqBatchFn, SaveVcfToBqResults saveVcfToBqResults,
+                                 VcfToBqFn vcfToBqFn) {
         this.prepareVcfToBqBatchFn = prepareVcfToBqBatchFn;
         this.saveVcfToBqResults = saveVcfToBqResults;
         this.vcfToBqFn = vcfToBqFn;
@@ -38,7 +38,7 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
     }
 
 
-    public static class PrepareVcfToBqBatchFn extends DoFn<BlobId, KV<ReferenceDatabase, String>> {
+    public static class PrepareVcfToBqBatchFn extends DoFn<BlobId, KV<String, String>> {
 
         private final static int BATCH_SIZE = 50;
 
@@ -65,7 +65,7 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
             BlobId destDir = BlobId.of(stagingPathsBulder.getStagingBucket(),
                     String.format(stagingPathsBulder.buildVcfDirPath() + "temp/%s/%s_%d/", jobTime, reference, index));
             blobs.forEach(blobId -> gcsService.copy(blobId, BlobId.of(destDir.getBucket(), destDir.getName() + new FileUtils().getFilenameFromPath(blobId.getName()))));
-            c.output(KV.of(ReferenceDatabase.onlyName(reference), gcsService.getUriFromBlob(destDir) + "*"));
+            c.output(KV.of(reference, gcsService.getUriFromBlob(destDir) + "*"));
         }
 
         @ProcessElement
@@ -124,7 +124,7 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
         }
     }
 
-    public static class SaveVcfToBqResults extends DoFn<KV<ReferenceDatabase, String>, BlobId> {
+    public static class SaveVcfToBqResults extends DoFn<KV<String, String>, BlobId> {
 
         private GCSService gcsService;
 
@@ -143,7 +143,7 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
 
         @ProcessElement
         public void processElement(ProcessContext c) {
-            KV<ReferenceDatabase, String> element = c.element();
+            KV<String, String> element = c.element();
             String path = element.getValue().replace("*", "");
             BlobId gcsServiceBlobIdFromUri = gcsService.getBlobIdFromUri(path);
 

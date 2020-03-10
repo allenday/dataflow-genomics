@@ -11,16 +11,20 @@ import java.util.List;
 public interface GenomicsPipelineOptions extends DataflowPipelineOptions {
 
     @Description("Fasta model reference names list")
-    @Validation.Required
     ValueProvider<List<String>> getReferenceNamesList();
 
     void setReferenceNamesList(ValueProvider<List<String>> value);
 
     @Description("GCS dir path with references")
-    @Validation.Required
-    String getAllReferencesDirGcsUri();
+    ValueProvider<String> getAllReferencesDirGcsUri();
 
-    void setAllReferencesDirGcsUri(String value);
+    void setAllReferencesDirGcsUri(ValueProvider<String> value);
+
+
+    @Description("GCS dir path with references")
+    ValueProvider<String> getRefDataJsonString();
+
+    void setRefDataJsonString(ValueProvider<String> value);
 
     @Description("GCS dir path for processing output")
     @Validation.Required

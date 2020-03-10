@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Service that provides access to Google Cloud Lifesciences API due to exevute Deep Variant processing.
+ * Service that provides access to Google Cloud Lifesciences API used to execute Deep Variant processing.
  */
 
 public class DeepVariantService implements Serializable {

@@ -132,6 +132,12 @@
             <version>1.10.19</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client-jackson</artifactId>
+            <version>1.29.2</version>
+        </dependency>
     </dependencies>
 
     <distributionManagement>

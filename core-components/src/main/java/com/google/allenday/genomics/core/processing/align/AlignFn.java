@@ -7,7 +7,7 @@ import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.reference.ReferenceDatabase;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
-import com.google.allenday.genomics.core.reference.ReferencesProvider;
+import com.google.allenday.genomics.core.reference.ReferenceProvider;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
@@ -24,12 +24,12 @@ public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSo
     private GCSService gcsService;
 
     private AlignService alignService;
-    private ReferencesProvider referencesProvider;
+    private ReferenceProvider referencesProvider;
     private TransformIoHandler transformIoHandler;
     private FileUtils fileUtils;
 
     public AlignFn(AlignService alignService,
-                   ReferencesProvider referencesProvider,
+                   ReferenceProvider referencesProvider,
                    TransformIoHandler transformIoHandler,
                    FileUtils fileUtils) {
         this.alignService = alignService;

@@ -9,19 +9,19 @@ import org.slf4j.LoggerFactory;
 import java.io.Serializable;
 import java.util.Optional;
 
-public class ReferencesProvider implements Serializable {
-    private static Logger LOG = LoggerFactory.getLogger(ReferencesProvider.class);
+public class ReferenceProvider implements Serializable {
+    private static Logger LOG = LoggerFactory.getLogger(ReferenceProvider.class);
 
     private static final String DEFAULT_ALL_REFERENCE_LOCAL_DIR = "reference/";
 
     private FileUtils fileUtils;
     private String allReferencesLocalDir;
 
-    public ReferencesProvider(FileUtils fileUtils) {
+    public ReferenceProvider(FileUtils fileUtils) {
         this(fileUtils, DEFAULT_ALL_REFERENCE_LOCAL_DIR);
     }
 
-    public ReferencesProvider(FileUtils fileUtils, String allReferencesLocalDir) {
+    public ReferenceProvider(FileUtils fileUtils, String allReferencesLocalDir) {
         this.fileUtils = fileUtils;
         this.allReferencesLocalDir = allReferencesLocalDir;
     }

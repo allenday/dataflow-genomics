@@ -23,7 +23,7 @@ import com.google.allenday.genomics.core.processing.sam.SamBamManipulationServic
 import com.google.allenday.genomics.core.processing.sam.SortFn;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqFn;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqService;
-import com.google.allenday.genomics.core.reference.ReferencesProvider;
+import com.google.allenday.genomics.core.reference.ReferenceProvider;
 import com.google.allenday.genomics.core.utils.NameProvider;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
@@ -62,8 +62,8 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public ReferencesProvider provideReferencesProvider(FileUtils fileUtils) {
-        return new ReferencesProvider(fileUtils);
+    public ReferenceProvider provideReferenceProvider(FileUtils fileUtils) {
+        return new ReferenceProvider(fileUtils);
     }
 
     @Provides
@@ -118,7 +118,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public AlignFn provideAlignFn(AlignService alignService, ReferencesProvider referencesProvider, FileUtils fileUtils, NameProvider nameProvider) {
+    public AlignFn provideAlignFn(AlignService alignService, ReferenceProvider referencesProvider, FileUtils fileUtils, NameProvider nameProvider) {
         TransformIoHandler alignIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
                 String.format(genomicsOptions.getAlignedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
                 genomicsOptions.getMemoryOutputLimit(), fileUtils);
@@ -203,7 +203,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public DeepVariantFn provideDeepVariantFn(DeepVariantService deepVariantService, FileUtils fileUtils, ReferencesProvider referencesProvider, NameProvider nameProvider) {
+    public DeepVariantFn provideDeepVariantFn(DeepVariantService deepVariantService, FileUtils fileUtils, ReferenceProvider referencesProvider, NameProvider nameProvider) {
 
         return new DeepVariantFn(deepVariantService, fileUtils, referencesProvider,
                 genomicsOptions.getResultBucket(), String.format(genomicsOptions.getDeepVariantOutputDirPattern(),

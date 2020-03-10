@@ -7,7 +7,7 @@ import com.google.allenday.genomics.core.model.SraSampleId;
 import com.google.allenday.genomics.core.model.SraSampleIdReferencePair;
 import com.google.allenday.genomics.core.reference.ReferenceDatabase;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
-import com.google.allenday.genomics.core.reference.ReferencesProvider;
+import com.google.allenday.genomics.core.reference.ReferenceProvider;
 import com.google.allenday.genomics.core.utils.ResourceProvider;
 import com.google.cloud.storage.BlobId;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -26,9 +26,9 @@ public class DeepVariantFn extends DoFn<KV<SraSampleIdReferencePair, KV<Referenc
     private ResourceProvider resourceProvider;
     private FileUtils fileUtils;
     private GCSService gcsService;
-    private ReferencesProvider referencesProvider;
+    private ReferenceProvider referencesProvider;
 
-    public DeepVariantFn(DeepVariantService deepVariantService, FileUtils fileUtils, ReferencesProvider referencesProvider,
+    public DeepVariantFn(DeepVariantService deepVariantService, FileUtils fileUtils, ReferenceProvider referencesProvider,
                          String outputBucketName, String gcsOutputDir) {
         this.deepVariantService = deepVariantService;
         this.gcsOutputDir = gcsOutputDir;

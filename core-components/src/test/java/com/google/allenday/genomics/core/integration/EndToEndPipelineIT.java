@@ -10,6 +10,7 @@ import com.google.allenday.genomics.core.io.UriProvider;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
+import com.google.allenday.genomics.core.processing.align.AddReferenceDataSourceFn;
 import com.google.allenday.genomics.core.processing.align.AlignFn;
 import com.google.allenday.genomics.core.processing.align.AlignService;
 import com.google.allenday.genomics.core.processing.align.AlignTransform;
@@ -102,8 +103,8 @@ public class EndToEndPipelineIT implements Serializable {
 
         String dvResultGcsPath = gcsService.getUriFromBlob(BlobId.of(testBucket, String.format(DV_RESULT_GCS_DIR_PATH_PATTERN, jobTime)));
 
-        ReferencesProvider referencesProvider = new ReferencesProvider(fileUtils, allReferencesDirGcsUri);
-        DeepVariantService deepVariantService = new DeepVariantService(referencesProvider, new LifeSciencesService(), new DeepVariantOptions());
+        ReferencesProvider referencesProvider = new ReferencesProvider(fileUtils);
+        DeepVariantService deepVariantService = new DeepVariantService(new LifeSciencesService(), new DeepVariantOptions());
 
         TransformIoHandler alignTransformIoHandler = new TransformIoHandler(testBucket, String.format(ALIGN_RESULT_GCS_DIR_PATH_PATTERN, jobTime), 300, fileUtils);
         TransformIoHandler sortTransformIoHandler = new TransformIoHandler(testBucket, String.format(SORT_RESULT_GCS_DIR_PATH_PATTERN, jobTime), 300, fileUtils);
@@ -114,7 +115,10 @@ public class EndToEndPipelineIT implements Serializable {
                 referencesProvider,
                 alignTransformIoHandler, fileUtils);
 
-        AlignTransform alignTransform = new AlignTransform("Align reads transform", alignFn, testPipeline.newProvider(Collections.singletonList(TEST_REFERENCE_NAME)));
+        AddReferenceDataSourceFn.FromNameAndDirPath addReferenceDataSourceFn = new AddReferenceDataSourceFn.FromNameAndDirPath(
+                testPipeline.newProvider(allReferencesDirGcsUri), testPipeline.newProvider(Collections.singletonList(TEST_REFERENCE_NAME)));
+
+        AlignTransform alignTransform = new AlignTransform("Align reads transform", alignFn, addReferenceDataSourceFn);
         SortFn sortFn = new SortFn(sortTransformIoHandler, samBamManipulationService, fileUtils);
         MergeFn mergeFn = new MergeFn(mergeTransformIoHandler, samBamManipulationService, fileUtils);
         CreateBamIndexFn createBamIndexFn = new CreateBamIndexFn(indexTransformIoHandler, samBamManipulationService, fileUtils);

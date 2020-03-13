@@ -7,6 +7,7 @@ import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraSampleId;
 import com.google.cloud.storage.BlobId;
+import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
@@ -24,17 +25,17 @@ public class CheckExistenceFn extends DoFn<KV<SraSampleId, Iterable<KV<SampleMet
 
     private FileUtils fileUtils;
     private IoUtils ioUtils;
-    private List<String> references;
+    private ValueProvider<List<String>> referencesVP;
     private GCSService gcsService;
     private DecimalFormat decimalFormat = new DecimalFormat("#.###");
 
     private StagingPathsBulder stagingPathsBulder;
 
-    public CheckExistenceFn(FileUtils fileUtils, IoUtils ioUtils, List<String> references,
+    public CheckExistenceFn(FileUtils fileUtils, IoUtils ioUtils, ValueProvider<List<String>> referencesVP,
                             StagingPathsBulder stagingPathsBulder) {
         this.fileUtils = fileUtils;
         this.ioUtils = ioUtils;
-        this.references = references;
+        this.referencesVP = referencesVP;
         this.stagingPathsBulder = stagingPathsBulder;
     }
 
@@ -54,6 +55,8 @@ public class CheckExistenceFn extends DoFn<KV<SraSampleId, Iterable<KV<SampleMet
 
         boolean fastqSumCounted = false;
         long sumOfFastq = 0;
+
+        List<String> references = referencesVP.get();
         for (String ref : references) {
             String processedVcfToBq = "";
             try {

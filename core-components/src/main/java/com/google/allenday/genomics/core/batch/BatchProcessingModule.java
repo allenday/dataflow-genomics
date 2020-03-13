@@ -10,6 +10,7 @@ import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraParser;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
+import com.google.allenday.genomics.core.processing.align.AddReferenceDataSourceFn;
 import com.google.allenday.genomics.core.processing.align.AlignFn;
 import com.google.allenday.genomics.core.processing.align.AlignService;
 import com.google.allenday.genomics.core.processing.align.AlignTransform;
@@ -22,7 +23,7 @@ import com.google.allenday.genomics.core.processing.sam.SamBamManipulationServic
 import com.google.allenday.genomics.core.processing.sam.SortFn;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqFn;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqService;
-import com.google.allenday.genomics.core.reference.ReferencesProvider;
+import com.google.allenday.genomics.core.reference.ReferenceProvider;
 import com.google.allenday.genomics.core.utils.NameProvider;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
@@ -61,8 +62,8 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public ReferencesProvider provideReferencesProvider(FileUtils fileUtils) {
-        return new ReferencesProvider(fileUtils, genomicsOptions.getAllReferencesDirGcsUri());
+    public ReferenceProvider provideReferenceProvider(FileUtils fileUtils) {
+        return new ReferenceProvider(fileUtils);
     }
 
     @Provides
@@ -117,7 +118,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public AlignFn provideAlignFn(AlignService alignService, ReferencesProvider referencesProvider, FileUtils fileUtils, NameProvider nameProvider) {
+    public AlignFn provideAlignFn(AlignService alignService, ReferenceProvider referencesProvider, FileUtils fileUtils, NameProvider nameProvider) {
         TransformIoHandler alignIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
                 String.format(genomicsOptions.getAlignedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
                 genomicsOptions.getMemoryOutputLimit(), fileUtils);
@@ -125,10 +126,24 @@ public abstract class BatchProcessingModule extends AbstractModule {
         return new AlignFn(alignService, referencesProvider, alignIoHandler, fileUtils);
     }
 
+
     @Provides
     @Singleton
-    public AlignTransform provideAlignTransform(AlignFn alignFn) {
-        return new AlignTransform("Align reads transform", alignFn, genomicsOptions.getGeneReferences());
+    public AddReferenceDataSourceFn provideAddReferenceDataSourceFn() {
+        if (genomicsOptions.getRefDataJsonString() != null) {
+            return new AddReferenceDataSourceFn.Explicitly(genomicsOptions.getRefDataJsonString());
+        } else if (genomicsOptions.getGeneReferences() != null && genomicsOptions.getAllReferencesDirGcsUri() != null) {
+            return new AddReferenceDataSourceFn.FromNameAndDirPath(genomicsOptions.getAllReferencesDirGcsUri(),
+                    genomicsOptions.getGeneReferences());
+        } else {
+            throw new RuntimeException("You must provide refDataJsonString or allReferencesDirGcsUri+gneReferences");
+        }
+    }
+
+    @Provides
+    @Singleton
+    public AlignTransform provideAlignTransform(AlignFn alignFn, AddReferenceDataSourceFn addReferenceDataSourceFn) {
+        return new AlignTransform("Align reads transform", alignFn, addReferenceDataSourceFn);
     }
 
     @Provides
@@ -182,17 +197,17 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public DeepVariantService provideDeepVariantService(ReferencesProvider referencesProvider, LifeSciencesService lifeSciencesService) {
-        DeepVariantService deepVariantService = new DeepVariantService(referencesProvider, lifeSciencesService,
-                genomicsOptions.getDeepVariantOptions());
-        return deepVariantService;
+    public DeepVariantService provideDeepVariantService(LifeSciencesService lifeSciencesService) {
+        return new DeepVariantService(lifeSciencesService, genomicsOptions.getDeepVariantOptions());
     }
 
     @Provides
     @Singleton
-    public DeepVariantFn provideDeepVariantFn(DeepVariantService deepVariantService, FileUtils fileUtils, NameProvider nameProvider) {
+    public DeepVariantFn provideDeepVariantFn(DeepVariantService deepVariantService, FileUtils fileUtils, ReferenceProvider referencesProvider, NameProvider nameProvider) {
 
-        return new DeepVariantFn(deepVariantService, fileUtils, genomicsOptions.getResultBucket(), String.format(genomicsOptions.getDeepVariantOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()));
+        return new DeepVariantFn(deepVariantService, fileUtils, referencesProvider,
+                genomicsOptions.getResultBucket(), String.format(genomicsOptions.getDeepVariantOutputDirPattern(),
+                nameProvider.getCurrentTimeInDefaultFormat()));
     }
 
     @Provides

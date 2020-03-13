@@ -200,6 +200,7 @@ public class SamBamManipulationService implements Serializable {
 
     public String createIndex(String inputFilePath) throws IOException {
         final SamReader reader = SamReaderFactory.makeDefault()
+                .validationStringency(LENIENT)
                 .enable(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS)
                 .open(new File(inputFilePath));
         String outputFilePath = inputFilePath + BAM_INDEX_SUFFIX;

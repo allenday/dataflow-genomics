@@ -10,30 +10,22 @@ import java.util.Objects;
 public class SraSampleIdReferencePair implements Serializable {
 
     private SraSampleId sraSampleId;
-    private ReferenceDatabase referenceDatabase;
+    private String referenceName;
 
     public SraSampleIdReferencePair() {
     }
 
-    public SraSampleIdReferencePair(SraSampleId sraSampleId, ReferenceDatabase referenceDatabase) {
+    public SraSampleIdReferencePair(SraSampleId sraSampleId, String referenceName) {
         this.sraSampleId = sraSampleId;
-        this.referenceDatabase = referenceDatabase;
+        this.referenceName = referenceName;
     }
 
     public SraSampleId getSraSampleId() {
         return sraSampleId;
     }
 
-    public void setSraSampleId(SraSampleId sraSampleId) {
-        this.sraSampleId = sraSampleId;
-    }
-
-    public ReferenceDatabase getReferenceDatabase() {
-        return referenceDatabase;
-    }
-
-    public void setReferenceDatabase(ReferenceDatabase referenceDatabase) {
-        this.referenceDatabase = referenceDatabase;
+    public String getReferenceName() {
+        return referenceName;
     }
 
     @Override
@@ -42,19 +34,19 @@ public class SraSampleIdReferencePair implements Serializable {
         if (o == null || getClass() != o.getClass()) return false;
         SraSampleIdReferencePair that = (SraSampleIdReferencePair) o;
         return Objects.equals(sraSampleId, that.sraSampleId) &&
-                Objects.equals(referenceDatabase, that.referenceDatabase);
+                Objects.equals(referenceName, that.referenceName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sraSampleId, referenceDatabase);
+        return Objects.hash(sraSampleId, referenceName);
     }
 
     @Override
     public String toString() {
         return "SraSampleIdReferencePair{" +
                 "sraSampleId=" + sraSampleId +
-                ", referenceDatabase=" + referenceDatabase +
+                ", referenceName='" + referenceName + '\'' +
                 '}';
     }
 }

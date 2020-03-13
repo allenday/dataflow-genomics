@@ -17,7 +17,8 @@ public class GenomicsOptions {
 
     private String resultBucket;
     private ValueProvider<List<String>> geneReferences;
-    private String allReferencesDirGcsUri;
+    private ValueProvider<String> allReferencesDirGcsUri;
+    private ValueProvider<String> refDataJsonString;
     private long memoryOutputLimit;
     private DeepVariantOptions deepVariantOptions;
 
@@ -25,11 +26,13 @@ public class GenomicsOptions {
     private String outputDir;
 
     public GenomicsOptions(String resultBucket, ValueProvider<List<String>> geneReferences,
-                           String allReferencesDirGcsUri, String outputDir,
+                           ValueProvider<String> allReferencesDirGcsUri, ValueProvider<String> refDataJsonString,
+                           String outputDir,
                            long memoryOutputLimit) {
         this.resultBucket = resultBucket;
         this.geneReferences = geneReferences;
         this.allReferencesDirGcsUri = allReferencesDirGcsUri;
+        this.refDataJsonString = refDataJsonString;
         this.outputDir = outputDir;
         this.memoryOutputLimit = memoryOutputLimit;
 
@@ -45,6 +48,7 @@ public class GenomicsOptions {
                 bucketDirPair.getValue0(),
                 alignerPipelineOptions.getReferenceNamesList(),
                 alignerPipelineOptions.getAllReferencesDirGcsUri(),
+                alignerPipelineOptions.getRefDataJsonString(),
                 bucketDirPair.getValue1(),
                 alignerPipelineOptions.getMemoryOutputLimit());
 
@@ -91,7 +95,7 @@ public class GenomicsOptions {
         return geneReferences;
     }
 
-    public String getAllReferencesDirGcsUri() {
+    public ValueProvider<String> getAllReferencesDirGcsUri() {
         return allReferencesDirGcsUri;
     }
 
@@ -150,5 +154,9 @@ public class GenomicsOptions {
 
     public String getVcfBqDatasetAndTablePattern() {
         return vcfBqDatasetAndTablePattern;
+    }
+
+    public ValueProvider<String> getRefDataJsonString() {
+        return refDataJsonString;
     }
 }

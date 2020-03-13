@@ -7,6 +7,7 @@ import json
 import time
 
 from google.cloud import pubsub
+from google.cloud import storage
 
 futures = dict()
 
@@ -48,6 +49,12 @@ def publish_msg(topic_path, data):
     future.add_done_callback(get_callback(future, data))
 
 
+def exists_blob(bucket_name, blob_name, project):
+    bucket = gcs_client.bucket(bucket_name, project)
+    blob = bucket.blob(blob_name)
+    return blob.exists()
+
+
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
     if len(sys.argv) < 4:
@@ -61,11 +68,16 @@ if __name__ == "__main__":
 
     pulisher_client = pubsub.PublisherClient()
     topic_path = pulisher_client.topic_path(project, dest_topic)
+    gcs_client = storage.Client(project=project)
+
+    dest_bucket = "human1000"
+    dest_dir = "fastq/"
 
     counter = 0
     with open(source_filename, "r") as f:
         reader = csv.reader(f, delimiter='\t')
         line_count = 0
+        publish_count = 0
 
         runs = []
         for line in reader:
@@ -75,7 +87,6 @@ if __name__ == "__main__":
                 sra_sample_index = line.index(schemas[schema]["sra_sample_key"])
                 library_layout_index = line.index(schemas[schema]["library_layout_key"])
             else:
-                print(line)
                 run_id = line[run_index]
 
                 if run_id not in runs:
@@ -83,8 +94,13 @@ if __name__ == "__main__":
                     msg = json.dumps(
                         {"run": run_id, "sra_study": line[sra_study_index],
                          "sra_sample": line[sra_sample_index]})
-                    publish_msg(topic_path, msg)
-                    logging.info("{} Processing {}, {}".format(datetime.datetime.now(), line_count, msg))
+                    if not exists_blob(dest_bucket,
+                                       "{}{}/{}/{}_1.fastq".format(dest_dir, line[sra_study_index],
+                                                                   line[sra_sample_index], run_id),
+                                       project):
+                        publish_msg(topic_path, msg)
+                        publish_count += 1
+                        logging.info("{} Processing {}, {}".format(datetime.datetime.now(), line_count, msg))
             line_count += 1
     # Wait for all the publish futures to resolve before exiting.
     while futures:

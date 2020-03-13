@@ -1,9 +1,8 @@
 package com.google.allenday.genomics.core.processing.dv;
 
-import com.google.allenday.genomics.core.model.ReferenceDatabase;
 import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
 import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
-import com.google.allenday.genomics.core.reference.ReferencesProvider;
+import com.google.allenday.genomics.core.reference.ReferenceDatabase;
 import com.google.allenday.genomics.core.utils.ResourceProvider;
 import org.javatuples.Pair;
 import org.javatuples.Triplet;
@@ -78,12 +77,10 @@ public class DeepVariantService implements Serializable {
         }
     }
 
-    private ReferencesProvider referencesProvider;
     private LifeSciencesService lifeSciencesService;
     private DeepVariantOptions deepVariantOptions;
 
-    public DeepVariantService(ReferencesProvider referencesProvider, LifeSciencesService lifeSciencesService, DeepVariantOptions deepVariantOptions) {
-        this.referencesProvider = referencesProvider;
+    public DeepVariantService(LifeSciencesService lifeSciencesService, DeepVariantOptions deepVariantOptions) {
         this.lifeSciencesService = lifeSciencesService;
         this.deepVariantOptions = deepVariantOptions;
     }
@@ -93,13 +90,11 @@ public class DeepVariantService implements Serializable {
                                                                          String bamUri, String baiUri,
                                                                          ReferenceDatabase referenceDatabase,
                                                                          String readGroupName) {
-        Pair<String, String> refUriWithIndex = referenceDatabase.getRefUriWithIndex(referencesProvider.getReferenceFileExtension());
-
         String outFileUri = outDirGcsUri + outFilePrefix + DEEP_VARIANT_RESULT_EXTENSION;
 
         String jobNamePrefix = generateJobNamePrefix(outFilePrefix);
         List<String> actionCommands = buildCommand(resourceProvider, outDirGcsUri, outFileUri, bamUri, baiUri,
-                refUriWithIndex.getValue0(), refUriWithIndex.getValue1(), readGroupName, jobNamePrefix);
+                referenceDatabase.getFastaGcsUri(), referenceDatabase.getFaiGcsUri(), readGroupName, jobNamePrefix);
 
         Pair<Boolean, String> operationResult = lifeSciencesService.runLifesciencesPipelineWithLogging(actionCommands,
                 DEEP_VARIANT_RUNNER_IMAGE_URI, outDirGcsUri, deepVariantOptions.getControlPipelineWorkerRegion(),
@@ -108,9 +103,9 @@ public class DeepVariantService implements Serializable {
         return Triplet.with(outFileUri, operationResult.getValue0(), operationResult.getValue1());
     }
 
-    private String generateJobNamePrefix(String outFilePrefix){
-        String jobNamePrefix = outFilePrefix.toLowerCase().replace("-","_").replace(".","_") + "_";
-        if (jobNamePrefix.length() > MAX_JOB_NAME_PREFIX_LEN){
+    private String generateJobNamePrefix(String outFilePrefix) {
+        String jobNamePrefix = outFilePrefix.toLowerCase().replace("-", "_").replace(".", "_") + "_";
+        if (jobNamePrefix.length() > MAX_JOB_NAME_PREFIX_LEN) {
             jobNamePrefix = jobNamePrefix.substring(0, MAX_JOB_NAME_PREFIX_LEN);
         }
         return jobNamePrefix;

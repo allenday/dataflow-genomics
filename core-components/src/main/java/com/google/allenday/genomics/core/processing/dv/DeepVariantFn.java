@@ -26,15 +26,15 @@ public class DeepVariantFn extends DoFn<KV<SraSampleIdReferencePair, KV<Referenc
     private ResourceProvider resourceProvider;
     private FileUtils fileUtils;
     private GCSService gcsService;
-    private ReferenceProvider referenceProvider;
+    private ReferenceProvider referencesProvider;
 
-    public DeepVariantFn(DeepVariantService deepVariantService, FileUtils fileUtils, ReferenceProvider referenceProvider,
+    public DeepVariantFn(DeepVariantService deepVariantService, FileUtils fileUtils, ReferenceProvider referencesProvider,
                          String outputBucketName, String gcsOutputDir) {
         this.deepVariantService = deepVariantService;
         this.gcsOutputDir = gcsOutputDir;
         this.fileUtils = fileUtils;
         this.outputBucketName = outputBucketName;
-        this.referenceProvider = referenceProvider;
+        this.referencesProvider = referencesProvider;
     }
 
     @Setup
@@ -61,13 +61,13 @@ public class DeepVariantFn extends DoFn<KV<SraSampleIdReferencePair, KV<Referenc
             LOG.error("bamWithIndexUris: " + bamWithIndexUris);
             return;
         }
-        ReferenceDatabase referenceDatabase = referenceProvider.getReferenceDatabase(gcsService, referenceDatabaseSource);
+        ReferenceDatabase referenceDd = referencesProvider.getReferenceDd(gcsService, referenceDatabaseSource);
 
         String readGroupAndDb = sraSampleId + "_" + referenceDatabaseSource.getName();
         String dvGcsOutputDir = gcsService.getUriFromBlob(BlobId.of(outputBucketName, gcsOutputDir + readGroupAndDb + "/"));
 
         Triplet<String, Boolean, String> result = deepVariantService.processSampleWithDeepVariant(resourceProvider,
-                dvGcsOutputDir, readGroupAndDb, bamWithIndexUris.getBamUri(), bamWithIndexUris.getIndexUri(), referenceDatabase,
+                dvGcsOutputDir, readGroupAndDb, bamWithIndexUris.getBamUri(), bamWithIndexUris.getIndexUri(), referenceDd,
                 sraSampleId.getValue());
 
         if (result.getValue1()) {

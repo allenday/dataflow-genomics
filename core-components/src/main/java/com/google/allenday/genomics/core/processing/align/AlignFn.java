@@ -24,16 +24,16 @@ public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSo
     private GCSService gcsService;
 
     private AlignService alignService;
-    private ReferenceProvider referenceProvider;
+    private ReferenceProvider referencesProvider;
     private TransformIoHandler transformIoHandler;
     private FileUtils fileUtils;
 
     public AlignFn(AlignService alignService,
-                   ReferenceProvider referenceProvider,
+                   ReferenceProvider referencesProvider,
                    TransformIoHandler transformIoHandler,
                    FileUtils fileUtils) {
         this.alignService = alignService;
-        this.referenceProvider = referenceProvider;
+        this.referencesProvider = referencesProvider;
         this.transformIoHandler = transformIoHandler;
         this.fileUtils = fileUtils;
     }
@@ -70,7 +70,7 @@ public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSo
                         .collect(Collectors.toList());
                 for (ReferenceDatabaseSource referenceDBSource : referenceDBSources) {
                     ReferenceDatabase referenceDatabase =
-                            referenceProvider.getReferenceDatabaseWithDownload(gcsService, referenceDBSource);
+                            referencesProvider.getReferenceDbWithDownload(gcsService, referenceDBSource);
                     String alignedSamPath = null;
                     try {
                         alignedSamPath = alignService.alignFastq(

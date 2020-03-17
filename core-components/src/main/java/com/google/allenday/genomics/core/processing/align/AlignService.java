@@ -89,7 +89,7 @@ public class AlignService implements Serializable {
         OXFORD_NANOPORE("map-ont"),
         ILLUMINA("sr"),
         PACBIO_SMRT("map-pb"),
-        LS454("sr"),;
+        LS454("sr");
 
         public final String flag;
 

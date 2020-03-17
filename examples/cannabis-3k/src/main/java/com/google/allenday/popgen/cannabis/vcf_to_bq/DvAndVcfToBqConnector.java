@@ -1,8 +1,6 @@
 package com.google.allenday.popgen.cannabis.vcf_to_bq;
 
-import com.google.allenday.genomics.core.model.ReadGroupMetaData;
-import com.google.allenday.genomics.core.model.ReferenceDatabase;
-import org.apache.beam.sdk.transforms.SimpleFunction;
+import com.google.allenday.genomics.core.reference.ReferenceDatabase;
 import org.apache.beam.sdk.values.KV;
 
 public class DvAndVcfToBqConnector extends SimpleFunction<KV<KV<ReadGroupMetaData, ReferenceDatabase>, String>, KV<ReferenceDatabase, String>> {

@@ -1,10 +1,9 @@
 package com.google.allenday.popgen.cannabis.vcf_to_bq;
 
 import com.google.allenday.genomics.core.io.FileUtils;
+import com.google.allenday.genomics.core.parts_processing.VcfToBqBatchTransform;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
-import com.google.allenday.genomics.core.processing.vcf_to_bq.PrepareVcfToBqBatchFn;
-import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqBatchTransform;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqFn;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqService;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
@@ -112,14 +111,14 @@ public class NanostreamCannabisVcfToBqModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public PrepareVcfToBqBatchFn providePrepareVcfToBqBatchFn(ReferencesProvider referencesProvider, FileUtils fileUtils, NameProvider nameProvider) {
+    public VcfToBqBatchTransform.PrepareVcfToBqBatchFn providePrepareVcfToBqBatchFn(ReferenceProvider referenceProvider, FileUtils fileUtils, NameProvider nameProvider) {
 
-        return new PrepareVcfToBqBatchFn(referencesProvider, fileUtils, workingBucket, workingDir, nameProvider.getCurrentTimeInDefaultFormat());
+        return new VcfToBqBatchTransform.PrepareVcfToBqBatchFn(referenceProvider, fileUtils, workingBucket, workingDir, nameProvider.getCurrentTimeInDefaultFormat());
     }
 
     @Provides
     @Singleton
-    public VcfToBqBatchTransform provideVcfToBqBatchTransform(PrepareVcfToBqBatchFn prepareVcfToBqBatchFn, VcfToBqFn vcfToBqFn) {
+    public VcfToBqBatchTransform provideVcfToBqBatchTransform(VcfToBqBatchTransform.PrepareVcfToBqBatchFn prepareVcfToBqBatchFn, VcfToBqFn vcfToBqFn) {
 
         return new VcfToBqBatchTransform(prepareVcfToBqBatchFn, vcfToBqFn);
     }

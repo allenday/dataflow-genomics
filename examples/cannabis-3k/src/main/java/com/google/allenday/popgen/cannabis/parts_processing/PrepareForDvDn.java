@@ -19,7 +19,7 @@ public class PrepareForDvDn extends DoFn<KV<ReadGroupMetaData, Iterable<SampleMe
 
     private Logger LOG = LoggerFactory.getLogger(NanostreamBatchAppDV.class);
 
-    private ReferencesProvider referencesProvider;
+    private ReferenceProvider referenceProvider;
     private List<String> references;
     private int minThresholdMb;
     private int maxThresholdMb;
@@ -29,7 +29,7 @@ public class PrepareForDvDn extends DoFn<KV<ReadGroupMetaData, Iterable<SampleMe
 
     public PrepareForDvDn(ReferencesProvider referencesProvider, List<String> references, int minThresholdMb, int maxThresholdMb,
                           String stagedBucket, String stagedDir) {
-        this.referencesProvider = referencesProvider;
+        this.referenceProvider = referencesProvider;
         this.references = references;
         this.minThresholdMb = minThresholdMb;
         this.maxThresholdMb = maxThresholdMb;

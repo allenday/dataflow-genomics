@@ -1,7 +1,7 @@
 package com.google.allenday.popgen.cannabis.vcf_to_bq;
 
+import com.google.allenday.genomics.core.parts_processing.VcfToBqBatchTransform;
 import com.google.allenday.genomics.core.pipeline.PipelineSetupUtils;
-import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqBatchTransform;
 import com.google.allenday.genomics.core.utils.NameProvider;
 import com.google.cloud.storage.BlobId;
 import com.google.inject.Guice;

@@ -10,17 +10,11 @@ import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraParser;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
-import com.google.allenday.genomics.core.processing.align.AddReferenceDataSourceFn;
-import com.google.allenday.genomics.core.processing.align.AlignFn;
-import com.google.allenday.genomics.core.processing.align.AlignService;
-import com.google.allenday.genomics.core.processing.align.AlignTransform;
+import com.google.allenday.genomics.core.processing.align.*;
 import com.google.allenday.genomics.core.processing.dv.DeepVariantFn;
 import com.google.allenday.genomics.core.processing.dv.DeepVariantService;
 import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
-import com.google.allenday.genomics.core.processing.sam.CreateBamIndexFn;
-import com.google.allenday.genomics.core.processing.sam.MergeFn;
-import com.google.allenday.genomics.core.processing.sam.SamBamManipulationService;
-import com.google.allenday.genomics.core.processing.sam.SortFn;
+import com.google.allenday.genomics.core.processing.sam.*;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqFn;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqService;
 import com.google.allenday.genomics.core.reference.ReferenceProvider;
@@ -106,6 +100,23 @@ public abstract class BatchProcessingModule extends AbstractModule {
         return new MergeFn(mergeIoHandler, samBamManipulationService, fileUtils);
     }
 
+
+    @Provides
+    @Singleton
+    public MergeAndIndexFn provideMergeAndIndexFn(SamBamManipulationService samBamManipulationService,
+                                                  FileUtils fileUtils,
+                                                  NameProvider nameProvider) {
+        TransformIoHandler mergeIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
+                String.format(genomicsOptions.getMergedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
+                genomicsOptions.getMemoryOutputLimit(), fileUtils);
+        TransformIoHandler indexIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
+                String.format(genomicsOptions.getBamIndexOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
+                genomicsOptions.getMemoryOutputLimit(), fileUtils);
+
+        return new MergeAndIndexFn(mergeIoHandler, indexIoHandler, samBamManipulationService, fileUtils);
+    }
+
+
     @Provides
     @Singleton
     public SortFn provideSortFn(SamBamManipulationService samBamManipulationService, FileUtils fileUtils, NameProvider nameProvider) {
@@ -124,6 +135,19 @@ public abstract class BatchProcessingModule extends AbstractModule {
                 genomicsOptions.getMemoryOutputLimit(), fileUtils);
 
         return new AlignFn(alignService, referencesProvider, alignIoHandler, fileUtils);
+    }
+
+    @Provides
+    @Singleton
+    public AlignAndSortFn provideAlignAndSortFn(SamBamManipulationService samBamManipulationService, AlignService alignService, ReferenceProvider referencesProvider,
+                                                FileUtils fileUtils, NameProvider nameProvider) {
+        TransformIoHandler alignIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
+                String.format(genomicsOptions.getAlignedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
+                genomicsOptions.getMemoryOutputLimit(), fileUtils);
+        TransformIoHandler sortIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
+                String.format(genomicsOptions.getSortedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
+                genomicsOptions.getMemoryOutputLimit(), fileUtils);
+        return new AlignAndSortFn(alignService, samBamManipulationService, referencesProvider, alignIoHandler, sortIoHandler, fileUtils);
     }
 
 

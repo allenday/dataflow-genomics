@@ -24,6 +24,8 @@ import java.util.stream.StreamSupport;
  */
 public class GCSService implements Serializable {
 
+    private final static int DEFAULT_BLOB_MAX_PAGE_SIZE_TO_RETRIVE = 100000;
+
     private Logger LOG = LoggerFactory.getLogger(GCSService.class);
 
     private Storage storage;
@@ -109,7 +111,8 @@ public class GCSService implements Serializable {
 
 
     public Page<Blob> getListOfBlobsInDir(String bucketName, String dirPrefix) throws StorageException {
-        return storage.list(bucketName, Storage.BlobListOption.prefix(dirPrefix));
+        return storage.list(bucketName, Storage.BlobListOption.prefix(dirPrefix),
+                Storage.BlobListOption.pageSize(DEFAULT_BLOB_MAX_PAGE_SIZE_TO_RETRIVE));
     }
 
     public Blob composeBlobs(Iterable<BlobId> blobIds, BlobId headers, BlobId destBlob) throws StorageException {

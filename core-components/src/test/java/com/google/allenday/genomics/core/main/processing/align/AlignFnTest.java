@@ -8,7 +8,7 @@ import com.google.allenday.genomics.core.processing.align.AlignFn;
 import com.google.allenday.genomics.core.processing.align.AlignService;
 import com.google.allenday.genomics.core.reference.ReferenceDatabase;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
-import com.google.allenday.genomics.core.reference.ReferencesProvider;
+import com.google.allenday.genomics.core.reference.ReferenceProvider;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.testing.PAssert;
 import org.apache.beam.sdk.testing.TestPipeline;
@@ -42,7 +42,7 @@ public class AlignFnTest implements Serializable {
         String resultName = "result_1.sam";
 
         AlignService alignServiceMock = Mockito.mock(AlignService.class, Mockito.withSettings().serializable());
-        ReferencesProvider referencesProvider = Mockito.mock(ReferencesProvider.class, Mockito.withSettings().serializable());
+        ReferenceProvider referencesProvider = Mockito.mock(ReferenceProvider.class, Mockito.withSettings().serializable());
         FileUtils fileUtilsMock = Mockito.mock(FileUtils.class, Mockito.withSettings().serializable());
         TransformIoHandler transformIoHandlerMock = Mockito.mock(TransformIoHandler.class, Mockito.withSettings().serializable());
 

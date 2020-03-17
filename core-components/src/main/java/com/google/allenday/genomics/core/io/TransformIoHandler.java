@@ -39,13 +39,17 @@ public class TransformIoHandler implements Serializable {
         return fileWrapper;
     }
 
-    public FileWrapper saveFileToGcsOutput(GCSService gcsService, String filepath) throws IOException {
-        String fileName = fileUtils.getFilenameFromPath(filepath);
-        String gcsFilePath = destGcsPrefix + fileName;
+    public FileWrapper saveFileToGcsOutput(GCSService gcsService, String filepath, String gcsDestFilename) throws IOException {
+        String gcsFilePath = destGcsPrefix + gcsDestFilename;
 
         LOG.info(String.format("Export %s file to GCS %s", filepath, gcsFilePath));
         Blob blob = gcsService.writeToGcs(resultsBucket, gcsFilePath, filepath);
-        return FileWrapper.fromBlobUri(gcsService.getUriFromBlob(blob.getBlobId()), fileName);
+        return FileWrapper.fromBlobUri(gcsService.getUriFromBlob(blob.getBlobId()), gcsDestFilename);
+    }
+
+    public FileWrapper saveFileToGcsOutput(GCSService gcsService, String filepath) throws IOException {
+        String fileName = fileUtils.getFilenameFromPath(filepath);
+        return saveFileToGcsOutput(gcsService, filepath, fileName);
     }
 
     public String handleInputAsLocalFile(GCSService gcsService, FileWrapper fileWrapper, String workDir) {

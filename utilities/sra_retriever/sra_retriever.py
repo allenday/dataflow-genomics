@@ -75,7 +75,7 @@ def process_sra_msg(data):
         return
 
     output, error = run_command(
-        "fastq-dump {} --split-files -O {}".format(run, work_dir))
+        "fastq-dump {} --split-files --skip-technical -O {}".format(run, work_dir))
 
     if error:
         if os.path.exists(work_dir):
@@ -95,7 +95,7 @@ def run_command(command):
 
     process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
     try:
-        output, error = process.communicate(timeout=18000)
+        output, error = process.communicate(timeout=36000)
     except TimeoutExpired as e:
         output = None
         error = str(e)

@@ -94,13 +94,20 @@ if __name__ == "__main__":
                     msg = json.dumps(
                         {"run": run_id, "sra_study": line[sra_study_index],
                          "sra_sample": line[sra_sample_index]})
-                    if not exists_blob(dest_bucket,
-                                       "{}{}/{}/{}_1.fastq".format(dest_dir, line[sra_study_index],
-                                                                   line[sra_sample_index], run_id),
-                                       project):
-                        publish_msg(topic_path, msg)
-                        publish_count += 1
-                        logging.info("{} Processing {}, {}".format(datetime.datetime.now(), line_count, msg))
+
+                    logging.info("{}) {}".format(line_count, msg))
+                    exists_1 = exists_blob(dest_bucket,
+                                "{}{}/{}/{}_1.fastq".format(dest_dir, line[sra_study_index],
+                                                            line[sra_sample_index], run_id), project)
+                    if not exists_1:
+                        exists_2 = exists_blob(dest_bucket,
+                                               "{}{}/{}/{}_2.fastq".format(dest_dir, line[sra_study_index],
+                                                                           line[sra_sample_index], run_id),project)
+                        if not exists_2:
+                            publish_msg(topic_path, msg)
+                            publish_count += 1
+                            logging.info("{} Processing {}, {}".format(datetime.datetime.now(), line_count, msg))
+
             line_count += 1
     # Wait for all the publish futures to resolve before exiting.
     while futures:

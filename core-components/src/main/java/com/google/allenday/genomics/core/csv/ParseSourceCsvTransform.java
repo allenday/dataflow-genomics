@@ -70,7 +70,7 @@ public class ParseSourceCsvTransform extends PTransform<PBegin,
         }
         PCollection<KV<SampleMetaData, List<FileWrapper>>> readyToAlign = csvLines
                 .apply("Parse CSV line", ParDo.of(new ParseCsvLineFn(csvParser)))
-                .apply("Gene data from meta data", ParDo.of(new GeneDataFromMetaDataFn(uriProvider, fileUtils)));
+                .apply("Sample data from metadata", ParDo.of(new SampleDataFromMetaDataFn(uriProvider, fileUtils)));
         if (preparingTransforms != null) {
             readyToAlign = readyToAlign.apply(preparingTransforms);
         }

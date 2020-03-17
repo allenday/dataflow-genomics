@@ -78,7 +78,7 @@ public class VcfToBqService implements Serializable {
                                                     String vcfFileUri) {
 
         String[] parts = vcfFileUri.split("/");
-        String suffix = parts[parts.length - 1].contains("*") ? parts[parts.length - 2] : fileUtils.changeFileExtension(parts[parts.length - 1],"");
+        String suffix = parts[parts.length - 1].contains("*") ? parts[parts.length - 2] : fileUtils.changeFileExtension(parts[parts.length - 1], "");
 
         String jobTag = jobStartTime + "_" + referenceName + "_" + suffix;
         String outputPath = gcsService.getUriFromBlob(BlobId.of(tempAndLogsBucket, tempAndLogsGcsDir)) + jobTag + "/";

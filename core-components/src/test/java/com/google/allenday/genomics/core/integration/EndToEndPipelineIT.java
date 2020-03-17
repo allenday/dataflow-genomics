@@ -10,15 +10,16 @@ import com.google.allenday.genomics.core.io.UriProvider;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
-import com.google.allenday.genomics.core.processing.DeepVariantService;
-import com.google.allenday.genomics.core.processing.SamBamManipulationService;
+import com.google.allenday.genomics.core.processing.align.AddReferenceDataSourceFn;
 import com.google.allenday.genomics.core.processing.align.AlignFn;
 import com.google.allenday.genomics.core.processing.align.AlignService;
 import com.google.allenday.genomics.core.processing.align.AlignTransform;
+import com.google.allenday.genomics.core.processing.dv.DeepVariantService;
 import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
-import com.google.allenday.genomics.core.processing.other.CreateBamIndexFn;
-import com.google.allenday.genomics.core.processing.other.MergeFn;
-import com.google.allenday.genomics.core.processing.other.SortFn;
+import com.google.allenday.genomics.core.processing.sam.CreateBamIndexFn;
+import com.google.allenday.genomics.core.processing.sam.MergeFn;
+import com.google.allenday.genomics.core.processing.sam.SamBamManipulationService;
+import com.google.allenday.genomics.core.processing.sam.SortFn;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -75,7 +76,7 @@ public class EndToEndPipelineIT implements Serializable {
 
         @Override
         public SampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException {
-            return new SampleMetaData(csvLineParts[0], csvLineParts[1], csvLineParts[2], csvLine);
+            return new SampleMetaData(csvLineParts[0], csvLineParts[1], csvLineParts[2], csvLineParts[3], csvLine);
         }
     }
 
@@ -90,9 +91,6 @@ public class EndToEndPipelineIT implements Serializable {
                 .ofNullable(System.getenv("TEST_BUCKET"))
                 .orElse("cannabis-3k-results");
 
-        SampleMetaData testSampleMetaData =
-                new SampleMetaData(TEST_EXAMPLE_SRA, "TestRun", "SINGLE", "testSrcRawMetaData");
-
         GCSService gcsService = GCSService.initialize(fileUtils);
         Pair<String, UriProvider> inputCsvUriAndProvider = prepareInputData(gcsService, fileUtils, testBucket, TEST_SINGLE_END_INPUT_FILE, TEST_CSV_FILE);
         String allReferencesDirGcsUri = prepareReference(gcsService, fileUtils, testBucket);
@@ -105,18 +103,22 @@ public class EndToEndPipelineIT implements Serializable {
 
         String dvResultGcsPath = gcsService.getUriFromBlob(BlobId.of(testBucket, String.format(DV_RESULT_GCS_DIR_PATH_PATTERN, jobTime)));
 
-        ReferencesProvider referencesProvider = new ReferencesProvider(fileUtils, allReferencesDirGcsUri);
-        DeepVariantService deepVariantService = new DeepVariantService(referencesProvider, new LifeSciencesService(), new DeepVariantOptions());
+        ReferencesProvider referencesProvider = new ReferencesProvider(fileUtils);
+        DeepVariantService deepVariantService = new DeepVariantService(new LifeSciencesService(), new DeepVariantOptions());
 
         TransformIoHandler alignTransformIoHandler = new TransformIoHandler(testBucket, String.format(ALIGN_RESULT_GCS_DIR_PATH_PATTERN, jobTime), 300, fileUtils);
         TransformIoHandler sortTransformIoHandler = new TransformIoHandler(testBucket, String.format(SORT_RESULT_GCS_DIR_PATH_PATTERN, jobTime), 300, fileUtils);
-        TransformIoHandler mergeTransformIoHandler = new TransformIoHandler(testBucket, mergeResultGcsPath, 300, fileUtils);
-        TransformIoHandler indexTransformIoHandler = new TransformIoHandler(testBucket, indexResultGcsPath, 300, fileUtils);
+        TransformIoHandler mergeTransformIoHandler = new TransformIoHandler(testBucket, mergeResultGcsPath, 0, fileUtils);
+        TransformIoHandler indexTransformIoHandler = new TransformIoHandler(testBucket, indexResultGcsPath, 0, fileUtils);
 
         AlignFn alignFn = new AlignFn(new AlignService(new WorkerSetupService(cmdExecutor), cmdExecutor, fileUtils),
                 referencesProvider,
                 alignTransformIoHandler, fileUtils);
-        AlignTransform alignTransform = new AlignTransform("Align reads transform", alignFn, Collections.singletonList(TEST_REFERENCE_NAME));
+
+        AddReferenceDataSourceFn.FromNameAndDirPath addReferenceDataSourceFn = new AddReferenceDataSourceFn.FromNameAndDirPath(
+                testPipeline.newProvider(allReferencesDirGcsUri), testPipeline.newProvider(Collections.singletonList(TEST_REFERENCE_NAME)));
+
+        AlignTransform alignTransform = new AlignTransform("Align reads transform", alignFn, addReferenceDataSourceFn);
         SortFn sortFn = new SortFn(sortTransformIoHandler, samBamManipulationService, fileUtils);
         MergeFn mergeFn = new MergeFn(mergeTransformIoHandler, samBamManipulationService, fileUtils);
         CreateBamIndexFn createBamIndexFn = new CreateBamIndexFn(indexTransformIoHandler, samBamManipulationService, fileUtils);
@@ -144,7 +146,7 @@ public class EndToEndPipelineIT implements Serializable {
         gcsService.writeToGcs(bucketName, TEST_GCS_INPUT_DATA_DIR + testInputDataFile,
                 Channels.newChannel(getClass().getClassLoader().getResourceAsStream(testInputDataFile)));
         String csvLine = String.join(",", new String[]{
-                TEST_EXAMPLE_SRA, "test_read_10000", "SINGLE"});
+                TEST_EXAMPLE_SRA, "test_read_10000", "SINGLE", AlignService.Instrument.ILLUMINA.name()});
         Blob blob = gcsService.writeToGcs(bucketName, TEST_GCS_INPUT_DATA_DIR + testInputCsvFileName,
                 Channels.newChannel(new ByteArrayInputStream(csvLine.getBytes())));
         UriProvider uriProvider = new UriProvider(bucketName, new UriProvider.ProviderRule() {

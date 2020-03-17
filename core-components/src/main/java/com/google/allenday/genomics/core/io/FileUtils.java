@@ -1,5 +1,6 @@
 package com.google.allenday.genomics.core.io;
 
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,22 +21,22 @@ public class FileUtils implements Serializable {
         os.close();
     }
 
-    public String getCurrentPath(){
+    public String getCurrentPath() {
         Path currentRelativePath = Paths.get("");
         String currentPath = currentRelativePath.toAbsolutePath().toString();
-        if (currentPath.charAt(currentPath.length() - 1) != '/'){
+        if (currentPath.charAt(currentPath.length() - 1) != '/') {
             currentPath = currentPath + '/';
         }
         return currentPath;
     }
 
-    public String makeDirByCurrentTimestampAndSuffix(String suffix) throws RuntimeException{
+    public String makeDirByCurrentTimestampAndSuffix(String suffix) throws RuntimeException {
         String workingDir = getCurrentPath() + System.currentTimeMillis() + "_" + suffix + "/";
         mkdirFromUri(workingDir);
         return workingDir;
     }
 
-    public void mkdirFromUri(String path) throws RuntimeException{
+    public void mkdirFromUri(String path) throws RuntimeException {
         Path dir;
         if (path.charAt(path.length() - 1) != '/') {
             dir = Paths.get(path).getParent();
@@ -57,16 +58,25 @@ public class FileUtils implements Serializable {
     }
 
     public double getFileSizeMegaBytes(String filePath) {
-        return new File(filePath).length() / (double)(1024 * 1024);
+        return new File(filePath).length() / (double) (1024 * 1024);
     }
 
     public String getFilenameFromPath(String filePath) {
-        if (filePath.charAt(filePath.length() - 1) == '/'){
-            throw new RuntimeException("There is no file in path");
+        if (filePath.charAt(filePath.length() - 1) == '/') {
+            throw new NoFileNameException(filePath);
         }
         if (filePath.contains("/")) {
             return filePath.split("/")[filePath.split("/").length - 1];
         } else {
+            return filePath;
+        }
+    }
+
+    public String getDirFromPath(String filePath) {
+        try {
+            String filenameFromPath = getFilenameFromPath(filePath);
+            return filePath.replace(filenameFromPath, "");
+        } catch (NoFileNameException exc) {
             return filePath;
         }
     }
@@ -76,6 +86,15 @@ public class FileUtils implements Serializable {
             return fileName.split("\\.")[0] + newFileExtension;
         } else {
             return fileName + newFileExtension;
+        }
+    }
+
+    public Pair<String, String> splitFilenameAndExtension(String filenameWithExtension) {
+        if (filenameWithExtension.contains(".")) {
+            String name = filenameWithExtension.split("\\.")[0];
+            return Pair.with(name, filenameWithExtension.replace(name, ""));
+        } else {
+            return Pair.with(filenameWithExtension, "");
         }
     }
 
@@ -101,19 +120,34 @@ public class FileUtils implements Serializable {
         }
     }
 
+    public long getFreeDiskSpace(String path) {
+        return new File(path).getFreeSpace();
+    }
+
     public long getFreeDiskSpace() {
-        return new File("/").getFreeSpace();
+        return getFreeDiskSpace("/");
     }
 
     public boolean exists(String filePath) {
         return Files.exists(Paths.get(filePath));
     }
 
-    public boolean contentEquals(File file1, File file2) throws IOException{
+    public boolean contentEquals(File file1, File file2) throws IOException {
         return org.apache.commons.io.FileUtils.contentEquals(file1, file2);
     }
 
     public InputStream getInputStreamFromFile(String filePath) throws FileNotFoundException {
         return new FileInputStream(filePath);
+    }
+
+    private File createTempFileFromUri(String uri) throws IOException {
+        String filenameFromPath = getFilenameFromPath(uri);
+        return File.createTempFile(filenameFromPath, null);
+    }
+
+    public class NoFileNameException extends RuntimeException {
+        public NoFileNameException(String path) {
+            super(String.format("There is no file in path: %s", path));
+        }
     }
 }

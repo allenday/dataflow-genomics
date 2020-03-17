@@ -1,10 +1,14 @@
 package com.google.allenday.genomics.core.processing;
 
-import com.google.allenday.genomics.core.model.*;
+import com.google.allenday.genomics.core.model.BamWithIndexUris;
+import com.google.allenday.genomics.core.model.FileWrapper;
+import com.google.allenday.genomics.core.model.SampleMetaData;
+import com.google.allenday.genomics.core.model.SraSampleIdReferencePair;
 import com.google.allenday.genomics.core.processing.align.AlignTransform;
-import com.google.allenday.genomics.core.processing.other.CreateBamIndexFn;
-import com.google.allenday.genomics.core.processing.other.MergeFn;
-import com.google.allenday.genomics.core.processing.other.SortFn;
+import com.google.allenday.genomics.core.processing.sam.CreateBamIndexFn;
+import com.google.allenday.genomics.core.processing.sam.MergeFn;
+import com.google.allenday.genomics.core.processing.sam.SortFn;
+import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.allenday.genomics.core.utils.ValueIterableToValueListTransform;
 import org.apache.beam.sdk.transforms.*;
 import org.apache.beam.sdk.transforms.join.CoGbkResult;
@@ -16,9 +20,10 @@ import org.apache.beam.sdk.values.TupleTag;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class AlignAndPostProcessTransform extends PTransform<PCollection<KV<SampleMetaData, List<FileWrapper>>>,
-        PCollection<KV<KV<ReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>>> {
+        PCollection<KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, BamWithIndexUris>>>> {
 
     public AlignTransform alignTransform;
     public SortFn sortFn;
@@ -35,45 +40,69 @@ public class AlignAndPostProcessTransform extends PTransform<PCollection<KV<Samp
     }
 
     @Override
-    public PCollection<KV<KV<ReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>> expand(
+    public PCollection<KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, BamWithIndexUris>>> expand(
             PCollection<KV<SampleMetaData, List<FileWrapper>>> input) {
-        PCollection<KV<KV<ReadGroupMetaData, ReferenceDatabase>, FileWrapper>> mergedAlignedSequences = input
+        PCollection<KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, FileWrapper>>> mergedAlignedSequences = input
                 .apply("Align reads transform", alignTransform)
                 .apply("Sort aligned results", ParDo.of(sortFn))
-                .apply("Prepare for merge", MapElements.via(new SimpleFunction<KV<KV<SampleMetaData, ReferenceDatabase>, FileWrapper>,
-                        KV<KV<ReadGroupMetaData, ReferenceDatabase>, FileWrapper>>() {
-                    @Override
-                    public KV<KV<ReadGroupMetaData, ReferenceDatabase>, FileWrapper> apply(
-                            KV<KV<SampleMetaData, ReferenceDatabase>, FileWrapper> input) {
-                        ReadGroupMetaData geneReafdGroupMetaData = input.getKey().getKey();
-                        ReferenceDatabase referenceDatabase = input.getKey().getValue();
-                        return KV.of(KV.of(geneReafdGroupMetaData, referenceDatabase), input.getValue());
-                    }
-                }))
+                .apply("Prepare for Group by sra and reference", MapElements.via(new ToSraSampleRefKV()))
                 .apply("Group by meta data and reference", GroupByKey.create())
-                .apply("IterToList utils 2", new ValueIterableToValueListTransform<>())
+                .apply(new ValueIterableToValueListTransform<>())
+                .apply("Prepare for Merge", ParDo.of(new PrepareForMergeFn()))
                 .apply("Merge aligned results", ParDo.of(mergeFn));
-        PCollection<KV<KV<ReadGroupMetaData, ReferenceDatabase>, FileWrapper>> bamIndexes =
+        PCollection<KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, FileWrapper>>> bamIndexes =
                 mergedAlignedSequences.apply("Create BAM index", ParDo.of(createBamIndexFn));
 
-        final TupleTag<FileWrapper> mergedAlignedSequencesTag = new TupleTag<>();
-        final TupleTag<FileWrapper> bamIndexesTag = new TupleTag<>();
+        final TupleTag<KV<ReferenceDatabaseSource, FileWrapper>> mergedAlignedSequencesTag = new TupleTag<>();
+        final TupleTag<KV<ReferenceDatabaseSource, FileWrapper>> bamIndexesTag = new TupleTag<>();
 
         return
                 KeyedPCollectionTuple.of(mergedAlignedSequencesTag, mergedAlignedSequences)
                         .and(bamIndexesTag, bamIndexes)
                         .apply("Co-Group merged results and indexes", CoGroupByKey.create())
-                        .apply("Prepare uris output", MapElements.via(new SimpleFunction<KV<KV<ReadGroupMetaData, ReferenceDatabase>, CoGbkResult>,
-                                KV<KV<ReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris>>() {
+                        .apply("Prepare uris output", MapElements.via(new SimpleFunction<KV<SraSampleIdReferencePair, CoGbkResult>,
+                                KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, BamWithIndexUris>>>() {
                             @Override
-                            public KV<KV<ReadGroupMetaData, ReferenceDatabase>, BamWithIndexUris> apply(
-                                    KV<KV<ReadGroupMetaData, ReferenceDatabase>, CoGbkResult> input) {
+                            public KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, BamWithIndexUris>> apply(
+                                    KV<SraSampleIdReferencePair, CoGbkResult> input) {
                                 CoGbkResult coGbkResult = input.getValue();
-                                FileWrapper mergedAlignedSequenceFileWrapper = coGbkResult.getOnly(mergedAlignedSequencesTag);
-                                FileWrapper bamIndexFileWrapper = coGbkResult.getOnly(bamIndexesTag);
-                                return KV.of(input.getKey(), new BamWithIndexUris(mergedAlignedSequenceFileWrapper.getBlobUri(),
-                                        bamIndexFileWrapper.getBlobUri()));
+                                KV<ReferenceDatabaseSource, FileWrapper> mergedAlignedSequenceFileWrapper = coGbkResult.getOnly(mergedAlignedSequencesTag);
+                                KV<ReferenceDatabaseSource, FileWrapper> bamIndexFileWrapper = coGbkResult.getOnly(bamIndexesTag);
+
+                                ReferenceDatabaseSource referenceDatabaseSource = mergedAlignedSequenceFileWrapper.getKey();
+                                return KV.of(input.getKey(),
+                                        KV.of(referenceDatabaseSource,
+                                                new BamWithIndexUris(mergedAlignedSequenceFileWrapper.getValue().getBlobUri(),
+                                                        bamIndexFileWrapper.getValue().getBlobUri())));
                             }
                         }));
+    }
+
+    public static class ToSraSampleRefKV extends SimpleFunction<KV<SampleMetaData, KV<ReferenceDatabaseSource, FileWrapper>>,
+            KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, FileWrapper>>> {
+        @Override
+        public KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, FileWrapper>> apply(
+                KV<SampleMetaData, KV<ReferenceDatabaseSource, FileWrapper>> input) {
+            SampleMetaData sampleMetaData = input.getKey();
+            ReferenceDatabaseSource referenceDatabaseSource = input.getValue().getKey();
+            FileWrapper fileWrapper = input.getValue().getValue();
+            return KV.of(new SraSampleIdReferencePair(sampleMetaData.getSraSample(), referenceDatabaseSource.getName()),
+                    input.getValue());
+        }
+    }
+
+    public static class PrepareForMergeFn extends DoFn<KV<SraSampleIdReferencePair, List<KV<ReferenceDatabaseSource, FileWrapper>>>,
+            KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, List<FileWrapper>>>> {
+
+        @ProcessElement
+        public void processElement(ProcessContext c) {
+            SraSampleIdReferencePair sraSampleIdReferencePair = c.element().getKey();
+            List<KV<ReferenceDatabaseSource, FileWrapper>> groppedList = c.element().getValue();
+
+            groppedList.stream().findFirst().ifPresent(kv -> {
+                c.output(KV.of(sraSampleIdReferencePair, KV.of(kv.getKey(), groppedList.stream().map(KV::getValue).collect(Collectors.toList()))));
+            });
+
+        }
     }
 }

@@ -1,35 +1,38 @@
 package com.google.allenday.genomics.core.pipeline;
 
-import com.google.cloud.storage.BlobId;
+import org.apache.beam.sdk.options.ValueProvider;
 import org.javatuples.Pair;
 
 import java.util.List;
 
 public class GenomicsOptions {
 
-    private final String ALIGNED_OUTPUT_PATH_PATTERN = "%s/result_aligned_bam/";
-    private final String SORTED_OUTPUT_PATH_PATTERN = "%s/result_sorted_bam/";
-    private final String MERGED_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
-    private final String BAM_INDEX_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
-    private final String DEEP_VARIANT_OUTPUT_PATH_PATTERN = "%s/result_dv/";
-    private final String VCF_TO_BQ_PATH = "vcf_to_bq/";
-    private final String ANOMALY_PATH_PATTERN = "%s/anomaly_samples/";
+    public final static String ALIGNED_OUTPUT_PATH_PATTERN = "%s/result_aligned_bam/";
+    public final static String SORTED_OUTPUT_PATH_PATTERN = "%s/result_sorted_bam/";
+    public final static String MERGED_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
+    public final static String BAM_INDEX_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
+    public final static String DEEP_VARIANT_OUTPUT_PATH_PATTERN = "%s/result_dv/";
+    public final static String VCF_TO_BQ_PATH = "/vcf_to_bq/";
+    public final static String ANOMALY_PATH_PATTERN = "%s/anomaly_samples/";
 
     private String resultBucket;
-    private List<String> geneReferences;
-    private String allReferencesDirGcsUri;
+    private ValueProvider<List<String>> geneReferences;
+    private ValueProvider<String> allReferencesDirGcsUri;
+    private ValueProvider<String> refDataJsonString;
     private long memoryOutputLimit;
     private DeepVariantOptions deepVariantOptions;
 
     private String vcfBqDatasetAndTablePattern;
     private String outputDir;
 
-    public GenomicsOptions(String resultBucket, List<String> geneReferences,
-                           String allReferencesDirGcsUri, String outputDir,
+    public GenomicsOptions(String resultBucket, ValueProvider<List<String>> geneReferences,
+                           ValueProvider<String> allReferencesDirGcsUri, ValueProvider<String> refDataJsonString,
+                           String outputDir,
                            long memoryOutputLimit) {
         this.resultBucket = resultBucket;
         this.geneReferences = geneReferences;
         this.allReferencesDirGcsUri = allReferencesDirGcsUri;
+        this.refDataJsonString = refDataJsonString;
         this.outputDir = outputDir;
         this.memoryOutputLimit = memoryOutputLimit;
 
@@ -45,6 +48,7 @@ public class GenomicsOptions {
                 bucketDirPair.getValue0(),
                 alignerPipelineOptions.getReferenceNamesList(),
                 alignerPipelineOptions.getAllReferencesDirGcsUri(),
+                alignerPipelineOptions.getRefDataJsonString(),
                 bucketDirPair.getValue1(),
                 alignerPipelineOptions.getMemoryOutputLimit());
 
@@ -87,11 +91,11 @@ public class GenomicsOptions {
         return resultBucket;
     }
 
-    public List<String> getGeneReferences() {
+    public ValueProvider<List<String>> getGeneReferences() {
         return geneReferences;
     }
 
-    public String getAllReferencesDirGcsUri() {
+    public ValueProvider<String> getAllReferencesDirGcsUri() {
         return allReferencesDirGcsUri;
     }
 
@@ -150,5 +154,9 @@ public class GenomicsOptions {
 
     public String getVcfBqDatasetAndTablePattern() {
         return vcfBqDatasetAndTablePattern;
+    }
+
+    public ValueProvider<String> getRefDataJsonString() {
+        return refDataJsonString;
     }
 }

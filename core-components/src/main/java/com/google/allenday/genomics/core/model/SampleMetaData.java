@@ -14,9 +14,7 @@ import java.util.UUID;
  *
  */
 @DefaultCoder(AvroCoder.class)
-public class SampleMetaData extends ReadGroupMetaData implements Serializable {
-
-    private final static String IS_PAIRED_FLAG = "PAIRED";
+public class SampleMetaData implements Serializable {
 
     @Nullable
     protected Integer avgSpotLen;
@@ -51,6 +49,20 @@ public class SampleMetaData extends ReadGroupMetaData implements Serializable {
     protected String librarySelection;
     @Nullable
     protected String librarySource;
+    @Nullable
+    protected String datastoreFiletype;
+    @Nullable
+    protected SraSampleId sraSample;
+    @Nullable
+    protected String bioSample;
+    @Nullable
+    protected String bioProject;
+    @Nullable
+    protected String consent;
+    @Nullable
+    protected String organism;
+    @Nullable
+    protected String sraStudy;
 
     private String runId;
     private String libraryLayout;
@@ -65,28 +77,25 @@ public class SampleMetaData extends ReadGroupMetaData implements Serializable {
     public SampleMetaData() {
     }
 
-    public SampleMetaData(String sraSample, String runId, String libraryLayout, String srcRawMetaData) {
-        super(sraSample);
+    public SampleMetaData(String sraSample, String runId, String libraryLayout, String platform, String srcRawMetaData) {
+        this.sraSample = SraSampleId.create(sraSample);
         this.runId = runId;
         this.libraryLayout = libraryLayout;
         this.srcRawMetaData = srcRawMetaData;
-    }
-
-    public SampleMetaData setSampleName(String sampleName) {
-        this.sampleName = sampleName;
-        return this;
+        this.platform = platform;
     }
 
     public static SampleMetaData fromCsvLine(Parser parser, String csvLine) throws Parser.CsvParseException {
         return parser.parse(csvLine);
     }
 
-    public static SampleMetaData createSingleEndUnique(String rawMetaData) {
+    public static SampleMetaData createUnique(String rawMetaData, String libraryLayout, String platform) {
         String uniqueName = UUID.randomUUID().toString();
         return new SampleMetaData(
                 "sraSample_" + uniqueName,
                 "runId_" + uniqueName,
-                "SINGLE",
+                libraryLayout,
+                platform,
                 rawMetaData);
     }
 
@@ -183,7 +192,7 @@ public class SampleMetaData extends ReadGroupMetaData implements Serializable {
     }
 
     public boolean isPaired() {
-        return libraryLayout.equals(IS_PAIRED_FLAG);
+        return libraryLayout.equals(LibraryLayout.PAIRED.name());
     }
 
     public String getExperiment() {
@@ -258,11 +267,70 @@ public class SampleMetaData extends ReadGroupMetaData implements Serializable {
         this.librarySource = librarySource;
     }
 
+    public String getDatastoreFiletype() {
+        return datastoreFiletype;
+    }
+
+    public void setDatastoreFiletype(String datastoreFiletype) {
+        this.datastoreFiletype = datastoreFiletype;
+    }
+
+    public SraSampleId getSraSample() {
+        return sraSample;
+    }
+
+    public void setSraSample(SraSampleId sraSample) {
+        this.sraSample = sraSample;
+    }
+
+    public String getBioSample() {
+        return bioSample;
+    }
+
+    public void setBioSample(String bioSample) {
+        this.bioSample = bioSample;
+    }
+
+    public String getBioProject() {
+        return bioProject;
+    }
+
+    public void setBioProject(String bioProject) {
+        this.bioProject = bioProject;
+    }
+
+    public String getConsent() {
+        return consent;
+    }
+
+    public void setConsent(String consent) {
+        this.consent = consent;
+    }
+
+    public String getOrganism() {
+        return organism;
+    }
+
+    public void setOrganism(String organism) {
+        this.organism = organism;
+    }
+
+    public String getSraStudy() {
+        return sraStudy;
+    }
+
+    public void setSraStudy(String sraStudy) {
+        this.sraStudy = sraStudy;
+    }
+
+    public void setSampleName(String sampleName) {
+        this.sampleName = sampleName;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
         SampleMetaData that = (SampleMetaData) o;
         return Objects.equals(avgSpotLen, that.avgSpotLen) &&
                 Objects.equals(datastoreProvider, that.datastoreProvider) &&
@@ -280,6 +348,13 @@ public class SampleMetaData extends ReadGroupMetaData implements Serializable {
                 Objects.equals(centerName, that.centerName) &&
                 Objects.equals(librarySelection, that.librarySelection) &&
                 Objects.equals(librarySource, that.librarySource) &&
+                Objects.equals(datastoreFiletype, that.datastoreFiletype) &&
+                Objects.equals(sraSample, that.sraSample) &&
+                Objects.equals(bioSample, that.bioSample) &&
+                Objects.equals(bioProject, that.bioProject) &&
+                Objects.equals(consent, that.consent) &&
+                Objects.equals(organism, that.organism) &&
+                Objects.equals(sraStudy, that.sraStudy) &&
                 Objects.equals(runId, that.runId) &&
                 Objects.equals(libraryLayout, that.libraryLayout) &&
                 Objects.equals(sampleName, that.sampleName) &&
@@ -289,7 +364,7 @@ public class SampleMetaData extends ReadGroupMetaData implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), avgSpotLen, datastoreProvider, datastoreRegion, insertSize, libraryName, numBases, numBytes, experiment, instrument, platform, loadDate, releaseDate, assayType, centerName, librarySelection, librarySource, runId, libraryLayout, sampleName, srcRawMetaData, comment);
+        return Objects.hash(avgSpotLen, datastoreProvider, datastoreRegion, insertSize, libraryName, numBases, numBytes, experiment, instrument, platform, loadDate, releaseDate, assayType, centerName, librarySelection, librarySource, datastoreFiletype, sraSample, bioSample, bioProject, consent, organism, sraStudy, runId, libraryLayout, sampleName, srcRawMetaData, comment);
     }
 
     @Override
@@ -311,18 +386,18 @@ public class SampleMetaData extends ReadGroupMetaData implements Serializable {
                 ", centerName='" + centerName + '\'' +
                 ", librarySelection='" + librarySelection + '\'' +
                 ", librarySource='" + librarySource + '\'' +
+                ", datastoreFiletype='" + datastoreFiletype + '\'' +
+                ", sraSample=" + sraSample +
+                ", bioSample='" + bioSample + '\'' +
+                ", bioProject='" + bioProject + '\'' +
+                ", consent='" + consent + '\'' +
+                ", organism='" + organism + '\'' +
+                ", sraStudy='" + sraStudy + '\'' +
                 ", runId='" + runId + '\'' +
                 ", libraryLayout='" + libraryLayout + '\'' +
                 ", sampleName='" + sampleName + '\'' +
                 ", srcRawMetaData='" + srcRawMetaData + '\'' +
                 ", comment='" + comment + '\'' +
-                ", sraSample='" + sraSample + '\'' +
-                ", bioSample='" + bioSample + '\'' +
-                ", bioProject='" + bioProject + '\'' +
-                ", consent='" + consent + '\'' +
-                ", datastoreFiletype='" + datastoreFiletype + '\'' +
-                ", organism='" + organism + '\'' +
-                ", sraStudy='" + sraStudy + '\'' +
                 '}';
     }
 
@@ -373,6 +448,10 @@ public class SampleMetaData extends ReadGroupMetaData implements Serializable {
                 super(String.format("Exception occurred while %s was parsing", csvLine));
             }
         }
+    }
+
+    public static enum LibraryLayout {
+        SINGLE, PAIRED
     }
 }
 

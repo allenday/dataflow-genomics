@@ -46,7 +46,7 @@ public class SampleMetaDataTests {
         SampleMetaData.Parser parser = new SraParser(SampleMetaData.Parser.Separation.COMMA);
         SampleMetaData sampleMetaData = parser.parse(csvLine);
 
-        SampleMetaData sampleMetaDataExpected = new SampleMetaData(sraSample, runId, libraryLayout, csvLine);
+        SampleMetaData sampleMetaDataExpected = new SampleMetaData(sraSample, runId, libraryLayout, platform, csvLine);
 
         sampleMetaDataExpected.setSampleName(sampleName);
         sampleMetaDataExpected.setAvgSpotLen(avgSpotLen);
@@ -68,7 +68,6 @@ public class SampleMetaDataTests {
         sampleMetaDataExpected.setLibrarySource(librarySource);
         sampleMetaDataExpected.setLoadDate(loadDate);
         sampleMetaDataExpected.setOrganism(organism);
-        sampleMetaDataExpected.setPlatform(platform);
         sampleMetaDataExpected.setReleaseDate(releaseDate);
         sampleMetaDataExpected.setSraStudy(sraStudy);
 

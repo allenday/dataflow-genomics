@@ -31,6 +31,7 @@ public class NameProvider {
             jobNameBuilder.append("--");
         }
         jobNameBuilder.append(startTime);
-        return jobNameBuilder.toString().toLowerCase();
+
+        return jobNameBuilder.toString().toLowerCase().replace("_", "-");
     }
 }

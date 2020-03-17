@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
@@ -21,7 +22,7 @@ import java.util.stream.StreamSupport;
 /**
  * Provides access to {@link Storage} instance with convenient interface
  */
-public class GCSService {
+public class GCSService implements Serializable {
 
     private Logger LOG = LoggerFactory.getLogger(GCSService.class);
 
@@ -45,8 +46,8 @@ public class GCSService {
         return getBlob(BlobId.of(bucketName, blobName));
     }
 
-    public Blob saveContentToGcs(String bucketName, String blobName, byte[] content) {
-        return storage.create(BlobInfo.newBuilder(bucketName, blobName).build(), content);
+    public Blob saveContentToGcs(BlobId blobId, byte[] content) {
+        return storage.create(BlobInfo.newBuilder(blobId).build(), content);
     }
 
     public Blob writeToGcs(String bucketName, String blobName, String filePath) throws IOException {
@@ -141,8 +142,8 @@ public class GCSService {
         LOG.info(String.format("Free disk space: %d", fileUtils.getFreeDiskSpace()));
     }
 
-    public String readBlob(IoUtils ioUtils, String bucketName, String blobName) throws IOException, NullPointerException {
-        Blob blob = getBlob(bucketName, blobName);
+    public String readBlob(BlobId blobId, IoUtils ioUtils) throws IOException, NullPointerException {
+        Blob blob = getBlob(blobId);
         ReadChannel reader = blob.reader();
 
         ByteBuffer bytes = ByteBuffer.allocate(64 * 1024);

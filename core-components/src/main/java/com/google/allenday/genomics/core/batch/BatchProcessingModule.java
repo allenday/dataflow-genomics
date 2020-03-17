@@ -63,7 +63,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Provides
     @Singleton
     public ReferenceProvider provideReferenceProvider(FileUtils fileUtils) {
-        return new ReferenceProvider(fileUtils);
+        return new ReferenceProvider(fileUtils, null);
     }
 
     @Provides

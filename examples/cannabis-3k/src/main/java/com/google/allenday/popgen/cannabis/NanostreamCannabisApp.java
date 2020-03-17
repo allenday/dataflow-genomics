@@ -1,4 +1,4 @@
-package com.google.allenday.nanostream.cannabis;
+package com.google.allenday.popgen.cannabis;
 
 import com.google.allenday.genomics.core.batch.BatchProcessingPipelineOptions;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
@@ -10,7 +10,7 @@ import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform
 import com.google.allenday.genomics.core.processing.other.DeepVariantFn;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqFn;
 import com.google.allenday.genomics.core.utils.NameProvider;
-import com.google.allenday.nanostream.cannabis.vcf_to_bq.DvAndVcfToBqConnector;
+import com.google.allenday.popgen.cannabis.vcf_to_bq.DvAndVcfToBqConnector;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.apache.beam.sdk.Pipeline;

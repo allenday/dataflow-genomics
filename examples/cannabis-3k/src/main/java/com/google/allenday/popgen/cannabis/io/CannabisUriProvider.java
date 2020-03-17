@@ -1,4 +1,4 @@
-package com.google.allenday.nanostream.cannabis.io;
+package com.google.allenday.popgen.cannabis.io;
 
 import com.google.allenday.genomics.core.io.UriProvider;
 

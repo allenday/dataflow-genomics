@@ -1,4 +1,4 @@
-package com.google.allenday.nanostream.cannabis.vcf_to_bq;
+package com.google.allenday.popgen.cannabis.vcf_to_bq;
 
 import com.google.allenday.genomics.core.model.ReadGroupMetaData;
 import com.google.allenday.genomics.core.model.ReferenceDatabase;

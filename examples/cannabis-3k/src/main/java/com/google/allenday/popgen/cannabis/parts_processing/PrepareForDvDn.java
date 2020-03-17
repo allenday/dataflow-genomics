@@ -1,4 +1,4 @@
-package com.google.allenday.nanostream.cannabis.parts_processing;
+package com.google.allenday.popgen.cannabis.parts_processing;
 
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;

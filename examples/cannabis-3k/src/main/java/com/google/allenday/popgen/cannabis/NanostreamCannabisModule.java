@@ -1,4 +1,4 @@
-package com.google.allenday.nanostream.cannabis;
+package com.google.allenday.popgen.cannabis;
 
 import com.google.allenday.genomics.core.batch.BatchProcessingModule;
 import com.google.allenday.genomics.core.batch.BatchProcessingPipelineOptions;
@@ -7,9 +7,9 @@ import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.UriProvider;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.utils.NameProvider;
-import com.google.allenday.nanostream.cannabis.anomaly.DetectAnomalyTransform;
-import com.google.allenday.nanostream.cannabis.anomaly.RecognizePairedReadsWithAnomalyFn;
-import com.google.allenday.nanostream.cannabis.io.CannabisUriProvider;
+import com.google.allenday.popgen.cannabis.anomaly.DetectAnomalyTransform;
+import com.google.allenday.popgen.cannabis.anomaly.RecognizePairedReadsWithAnomalyFn;
+import com.google.allenday.popgen.cannabis.io.CannabisUriProvider;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 

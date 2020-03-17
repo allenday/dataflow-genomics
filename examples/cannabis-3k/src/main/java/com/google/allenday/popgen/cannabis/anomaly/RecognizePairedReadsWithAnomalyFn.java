@@ -1,4 +1,4 @@
-package com.google.allenday.nanostream.cannabis.anomaly;
+package com.google.allenday.popgen.cannabis.anomaly;
 
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;

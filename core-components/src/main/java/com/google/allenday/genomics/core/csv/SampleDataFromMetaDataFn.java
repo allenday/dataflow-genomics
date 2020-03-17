@@ -12,13 +12,13 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class GeneDataFromMetaDataFn extends DoFn<SampleMetaData, KV<SampleMetaData, List<FileWrapper>>> {
+public class SampleDataFromMetaDataFn extends DoFn<SampleMetaData, KV<SampleMetaData, List<FileWrapper>>> {
 
-    private Logger LOG = LoggerFactory.getLogger(GeneDataFromMetaDataFn.class);
+    private Logger LOG = LoggerFactory.getLogger(SampleDataFromMetaDataFn.class);
     private UriProvider uriProvider;
     private FileUtils fileUtils;
 
-    public GeneDataFromMetaDataFn(UriProvider uriProvider, FileUtils fileUtils) {
+    public SampleDataFromMetaDataFn(UriProvider uriProvider, FileUtils fileUtils) {
         this.uriProvider = uriProvider;
         this.fileUtils = fileUtils;
     }
@@ -26,7 +26,7 @@ public class GeneDataFromMetaDataFn extends DoFn<SampleMetaData, KV<SampleMetaDa
     @ProcessElement
     public void processElement(ProcessContext c) {
         SampleMetaData input = c.element();
-        LOG.info(String.format("GeneDataFromMetaDataFn %s", input.toString()));
+        LOG.info(String.format("SampleDataFromMetaDataFn %s", input.toString()));
 
         List<FileWrapper> fileWrapperList = uriProvider.provide(input).stream()
                 .map(uri -> FileWrapper.fromBlobUri(uri, fileUtils.getFilenameFromPath(uri))).collect(Collectors.toList());

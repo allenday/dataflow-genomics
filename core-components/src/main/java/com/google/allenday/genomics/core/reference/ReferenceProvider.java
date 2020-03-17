@@ -12,8 +12,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReferencesProvider implements Serializable {
-    private static Logger LOG = LoggerFactory.getLogger(ReferencesProvider.class);
+public class ReferenceProvider implements Serializable {
+    private static Logger LOG = LoggerFactory.getLogger(ReferenceProvider.class);
 
     private static final String DEFAULT_REFERENCE_FILE_EXTENSION = ".fa";
     private static final String DEFAULT_ALL_REFERENCE_LOCAL_DIR = "reference/";
@@ -23,15 +23,15 @@ public class ReferencesProvider implements Serializable {
     private String allReferencesLocalDir;
     private String referenceFileExtension;
 
-    public ReferencesProvider(FileUtils fileUtils, String allReferencesDirGcsUri) {
+    public ReferenceProvider(FileUtils fileUtils, String allReferencesDirGcsUri) {
         this(fileUtils, allReferencesDirGcsUri, DEFAULT_REFERENCE_FILE_EXTENSION, DEFAULT_ALL_REFERENCE_LOCAL_DIR);
     }
 
-    public ReferencesProvider(FileUtils fileUtils, String allReferencesDirGcsUri, String referenceFileExtension) {
+    public ReferenceProvider(FileUtils fileUtils, String allReferencesDirGcsUri, String referenceFileExtension) {
         this(fileUtils, allReferencesDirGcsUri, referenceFileExtension, DEFAULT_ALL_REFERENCE_LOCAL_DIR);
     }
 
-    public ReferencesProvider(FileUtils fileUtils, String allReferencesDirGcsUri, String referenceFileExtension, String allReferencesLocalDir) {
+    public ReferenceProvider(FileUtils fileUtils, String allReferencesDirGcsUri, String referenceFileExtension, String allReferencesLocalDir) {
         this.fileUtils = fileUtils;
         this.allReferencesDirGcsUri = allReferencesDirGcsUri;
         this.referenceFileExtension = referenceFileExtension;
@@ -39,17 +39,17 @@ public class ReferencesProvider implements Serializable {
     }
 
     public Pair<ReferenceDatabase, String> findReference(GCSService gcsService, String referenceName) {
-        List<String> dbFilesUris = getDbFilesUris(gcsService, referenceName, true);
+        List<String> dbFilesUris = getReferenceDatabaseFilesUris(gcsService, referenceName, true);
         String fastaLocalPath = getReferencePathByName(referenceName);
         return Pair.with(new ReferenceDatabase(referenceName, dbFilesUris), fastaLocalPath);
     }
 
-    public ReferenceDatabase getReferenceDd(GCSService gcsService, String referenceName) {
-        List<String> dbFilesUris = getDbFilesUris(gcsService, referenceName, false);
+    public ReferenceDatabase getReferenceDatabase(GCSService gcsService, String referenceName) {
+        List<String> dbFilesUris = getReferenceDatabaseFilesUris(gcsService, referenceName, false);
         return new ReferenceDatabase(referenceName, dbFilesUris);
     }
 
-    private List<String> getDbFilesUris(GCSService gcsService, String referenceName, boolean withDownload) {
+    private List<String> getReferenceDatabaseFilesUris(GCSService gcsService, String referenceName, boolean withDownload) {
         BlobId blobIdFromUri = gcsService.getBlobIdFromUri(allReferencesDirGcsUri);
         List<String> dbFilesUris = new ArrayList<>();
         gcsService.getAllBlobsIn(blobIdFromUri.getBucket(), blobIdFromUri.getName())

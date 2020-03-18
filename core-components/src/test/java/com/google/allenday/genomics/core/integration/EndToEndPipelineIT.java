@@ -20,7 +20,7 @@ import com.google.allenday.genomics.core.processing.sam.CreateBamIndexFn;
 import com.google.allenday.genomics.core.processing.sam.MergeFn;
 import com.google.allenday.genomics.core.processing.sam.SamBamManipulationService;
 import com.google.allenday.genomics.core.processing.sam.SortFn;
-import com.google.allenday.genomics.core.reference.ReferencesProvider;
+import com.google.allenday.genomics.core.reference.ReferenceProvider;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import org.apache.beam.sdk.PipelineResult;
@@ -103,7 +103,7 @@ public class EndToEndPipelineIT implements Serializable {
 
         String dvResultGcsPath = gcsService.getUriFromBlob(BlobId.of(testBucket, String.format(DV_RESULT_GCS_DIR_PATH_PATTERN, jobTime)));
 
-        ReferencesProvider referencesProvider = new ReferencesProvider(fileUtils);
+        ReferenceProvider referencesProvider = new ReferenceProvider(fileUtils);
         DeepVariantService deepVariantService = new DeepVariantService(new LifeSciencesService(), new DeepVariantOptions());
 
         TransformIoHandler alignTransformIoHandler = new TransformIoHandler(testBucket, String.format(ALIGN_RESULT_GCS_DIR_PATH_PATTERN, jobTime), 300, fileUtils);

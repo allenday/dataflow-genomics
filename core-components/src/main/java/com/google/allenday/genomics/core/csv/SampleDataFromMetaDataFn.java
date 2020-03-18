@@ -26,7 +26,7 @@ public class SampleDataFromMetaDataFn extends DoFn<SampleMetaData, KV<SampleMeta
     @ProcessElement
     public void processElement(ProcessContext c) {
         SampleMetaData input = c.element();
-        LOG.info(String.format("GeneDataFromMetaDataFn %s", input.toString()));
+        LOG.info(String.format("SampleDataFromMetaDataFn %s", input.toString()));
 
         List<FileWrapper> fileWrapperList = uriProvider.provide(input).stream()
                 .map(uri -> FileWrapper.fromBlobUri(uri, fileUtils.getFilenameFromPath(uri))).collect(Collectors.toList());

@@ -8,7 +8,6 @@ import java.util.TimeZone;
 public class NameProvider {
 
     private String startTime;
-
     private NameProvider(String startTime) {
         this.startTime = startTime;
     }

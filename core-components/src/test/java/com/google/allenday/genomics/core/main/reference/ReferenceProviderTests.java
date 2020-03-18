@@ -35,7 +35,7 @@ public class ReferenceProviderTests {
                 .thenReturn(REFERENCE_NAME + REFERENCE_EXTENSION);
 
         /*TODO update*/
-        /*ReferencesProvider referencesProvider = new ReferencesProvider(fileUtilsMock);
+        /*ReferenceProvider referencesProvider = new ReferenceProvider(fileUtilsMock);
 
         referencesProvider.getReferenceDbWithDownload(gcsServiceMock, REFERENCE_NAME);
 

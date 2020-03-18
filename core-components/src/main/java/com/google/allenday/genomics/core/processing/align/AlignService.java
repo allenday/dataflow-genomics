@@ -86,7 +86,10 @@ public class AlignService implements Serializable {
     }
 
     public static enum Instrument {
-        OXFORD_NANOPORE("map-ont"), ILLUMINA("sr"), ABI_SOLID("sr"), PACBIO_SMRT("map-pb");
+        OXFORD_NANOPORE("map-ont"),
+        ILLUMINA("sr"),
+        PACBIO_SMRT("map-pb"),
+        LS454("sr");
 
         public final String flag;
 

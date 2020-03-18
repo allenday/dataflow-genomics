@@ -5,6 +5,7 @@ import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleMetaData;
+import com.google.allenday.genomics.core.processing.sam.SamBamManipulationService;
 import com.google.allenday.genomics.core.reference.ReferenceDatabase;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.allenday.genomics.core.reference.ReferenceProvider;
@@ -17,25 +18,31 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSource>, List<FileWrapper>>>,
+public class AlignAndSortFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSource>, List<FileWrapper>>>,
         KV<SampleMetaData, KV<ReferenceDatabaseSource, FileWrapper>>> {
 
-    private Logger LOG = LoggerFactory.getLogger(AlignFn.class);
+    private Logger LOG = LoggerFactory.getLogger(AlignAndSortFn.class);
     private GCSService gcsService;
 
     private AlignService alignService;
     private ReferenceProvider referencesProvider;
-    private TransformIoHandler transformIoHandler;
+    private TransformIoHandler alignTransformIoHandler;
+    private TransformIoHandler sortTransformIoHandler;
     private FileUtils fileUtils;
+    private SamBamManipulationService samBamManipulationService;
 
-    public AlignFn(AlignService alignService,
-                   ReferenceProvider referencesProvider,
-                   TransformIoHandler transformIoHandler,
-                   FileUtils fileUtils) {
+    public AlignAndSortFn(AlignService alignService,
+                          SamBamManipulationService samBamManipulationService,
+                          ReferenceProvider referencesProvider,
+                          TransformIoHandler alignTransformIoHandler,
+                          TransformIoHandler sortTransformIoHandler,
+                          FileUtils fileUtils) {
         this.alignService = alignService;
         this.referencesProvider = referencesProvider;
-        this.transformIoHandler = transformIoHandler;
+        this.alignTransformIoHandler = alignTransformIoHandler;
+        this.sortTransformIoHandler = sortTransformIoHandler;
         this.fileUtils = fileUtils;
+        this.samBamManipulationService = samBamManipulationService;
     }
 
     @Setup
@@ -66,12 +73,13 @@ public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSo
             String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneSampleMetaData.getRunId());
             try {
                 List<String> srcFilesPaths = fileWrapperList.stream()
-                        .map(geneData -> transformIoHandler.handleInputAsLocalFile(gcsService, geneData, workingDir))
+                        .map(geneData -> alignTransformIoHandler.handleInputAsLocalFile(gcsService, geneData, workingDir))
                         .collect(Collectors.toList());
                 for (ReferenceDatabaseSource referenceDBSource : referenceDBSources) {
                     ReferenceDatabase referenceDatabase =
                             referencesProvider.getReferenceDbWithDownload(gcsService, referenceDBSource);
                     String alignedSamPath = null;
+                    String alignedSortedBamPath = null;
                     try {
                         alignedSamPath = alignService.alignFastq(
                                 referenceDatabase.getFastaLocalPath(),
@@ -80,15 +88,21 @@ public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSo
                                 referenceDatabase.getDbName(),
                                 geneSampleMetaData.getSraSample().getValue(),
                                 geneSampleMetaData.getPlatform());
-                        FileWrapper fileWrapper = transformIoHandler.handleFileOutput(gcsService, alignedSamPath);
+                        alignedSortedBamPath = samBamManipulationService.sortSam(
+                                alignedSamPath, workingDir, geneSampleMetaData.getRunId(), referenceDBSource.getName());
+                        alignTransformIoHandler.handleFileOutput(gcsService, alignedSamPath);
+                        FileWrapper sortFileWrapper = sortTransformIoHandler.handleFileOutput(gcsService, alignedSortedBamPath);
                         fileUtils.deleteFile(alignedSamPath);
 
-                        c.output(KV.of(geneSampleMetaData, KV.of(referenceDBSource, fileWrapper)));
+                        c.output(KV.of(geneSampleMetaData, KV.of(referenceDBSource, sortFileWrapper)));
                     } catch (IOException e) {
                         LOG.error(e.getMessage());
                         e.printStackTrace();
                         if (alignedSamPath != null) {
                             fileUtils.deleteFile(alignedSamPath);
+                        }
+                        if (alignedSortedBamPath != null) {
+                            fileUtils.deleteFile(alignedSortedBamPath);
                         }
 
                         c.output(KV.of(geneSampleMetaData, KV.of(referenceDBSource, FileWrapper.empty())));

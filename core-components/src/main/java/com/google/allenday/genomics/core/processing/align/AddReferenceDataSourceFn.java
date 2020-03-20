@@ -15,24 +15,21 @@ public abstract class AddReferenceDataSourceFn extends DoFn<KV<SampleMetaData, L
 
     public static class FromNameAndDirPath extends AddReferenceDataSourceFn {
 
-        private ValueProvider<String> allReferencesDirGcsUriVP;
-        private ValueProvider<List<String>> referenceNamesVP;
+        private String allReferencesDirGcsUri;
+        private List<String> referenceNames;
 
-        public FromNameAndDirPath(ValueProvider<String> allReferencesDirGcsUriVP, ValueProvider<List<String>> referenceNamesVP) {
-            this.allReferencesDirGcsUriVP = allReferencesDirGcsUriVP;
-            this.referenceNamesVP = referenceNamesVP;
+        public FromNameAndDirPath(String allReferencesDirGcsUri, List<String> referenceNames) {
+            this.allReferencesDirGcsUri = allReferencesDirGcsUri;
+            this.referenceNames = referenceNames;
         }
 
         @ProcessElement
         public void processElement(ProcessContext c) {
-            String allReferencesDirGcsUri = allReferencesDirGcsUriVP.get();
-            List<String> referenceNames = referenceNamesVP.get();
             List<ReferenceDatabaseSource> refDBSources = referenceNames.stream()
                     .map(refName -> new ReferenceDatabaseSource.ByNameAndUriSchema(refName, allReferencesDirGcsUri))
                     .collect(Collectors.toList());
 
             c.output(KV.of(c.element().getKey(), KV.of(refDBSources, c.element().getValue())));
-
         }
     }
 

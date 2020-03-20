@@ -6,7 +6,6 @@ import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.cloud.storage.BlobId;
-import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
@@ -23,18 +22,18 @@ public class PrepareAlignNotProcessedFn extends DoFn<KV<SampleMetaData, List<Fil
     private GCSService gcsService;
 
     private FileUtils fileUtils;
-    private ValueProvider<List<String>> referencesVP;
+    private List<String> references;
 
     private StagingPathsBulder stagingPathsBulder;
-    private ValueProvider<String> allReferencesDirGcsUri;
+    private String allReferencesDirGcsUri;
 
 
     public PrepareAlignNotProcessedFn(FileUtils fileUtils,
-                                      ValueProvider<List<String>> referencesVP,
+                                      List<String> references,
                                       StagingPathsBulder stagingPathsBulder,
-                                      ValueProvider<String> allReferencesDirGcsUri) {
+                                      String allReferencesDirGcsUri) {
         this.fileUtils = fileUtils;
-        this.referencesVP = referencesVP;
+        this.references = references;
         this.stagingPathsBulder = stagingPathsBulder;
         this.allReferencesDirGcsUri = allReferencesDirGcsUri;
     }
@@ -49,8 +48,6 @@ public class PrepareAlignNotProcessedFn extends DoFn<KV<SampleMetaData, List<Fil
         KV<SampleMetaData, List<FileWrapper>> input = c.element();
         SampleMetaData geneSampleMetaData = input.getKey();
 
-        List<String> references = referencesVP.get();
-
         for (String ref : references) {
 
             BlobId blobIdAlign = stagingPathsBulder.buildAlignedBlobId(geneSampleMetaData.getRunId(), ref);
@@ -58,7 +55,7 @@ public class PrepareAlignNotProcessedFn extends DoFn<KV<SampleMetaData, List<Fil
             if (!exists) {
                 LOG.info(String.format("Pass to %s: %s", "ALIGN", geneSampleMetaData.getRunId()));
                 c.output(KV.of(geneSampleMetaData,
-                        KV.of(Collections.singletonList(new ReferenceDatabaseSource.ByNameAndUriSchema(ref, allReferencesDirGcsUri.get())), input.getValue())));
+                        KV.of(Collections.singletonList(new ReferenceDatabaseSource.ByNameAndUriSchema(ref, allReferencesDirGcsUri)), input.getValue())));
             }
         }
     }

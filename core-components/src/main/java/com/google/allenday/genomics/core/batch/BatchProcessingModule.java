@@ -154,13 +154,11 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Provides
     @Singleton
     public AddReferenceDataSourceFn provideAddReferenceDataSourceFn() {
-        if (genomicsOptions.getRefDataJsonString() != null) {
-            return new AddReferenceDataSourceFn.Explicitly(genomicsOptions.getRefDataJsonString());
-        } else if (genomicsOptions.getGeneReferences() != null && genomicsOptions.getAllReferencesDirGcsUri() != null) {
+        if (genomicsOptions.getGeneReferences() != null && genomicsOptions.getAllReferencesDirGcsUri() != null) {
             return new AddReferenceDataSourceFn.FromNameAndDirPath(genomicsOptions.getAllReferencesDirGcsUri(),
                     genomicsOptions.getGeneReferences());
         } else {
-            throw new RuntimeException("You must provide refDataJsonString or allReferencesDirGcsUri+gneReferences");
+            return new AddReferenceDataSourceFn.Explicitly(genomicsOptions.getRefDataJsonString());
         }
     }
 

@@ -116,7 +116,7 @@ public class EndToEndPipelineIT implements Serializable {
                 alignTransformIoHandler, fileUtils);
 
         AddReferenceDataSourceFn.FromNameAndDirPath addReferenceDataSourceFn = new AddReferenceDataSourceFn.FromNameAndDirPath(
-                testPipeline.newProvider(allReferencesDirGcsUri), testPipeline.newProvider(Collections.singletonList(TEST_REFERENCE_NAME)));
+                allReferencesDirGcsUri, Collections.singletonList(TEST_REFERENCE_NAME));
 
         AlignTransform alignTransform = new AlignTransform("Align reads transform", alignFn, addReferenceDataSourceFn);
         SortFn sortFn = new SortFn(sortTransformIoHandler, samBamManipulationService, fileUtils);

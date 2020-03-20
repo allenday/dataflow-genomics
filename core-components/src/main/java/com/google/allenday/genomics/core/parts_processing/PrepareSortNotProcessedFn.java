@@ -6,7 +6,6 @@ import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.cloud.storage.BlobId;
-import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
@@ -22,18 +21,18 @@ public class PrepareSortNotProcessedFn extends DoFn<KV<SampleMetaData, List<File
     private GCSService gcsService;
 
     private FileUtils fileUtils;
-    private ValueProvider<List<String>> referencesVP;
+    private List<String> references;
 
     private StagingPathsBulder stagingPathsBulder;
-    private ValueProvider<String> allReferencesDirGcsUri;
+    private String allReferencesDirGcsUri;
 
 
     public PrepareSortNotProcessedFn(FileUtils fileUtils,
-                                     ValueProvider<List<String>> referencesVP,
+                                     List<String> references,
                                      StagingPathsBulder stagingPathsBulder,
-                                     ValueProvider<String> allReferencesDirGcsUri) {
+                                     String allReferencesDirGcsUri) {
         this.fileUtils = fileUtils;
-        this.referencesVP = referencesVP;
+        this.references = references;
         this.stagingPathsBulder = stagingPathsBulder;
         this.allReferencesDirGcsUri = allReferencesDirGcsUri;
     }
@@ -48,7 +47,6 @@ public class PrepareSortNotProcessedFn extends DoFn<KV<SampleMetaData, List<File
         KV<SampleMetaData, List<FileWrapper>> input = c.element();
         SampleMetaData geneSampleMetaData = input.getKey();
 
-        List<String> references = referencesVP.get();
 
         for (String ref : references) {
             BlobId blobIdSort = stagingPathsBulder.buildSortedBlobId(geneSampleMetaData.getRunId(), ref);
@@ -61,8 +59,8 @@ public class PrepareSortNotProcessedFn extends DoFn<KV<SampleMetaData, List<File
 
                 LOG.info(String.format("Pass to %s: %s", "SORTED", geneSampleMetaData.getRunId()));
                 c.output(KV.of(geneSampleMetaData,
-                        KV.of(new ReferenceDatabaseSource.ByNameAndUriSchema(ref, allReferencesDirGcsUri.get()),
-                        FileWrapper.fromBlobUri(uriFromBlob, new FileUtils().getFilenameFromPath(uriFromBlob)))));
+                        KV.of(new ReferenceDatabaseSource.ByNameAndUriSchema(ref, allReferencesDirGcsUri),
+                                FileWrapper.fromBlobUri(uriFromBlob, new FileUtils().getFilenameFromPath(uriFromBlob)))));
             }
         }
     }

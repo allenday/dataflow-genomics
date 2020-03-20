@@ -8,7 +8,6 @@ import com.google.allenday.genomics.core.model.SraSampleId;
 import com.google.allenday.genomics.core.model.SraSampleIdReferencePair;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.cloud.storage.BlobId;
-import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
@@ -26,16 +25,16 @@ public class PrepareMergeNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<Sa
     private GCSService gcsService;
 
     private FileUtils fileUtils;
-    private ValueProvider<List<String>> referencesVP;
+    private List<String> references;
 
     private StagingPathsBulder stagingPathsBulder;
-    private ValueProvider<String> allReferencesDirGcsUri;
+    private String allReferencesDirGcsUri;
 
-    public PrepareMergeNotProcessedFn(FileUtils fileUtils, ValueProvider<List<String>> referencesVP,
+    public PrepareMergeNotProcessedFn(FileUtils fileUtils, List<String> references,
                                       StagingPathsBulder stagingPathsBulder,
-                                      ValueProvider<String> allReferencesDirGcsUri) {
+                                      String allReferencesDirGcsUri) {
         this.fileUtils = fileUtils;
-        this.referencesVP = referencesVP;
+        this.references = references;
         this.stagingPathsBulder = stagingPathsBulder;
         this.allReferencesDirGcsUri = allReferencesDirGcsUri;
     }
@@ -54,7 +53,6 @@ public class PrepareMergeNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<Sa
 
         Iterable<SampleMetaData> geneSampleMetaDataIterable = input.getValue();
 
-        List<String> references = referencesVP.get();
         for (String ref : references) {
             BlobId blobIdMerge = stagingPathsBulder.buildMergedBlobId(sraSampleId.getValue(), ref);
             boolean mergeExists = gcsService.isExists(blobIdMerge);
@@ -74,7 +72,7 @@ public class PrepareMergeNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<Sa
                 }
                 if (redyToMerge) {
                     ReferenceDatabaseSource referenceDatabaseSource =
-                            new ReferenceDatabaseSource.ByNameAndUriSchema(ref, allReferencesDirGcsUri.get());
+                            new ReferenceDatabaseSource.ByNameAndUriSchema(ref, allReferencesDirGcsUri);
                     c.output(KV.of(new SraSampleIdReferencePair(sraSampleId, referenceDatabaseSource.getName()),
                             KV.of(referenceDatabaseSource, fileWrappers)));
                 }

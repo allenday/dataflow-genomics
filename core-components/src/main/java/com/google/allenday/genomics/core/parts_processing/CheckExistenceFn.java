@@ -25,17 +25,17 @@ public class CheckExistenceFn extends DoFn<KV<SraSampleId, Iterable<KV<SampleMet
 
     private FileUtils fileUtils;
     private IoUtils ioUtils;
-    private ValueProvider<List<String>> referencesVP;
+    private List<String> references;
     private GCSService gcsService;
     private DecimalFormat decimalFormat = new DecimalFormat("#.###");
 
     private StagingPathsBulder stagingPathsBulder;
 
-    public CheckExistenceFn(FileUtils fileUtils, IoUtils ioUtils, ValueProvider<List<String>> referencesVP,
+    public CheckExistenceFn(FileUtils fileUtils, IoUtils ioUtils, List<String> references,
                             StagingPathsBulder stagingPathsBulder) {
         this.fileUtils = fileUtils;
         this.ioUtils = ioUtils;
-        this.referencesVP = referencesVP;
+        this.references = references;
         this.stagingPathsBulder = stagingPathsBulder;
     }
 
@@ -55,8 +55,6 @@ public class CheckExistenceFn extends DoFn<KV<SraSampleId, Iterable<KV<SampleMet
 
         boolean fastqSumCounted = false;
         long sumOfFastq = 0;
-
-        List<String> references = referencesVP.get();
         for (String ref : references) {
             String processedVcfToBq = "";
             try {

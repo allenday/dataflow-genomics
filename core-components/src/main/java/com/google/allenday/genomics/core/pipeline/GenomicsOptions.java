@@ -16,8 +16,8 @@ public class GenomicsOptions {
     public final static String ANOMALY_PATH_PATTERN = "%s/anomaly_samples/";
 
     private String resultBucket;
-    private ValueProvider<List<String>> geneReferences;
-    private ValueProvider<String> allReferencesDirGcsUri;
+    private List<String> geneReferences;
+    private String allReferencesDirGcsUri;
     private ValueProvider<String> refDataJsonString;
     private long memoryOutputLimit;
     private DeepVariantOptions deepVariantOptions;
@@ -25,8 +25,8 @@ public class GenomicsOptions {
     private String vcfBqDatasetAndTablePattern;
     private String outputDir;
 
-    public GenomicsOptions(String resultBucket, ValueProvider<List<String>> geneReferences,
-                           ValueProvider<String> allReferencesDirGcsUri, ValueProvider<String> refDataJsonString,
+    public GenomicsOptions(String resultBucket, List<String> geneReferences,
+                           String allReferencesDirGcsUri, ValueProvider<String> refDataJsonString,
                            String outputDir,
                            long memoryOutputLimit) {
         this.resultBucket = resultBucket;
@@ -91,11 +91,11 @@ public class GenomicsOptions {
         return resultBucket;
     }
 
-    public ValueProvider<List<String>> getGeneReferences() {
+    public List<String> getGeneReferences() {
         return geneReferences;
     }
 
-    public ValueProvider<String> getAllReferencesDirGcsUri() {
+    public String getAllReferencesDirGcsUri() {
         return allReferencesDirGcsUri;
     }
 

@@ -74,6 +74,8 @@ public class SampleMetaData implements Serializable {
     @Nullable
     private String comment;
 
+    private Integer partIndex = -1;
+
     public SampleMetaData() {
     }
 
@@ -97,6 +99,44 @@ public class SampleMetaData implements Serializable {
                 libraryLayout,
                 platform,
                 rawMetaData);
+    }
+
+
+    private SampleMetaData(Integer avgSpotLen, String datastoreProvider, String datastoreRegion, Integer insertSize,
+                           String libraryName, Integer numBases, Integer numBytes, String experiment, String instrument,
+                           String platform, String loadDate, String releaseDate, String assayType, String centerName,
+                           String librarySelection, String librarySource, String datastoreFiletype, SraSampleId sraSample,
+                           String bioSample, String bioProject, String consent, String organism, String sraStudy, String runId,
+                           String libraryLayout, String sampleName, String srcRawMetaData, String comment, Integer partIndex) {
+        this.avgSpotLen = avgSpotLen;
+        this.datastoreProvider = datastoreProvider;
+        this.datastoreRegion = datastoreRegion;
+        this.insertSize = insertSize;
+        this.libraryName = libraryName;
+        this.numBases = numBases;
+        this.numBytes = numBytes;
+        this.experiment = experiment;
+        this.instrument = instrument;
+        this.platform = platform;
+        this.loadDate = loadDate;
+        this.releaseDate = releaseDate;
+        this.assayType = assayType;
+        this.centerName = centerName;
+        this.librarySelection = librarySelection;
+        this.librarySource = librarySource;
+        this.datastoreFiletype = datastoreFiletype;
+        this.sraSample = sraSample;
+        this.bioSample = bioSample;
+        this.bioProject = bioProject;
+        this.consent = consent;
+        this.organism = organism;
+        this.sraStudy = sraStudy;
+        this.runId = runId;
+        this.libraryLayout = libraryLayout;
+        this.sampleName = sampleName;
+        this.srcRawMetaData = srcRawMetaData;
+        this.comment = comment;
+        this.partIndex = partIndex;
     }
 
     public Integer getAvgSpotLen() {
@@ -327,6 +367,23 @@ public class SampleMetaData implements Serializable {
         this.sampleName = sampleName;
     }
 
+    public Integer getPartIndex() {
+        return partIndex;
+    }
+
+    public void setPartIndex(Integer partIndex) {
+        this.partIndex = partIndex;
+    }
+
+    public SampleMetaData cloneWithNewPartIndex(int partIndex) {
+        return new SampleMetaData(this.avgSpotLen, this.datastoreProvider, this.datastoreRegion, this.insertSize,
+                this.libraryName, this.numBases, this.numBytes, this.experiment, this.instrument,
+                this.platform, this.loadDate, this.releaseDate, this.assayType, this.centerName,
+                this.librarySelection, this.librarySource, this.datastoreFiletype, this.sraSample,
+                this.bioSample, this.bioProject, this.consent, this.organism, this.sraStudy, this.runId,
+                this.libraryLayout, this.sampleName, this.srcRawMetaData, this.comment, partIndex);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -359,12 +416,13 @@ public class SampleMetaData implements Serializable {
                 Objects.equals(libraryLayout, that.libraryLayout) &&
                 Objects.equals(sampleName, that.sampleName) &&
                 Objects.equals(srcRawMetaData, that.srcRawMetaData) &&
-                Objects.equals(comment, that.comment);
+                Objects.equals(comment, that.comment) &&
+                Objects.equals(partIndex, that.partIndex);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(avgSpotLen, datastoreProvider, datastoreRegion, insertSize, libraryName, numBases, numBytes, experiment, instrument, platform, loadDate, releaseDate, assayType, centerName, librarySelection, librarySource, datastoreFiletype, sraSample, bioSample, bioProject, consent, organism, sraStudy, runId, libraryLayout, sampleName, srcRawMetaData, comment);
+        return Objects.hash(avgSpotLen, datastoreProvider, datastoreRegion, insertSize, libraryName, numBases, numBytes, experiment, instrument, platform, loadDate, releaseDate, assayType, centerName, librarySelection, librarySource, datastoreFiletype, sraSample, bioSample, bioProject, consent, organism, sraStudy, runId, libraryLayout, sampleName, srcRawMetaData, comment, partIndex);
     }
 
     @Override
@@ -398,6 +456,7 @@ public class SampleMetaData implements Serializable {
                 ", sampleName='" + sampleName + '\'' +
                 ", srcRawMetaData='" + srcRawMetaData + '\'' +
                 ", comment='" + comment + '\'' +
+                ", partIndex=" + partIndex +
                 '}';
     }
 

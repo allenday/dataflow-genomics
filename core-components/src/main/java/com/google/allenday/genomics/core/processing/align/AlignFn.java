@@ -73,10 +73,11 @@ public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSo
                             referencesProvider.getReferenceDbWithDownload(gcsService, referenceDBSource);
                     String alignedSamPath = null;
                     try {
+                        String outPrefix = geneSampleMetaData.getRunId() + "_" + geneSampleMetaData.getPartIndex();
                         alignedSamPath = alignService.alignFastq(
                                 referenceDatabase.getFastaLocalPath(),
                                 srcFilesPaths,
-                                workingDir, geneSampleMetaData.getRunId(),
+                                workingDir, outPrefix,
                                 referenceDatabase.getDbName(),
                                 geneSampleMetaData.getSraSample().getValue(),
                                 geneSampleMetaData.getPlatform());
@@ -94,6 +95,7 @@ public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSo
                         c.output(KV.of(geneSampleMetaData, KV.of(referenceDBSource, FileWrapper.empty())));
                     }
                 }
+                fileUtils.deleteDir(workingDir);
             } catch (Exception e) {
                 LOG.error(e.getMessage());
                 e.printStackTrace();

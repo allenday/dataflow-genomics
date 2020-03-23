@@ -60,6 +60,7 @@ public class GCSService implements Serializable {
     }
 
     public Blob writeToGcs(String bucketName, String blobName, ReadableByteChannel inChannel) throws IOException {
+        LOG.info(String.format("Uploading data to %s", getUriFromBlob(BlobId.of(bucketName, blobName))));
         BlobId blobId = BlobId.of(bucketName, blobName);
         BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
 
@@ -77,6 +78,7 @@ public class GCSService implements Serializable {
             }
         }
         inChannel.close();
+        LOG.info(String.format("Data uploaded to %s", getUriFromBlob(BlobId.of(bucketName, blobName))));
         return getBlob(bucketName, blobName);
     }
 
@@ -105,8 +107,8 @@ public class GCSService implements Serializable {
         }
     }
 
-    public ReadChannel getBlobReaderByGCloudNotificationData(String bucketName, String blobName) throws StorageException {
-        return storage.reader(BlobId.of(bucketName, blobName));
+    public ReadChannel getBlobReader(BlobId blobId) throws StorageException {
+        return storage.reader(blobId);
     }
 
 

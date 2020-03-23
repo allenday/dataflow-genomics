@@ -3,13 +3,11 @@ package com.google.allenday.genomics.core.integration;
 import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
-import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.io.GCSService;
-import com.google.allenday.genomics.core.io.TransformIoHandler;
-import com.google.allenday.genomics.core.io.UriProvider;
+import com.google.allenday.genomics.core.io.*;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
+import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
 import com.google.allenday.genomics.core.processing.align.AddReferenceDataSourceFn;
 import com.google.allenday.genomics.core.processing.align.AlignFn;
 import com.google.allenday.genomics.core.processing.align.AlignService;
@@ -30,6 +28,8 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -43,6 +43,7 @@ import java.util.*;
  * Tests full pipeline lifecycle in DirectRunner mode
  */
 public class EndToEndPipelineIT implements Serializable {
+    private Logger LOG = LoggerFactory.getLogger(EndToEndPipelineIT.class);
 
     private final static String REFERENCE_LOCAL_DIR = "reference/";
 
@@ -61,9 +62,11 @@ public class EndToEndPipelineIT implements Serializable {
     private final static String TEST_REFERENCE_FILE = "PRJNA482748_10.fa";
     private final static String TEMP_DIR = "temp/";
 
-    private final static String TEST_SINGLE_END_INPUT_FILE = "test_read_10000.bfast.fastq";
+    private final static List<List<String>> TEST_INPUT_FILES = Arrays.asList(Collections.singletonList("test_single_end_read_5000.fastq"),
+            Arrays.asList("test_paired_read_5000_1.fastq", "test_paired_read_5000_2.fastq"));
+
     private final static String TEST_CSV_FILE = "source.csv";
-    private final static String EXPECTED_SINGLE_END_RESULT_CONTENT_FILE = "expected_single_end_result.merged.sorted.bam";
+    private final static String EXPECTED_SINGLE_END_RESULT_CONTENT_FILE = "expected_result_5k.merged.sorted.bam";
 
     @Rule
     public final transient TestPipeline testPipeline = TestPipeline.create();
@@ -87,12 +90,13 @@ public class EndToEndPipelineIT implements Serializable {
         String jobTime = simpleDateFormat.format(new Date());
 
         FileUtils fileUtils = new FileUtils();
+        FastqReader fastqReader = new FastqReader();
         String testBucket = Optional
                 .ofNullable(System.getenv("TEST_BUCKET"))
                 .orElse("cannabis-3k-results");
 
         GCSService gcsService = GCSService.initialize(fileUtils);
-        Pair<String, UriProvider> inputCsvUriAndProvider = prepareInputData(gcsService, fileUtils, testBucket, TEST_SINGLE_END_INPUT_FILE, TEST_CSV_FILE);
+        Pair<String, UriProvider> inputCsvUriAndProvider = prepareInputData(gcsService, fileUtils, testBucket, TEST_INPUT_FILES, TEST_CSV_FILE);
         String allReferencesDirGcsUri = prepareReference(gcsService, fileUtils, testBucket);
 
         CmdExecutor cmdExecutor = new CmdExecutor();
@@ -111,6 +115,9 @@ public class EndToEndPipelineIT implements Serializable {
         TransformIoHandler mergeTransformIoHandler = new TransformIoHandler(testBucket, mergeResultGcsPath, 0, fileUtils);
         TransformIoHandler indexTransformIoHandler = new TransformIoHandler(testBucket, indexResultGcsPath, 0, fileUtils);
 
+        SplitFastqIntoBatches.ReadFastqPartFn readFastqPartFn =
+                SplitFastqIntoBatches.ReadFastqPartFn.withCountLimit(fileUtils, fastqReader, 500000);
+
         AlignFn alignFn = new AlignFn(new AlignService(new WorkerSetupService(cmdExecutor), cmdExecutor, fileUtils),
                 referencesProvider,
                 alignTransformIoHandler, fileUtils);
@@ -127,6 +134,7 @@ public class EndToEndPipelineIT implements Serializable {
                 .apply(new ParseSourceCsvTransform(inputCsvUriAndProvider.getValue0(),
                         new TestSraParser(SampleMetaData.Parser.Separation.COMMA),
                         inputCsvUriAndProvider.getValue1(), fileUtils))
+                .apply(new SplitFastqIntoBatches(readFastqPartFn))
                 .apply(new AlignAndPostProcessTransform("AlignAndPostProcessTransform", alignTransform, sortFn, mergeFn, createBamIndexFn))
 
 //        TODO DeepVeariant temporary excluded from end-to-end tests
@@ -142,18 +150,47 @@ public class EndToEndPipelineIT implements Serializable {
         checkResultContent(gcsService, fileUtils, expectedResultMergeBlob);
     }
 
-    private Pair<String, UriProvider> prepareInputData(GCSService gcsService, FileUtils fileUtils, String bucketName, String testInputDataFile, String testInputCsvFileName) throws IOException {
-        gcsService.writeToGcs(bucketName, TEST_GCS_INPUT_DATA_DIR + testInputDataFile,
-                Channels.newChannel(getClass().getClassLoader().getResourceAsStream(testInputDataFile)));
-        String csvLine = String.join(",", new String[]{
-                TEST_EXAMPLE_SRA, "test_read_10000", "SINGLE", AlignService.Instrument.ILLUMINA.name()});
+    private Pair<String, UriProvider> prepareInputData(GCSService gcsService, FileUtils fileUtils, String bucketName,
+                                                       List<List<String>> testInputDataFiles, String testInputCsvFileName) throws IOException {
+
+        StringBuilder csvLines = new StringBuilder();
+        testInputDataFiles.forEach(list -> {
+            list.forEach(filename -> {
+                try {
+                    gcsService.writeToGcs(bucketName, TEST_GCS_INPUT_DATA_DIR + filename,
+                            Channels.newChannel(getClass().getClassLoader().getResourceAsStream(filename)));
+                } catch (IOException e) {
+                    LOG.error(e.getMessage());
+                }
+            });
+            String fileName = list.get(0);
+            Pair<String, String> filenameAndExtension = fileUtils.splitFilenameAndExtension(fileName);
+            String fileNameBase = filenameAndExtension.getValue0();
+            if (fileNameBase.endsWith("_1")) {
+                fileNameBase = fileNameBase.substring(0, fileNameBase.length() - 2);
+            }
+            String libraryLayout = list.size() == 2 ? "PAIRED" : "SINGLE";
+
+            String csvLine = String.join(",", new String[]{
+                    TEST_EXAMPLE_SRA, fileNameBase, libraryLayout, AlignService.Instrument.ILLUMINA.name()});
+            csvLines.append(csvLine).append("\n");
+
+        });
         Blob blob = gcsService.writeToGcs(bucketName, TEST_GCS_INPUT_DATA_DIR + testInputCsvFileName,
-                Channels.newChannel(new ByteArrayInputStream(csvLine.getBytes())));
+                Channels.newChannel(new ByteArrayInputStream(csvLines.toString().getBytes())));
         UriProvider uriProvider = new UriProvider(bucketName, new UriProvider.ProviderRule() {
             @Override
             public List<String> provideAccordinglyRule(SampleMetaData geneSampleMetaData, String srcBucket) {
-                return Collections.singletonList(String.format("gs://%s/%s", srcBucket,
-                        TEST_GCS_INPUT_DATA_DIR + geneSampleMetaData.getRunId() + ".bfast.fastq"));
+                if (geneSampleMetaData.isPaired()) {
+                    String uri1 = String.format("gs://%s/%s", srcBucket,
+                            TEST_GCS_INPUT_DATA_DIR + geneSampleMetaData.getRunId() + "_1" + ".fastq");
+                    String uri2 = String.format("gs://%s/%s", srcBucket,
+                            TEST_GCS_INPUT_DATA_DIR + geneSampleMetaData.getRunId() + "_2" + ".fastq");
+                    return Arrays.asList(uri1, uri2);
+                } else {
+                    return Collections.singletonList(String.format("gs://%s/%s", srcBucket,
+                            TEST_GCS_INPUT_DATA_DIR + geneSampleMetaData.getRunId() + ".fastq"));
+                }
             }
         });
         return Pair.with(gcsService.getUriFromBlob(blob.getBlobId()), uriProvider);
@@ -195,10 +232,8 @@ public class EndToEndPipelineIT implements Serializable {
     @After
     public void finalizeTests() {
         FileUtils fileUtils = new FileUtils();
-
         fileUtils.deleteDir(AlignService.MINIMAP_NAME);
         fileUtils.deleteDir(TEMP_DIR);
         fileUtils.deleteDir(REFERENCE_LOCAL_DIR);
     }
-
 }

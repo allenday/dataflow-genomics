@@ -81,15 +81,16 @@ public class AlignAndSortFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDat
                     String alignedSamPath = null;
                     String alignedSortedBamPath = null;
                     try {
+                        String outPrefix = geneSampleMetaData.getRunId() + "_" + geneSampleMetaData.getPartIndex();
                         alignedSamPath = alignService.alignFastq(
                                 referenceDatabase.getFastaLocalPath(),
                                 srcFilesPaths,
-                                workingDir, geneSampleMetaData.getRunId(),
+                                workingDir, outPrefix,
                                 referenceDatabase.getDbName(),
                                 geneSampleMetaData.getSraSample().getValue(),
                                 geneSampleMetaData.getPlatform());
                         alignedSortedBamPath = samBamManipulationService.sortSam(
-                                alignedSamPath, workingDir, geneSampleMetaData.getRunId(), referenceDBSource.getName());
+                                alignedSamPath, workingDir, outPrefix, referenceDBSource.getName());
                         alignTransformIoHandler.handleFileOutput(gcsService, alignedSamPath);
                         FileWrapper sortFileWrapper = sortTransformIoHandler.handleFileOutput(gcsService, alignedSortedBamPath);
                         fileUtils.deleteFile(alignedSamPath);

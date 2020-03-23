@@ -3,6 +3,7 @@ package com.google.allenday.genomics.core.batch;
 import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
+import com.google.allenday.genomics.core.io.FastqReader;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.io.UriProvider;
@@ -10,6 +11,7 @@ import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraParser;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
+import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
 import com.google.allenday.genomics.core.processing.align.*;
 import com.google.allenday.genomics.core.processing.dv.DeepVariantFn;
 import com.google.allenday.genomics.core.processing.dv.DeepVariantService;
@@ -35,9 +37,13 @@ public abstract class BatchProcessingModule extends AbstractModule {
     protected String project;
     protected String region;
     protected GenomicsOptions genomicsOptions;
+    protected Integer fastqBatchSizeMB;
+    protected Integer fastqBatchSizeReadCount;
 
     public BatchProcessingModule(String srcBucket, String inputCsvUri, List<String> sraSamplesToFilter,
-                                 List<String> sraSamplesToSkip, String project, String region, GenomicsOptions genomicsOptions) {
+                                 List<String> sraSamplesToSkip, String project, String region,
+                                 GenomicsOptions genomicsOptions, Integer fastqBatchSizeMB,
+                                 Integer fastqBatchSizeReadCount) {
         this.srcBucket = srcBucket;
         this.inputCsvUri = inputCsvUri;
         this.sraSamplesToFilter = sraSamplesToFilter;
@@ -45,6 +51,8 @@ public abstract class BatchProcessingModule extends AbstractModule {
         this.project = project;
         this.region = region;
         this.genomicsOptions = genomicsOptions;
+        this.fastqBatchSizeMB = fastqBatchSizeMB;
+        this.fastqBatchSizeReadCount = fastqBatchSizeReadCount;
     }
 
     @Provides
@@ -247,5 +255,23 @@ public abstract class BatchProcessingModule extends AbstractModule {
     public VcfToBqFn provideVcfToBqFn(VcfToBqService vcfToBqService, FileUtils fileUtils) {
 
         return new VcfToBqFn(vcfToBqService, fileUtils);
+    }
+
+    @Provides
+    @Singleton
+    public SplitFastqIntoBatches provideSplitFastqIntoBatches(SplitFastqIntoBatches.ReadFastqPartFn readFastqPartFn) {
+
+        return new SplitFastqIntoBatches(readFastqPartFn);
+    }
+
+
+    @Provides
+    @Singleton
+    public SplitFastqIntoBatches.ReadFastqPartFn provideSplitFastqIntoBatches(FileUtils fileUtils, FastqReader fastqReader) {
+        if (fastqBatchSizeReadCount > 0) {
+            return SplitFastqIntoBatches.ReadFastqPartFn.withCountLimit(fileUtils, fastqReader, fastqBatchSizeReadCount);
+        } else {
+            return SplitFastqIntoBatches.ReadFastqPartFn.withSizeLimit(fileUtils, fastqReader, fastqBatchSizeMB);
+        }
     }
 }

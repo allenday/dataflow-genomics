@@ -28,5 +28,17 @@ public interface BatchProcessingPipelineOptions extends GenomicsPipelineOptions 
     Boolean getWithVariantCalling();
 
     void setWithVariantCalling(Boolean value);
+
+    @Description("Size of batch (MB) in which will be splited large FASTQ")
+    @Default.Integer(0)
+    Integer getFastqBatchSizeMB();
+
+    void setFastqBatchSizeMB(Integer value);
+
+    @Description("Size of batch (read count) in which will be splited large FASTQ")
+    @Default.Integer(1000000)
+    Integer getFastqBatchSizeReadCount();
+
+    void setFastqBatchSizeReadCount(Integer value);
 }
 

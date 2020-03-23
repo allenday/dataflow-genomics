@@ -89,6 +89,15 @@ public class FileUtils implements Serializable {
         }
     }
 
+    public Pair<String, String> splitFilenameToBaseAndExtension(String fileName) {
+        if (fileName.contains(".")) {
+            int firstDot = fileName.indexOf("\\.");
+            return Pair.with(fileName.substring(0, firstDot), fileName.substring(firstDot));
+        } else {
+            return Pair.with(fileName, "");
+        }
+    }
+
     public Pair<String, String> splitFilenameAndExtension(String filenameWithExtension) {
         if (filenameWithExtension.contains(".")) {
             String name = filenameWithExtension.split("\\.")[0];

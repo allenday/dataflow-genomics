@@ -3,6 +3,7 @@ package com.google.allenday.genomics.core.processing.align;
 import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.io.FileUtils;
+import com.google.allenday.genomics.core.model.Instrument;
 import org.javatuples.Triplet;
 
 import java.io.Serializable;
@@ -82,19 +83,6 @@ public class AlignService implements Serializable {
 
         public AlignException(String command, int code) {
             super(String.format("Align command %s failed with code %d", command, code));
-        }
-    }
-
-    public static enum Instrument {
-        OXFORD_NANOPORE("map-ont"),
-        ILLUMINA("sr"),
-        PACBIO_SMRT("map-pb"),
-        LS454("sr");
-
-        public final String flag;
-
-        Instrument(String flag) {
-            this.flag = flag;
         }
     }
 }

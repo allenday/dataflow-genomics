@@ -6,8 +6,10 @@ import com.google.cloud.storage.BlobId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.channels.Channels;
 
 
 public class TransformIoHandler implements Serializable {
@@ -16,14 +18,33 @@ public class TransformIoHandler implements Serializable {
 
     private String resultsBucket;
     private String destGcsPrefix;
-    private long memoryOutputLimitMb;
+    private long memoryOutputLimitMb = 0;
     private FileUtils fileUtils;
 
-    public TransformIoHandler(String resultsBucket, String destGcsPrefix, long memoryOutputLimitMb, FileUtils fileUtils) {
+    public TransformIoHandler(String resultsBucket, String destGcsPrefix, FileUtils fileUtils) {
         this.resultsBucket = resultsBucket;
         this.destGcsPrefix = destGcsPrefix;
-        this.memoryOutputLimitMb = memoryOutputLimitMb;
         this.fileUtils = fileUtils;
+    }
+
+    public FileWrapper handleContentOutput(GCSService gcsService, byte[] content, String filename) throws IOException {
+        FileWrapper fileWrapper;
+        if (content.length > fileUtils.mbToBytes(memoryOutputLimitMb)) {
+            fileWrapper = saveContentToGcsOutput(gcsService, content, filename);
+        } else {
+            LOG.info(String.format("Pass %s file as CONTENT data", filename));
+            fileWrapper = FileWrapper.fromByteArrayContent(content, filename);
+        }
+        return fileWrapper;
+    }
+
+    public FileWrapper saveContentToGcsOutput(GCSService gcsService, byte[] content, String filename) throws IOException {
+        String gcsFilePath = destGcsPrefix + filename;
+
+        LOG.info(String.format("Export %s content to GCS %s", filename, gcsFilePath));
+
+        Blob blob = gcsService.writeToGcs(resultsBucket, gcsFilePath, Channels.newChannel(new ByteArrayInputStream(content)));
+        return FileWrapper.fromBlobUri(gcsService.getUriFromBlob(blob.getBlobId()), filename);
     }
 
     public FileWrapper handleFileOutput(GCSService gcsService, String filepath) throws IOException {
@@ -67,6 +88,21 @@ public class TransformIoHandler implements Serializable {
         return destFilepath;
     }
 
+    public byte[] handleInputAsContent(GCSService gcsService, FileWrapper fileWrapper, IoUtils ioUtils) {
+        if (fileWrapper.getDataType() == FileWrapper.DataType.CONTENT) {
+            return fileWrapper.getContent();
+        } else if (fileWrapper.getDataType() == FileWrapper.DataType.BLOB_URI) {
+            BlobId blobId = gcsService.getBlobIdFromUri(fileWrapper.getBlobUri());
+            try {
+                return gcsService.readBlob(blobId, ioUtils).getBytes();
+            } catch (IOException e) {
+                LOG.error(e.getMessage());
+                return new byte[0];
+            }
+        }
+        return new byte[0];
+    }
+
     public FileWrapper handleInputAndCopyToGcs(FileWrapper fileWrapper, GCSService gcsService, String newFileName, String workDir) throws RuntimeException {
         String gcsFilePath = destGcsPrefix + newFileName;
         Blob resultBlob;
@@ -103,5 +139,9 @@ public class TransformIoHandler implements Serializable {
         } else {
             return false;
         }
+    }
+
+    public void setMemoryOutputLimitMb(long memoryOutputLimitMb) {
+        this.memoryOutputLimitMb = memoryOutputLimitMb;
     }
 }

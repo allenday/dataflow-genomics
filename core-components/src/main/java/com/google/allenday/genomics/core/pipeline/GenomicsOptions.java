@@ -7,6 +7,8 @@ import java.util.List;
 
 public class GenomicsOptions {
 
+    public final static String CHUNKS_BY_COUNT_OUTPUT_PATH_PATTERN = "%s/result_chunked_fastq_by_count/";
+    public final static String CHUNKS_BY_SIZE_OUTPUT_PATH_PATTERN = "%s/result_chunked_fastq_by_size/";
     public final static String ALIGNED_OUTPUT_PATH_PATTERN = "%s/result_aligned_bam/";
     public final static String SORTED_OUTPUT_PATH_PATTERN = "%s/result_sorted_bam/";
     public final static String MERGED_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
@@ -103,6 +105,13 @@ public class GenomicsOptions {
         return memoryOutputLimit;
     }
 
+    public String getChuncksByCountOutputDirPattern() {
+        return outputDir + CHUNKS_BY_COUNT_OUTPUT_PATH_PATTERN;
+    }
+
+    public String getChuncksBySizeOutputDirPattern() {
+        return outputDir + CHUNKS_BY_SIZE_OUTPUT_PATH_PATTERN;
+    }
 
     public String getAlignedOutputDirPattern() {
         return outputDir + ALIGNED_OUTPUT_PATH_PATTERN;

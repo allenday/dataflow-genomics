@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,15 +22,19 @@ public class FastqReader implements Serializable {
     private final static String NEW_LINE_INDICATION = "\n";
     private final static int FASTQ_READ_LINE_COUNT = 4;
 
-    private String removeEmptyLines(String src) {
-        String withoutEmptyLines = String.join(NEW_LINE_INDICATION, Stream.of(src.trim().split(NEW_LINE_INDICATION))
+    private StringBuilder removeEmptyLines(String src) {
+        List<String> fileteredList = Stream.of(src.trim().split(NEW_LINE_INDICATION))
                 .map(String::trim).filter(str -> !str.isEmpty())
-                .toArray(String[]::new));
+                .collect(Collectors.toList());
+
+        StringBuilder withoutEmptyLines = new StringBuilder().append(String.join(NEW_LINE_INDICATION, fileteredList));
+        fileteredList.clear();
+
         if (src.startsWith("\n")) {
-            withoutEmptyLines = NEW_LINE_INDICATION + withoutEmptyLines;
+            withoutEmptyLines.insert(0, NEW_LINE_INDICATION);
         }
         if (src.endsWith("\n")) {
-            withoutEmptyLines = withoutEmptyLines + NEW_LINE_INDICATION;
+            withoutEmptyLines.append(NEW_LINE_INDICATION);
         }
         return withoutEmptyLines;
     }
@@ -41,6 +46,7 @@ public class FastqReader implements Serializable {
     /**
      * Reads FastQ data line by line from GCS. Helps to eliminate Out Of Memory problems with large FastQ files
      */
+
     public void readFastqBlobWithSizeLimit(ReadChannel readChannel, long batchSize, Callback callback) throws IOException {
         if (batchSize < BUFFER_SIZE) {
             batchSize = BUFFER_SIZE;
@@ -55,13 +61,13 @@ public class FastqReader implements Serializable {
         long timeCount = 0;
         while (readChannel.read(bytes) > 0) {
             bytes.flip();
-            String newLines = removeEmptyLines(StandardCharsets.UTF_8.decode(bytes).toString());
-            currentReadSize += newLines.getBytes().length;
-            String readString = fastqTail + newLines;
+            StringBuilder newLines = removeEmptyLines(StandardCharsets.UTF_8.decode(bytes).toString());
+            currentReadSize += newLines.toString().getBytes().length;
+            StringBuilder readString = newLines.insert(0, fastqTail);
             bytes.clear();
 
             long start = System.currentTimeMillis();
-            List<String> lines = Arrays.asList(readString.split(NEW_LINE_INDICATION));
+            List<String> lines = Arrays.asList(readString.toString().split(NEW_LINE_INDICATION));
 
             int startOfLastFastq = ((lines.size() - 1) / FASTQ_READ_LINE_COUNT) * FASTQ_READ_LINE_COUNT;
 
@@ -69,9 +75,10 @@ public class FastqReader implements Serializable {
             List<String> tailLines = new ArrayList<>(lines.subList(startOfLastFastq, lines.size()));
 
             fastqTail = String.join(NEW_LINE_INDICATION, tailLines);
-            if (readString.endsWith(NEW_LINE_INDICATION)) {
+            if (readString.toString().endsWith(NEW_LINE_INDICATION)) {
                 fastqTail += NEW_LINE_INDICATION;
             }
+            readString.setLength(0);
 
             currentLines = currentLines.stream()
                     .filter(line -> !line.isEmpty())
@@ -95,57 +102,71 @@ public class FastqReader implements Serializable {
         LOG.info(String.format("Spent time ms: %d", timeCount));
     }
 
-    /**
-     * Reads FastQ data line by line from GCS. Helps to eliminate Out Of Memory problems with large FastQ files
-     */
-    public void readFastqBlobWithReadCountLimit(ReadChannel readChannel, int batchSize, Callback callback) throws IOException {
+
+    public void readFastqBlobWithReadCountLimit(ReadableByteChannel readChannel, int batchSize, Callback callback) throws IOException {
         ByteBuffer bytes = ByteBuffer.allocate(BUFFER_SIZE);
-        String fastqTail = "";
-        List<String> linesCollector = new ArrayList<>();
+        StringBuilder fastqDataToProcess = new StringBuilder();
+        StringBuilder linesBuilder = new StringBuilder();
+        int linesBuilderLineConter = 0;
 
         int indexCounter = 0;
         long timeCount = 0;
 
         while (readChannel.read(bytes) > 0) {
             bytes.flip();
-            String newLines = removeEmptyLines(StandardCharsets.UTF_8.decode(bytes).toString());
-            String readString = fastqTail + newLines;
+            fastqDataToProcess.append(removeEmptyLines(StandardCharsets.UTF_8.decode(bytes).toString()));
             bytes.clear();
 
             long start = System.currentTimeMillis();
-            List<String> lines = Arrays.asList(readString.split(NEW_LINE_INDICATION));
+            boolean endsWithNewLine = fastqDataToProcess.charAt(fastqDataToProcess.length() - 1) == '\n';
+            List<String> lines = Stream.of(fastqDataToProcess.toString().split(NEW_LINE_INDICATION)).collect(Collectors.toList());
+            fastqDataToProcess.setLength(0);
 
             int startOfLastFastq = ((lines.size() - 1) / FASTQ_READ_LINE_COUNT) * FASTQ_READ_LINE_COUNT;
 
             List<String> currentLines = new ArrayList<>(lines.subList(0, startOfLastFastq));
             List<String> tailLines = new ArrayList<>(lines.subList(startOfLastFastq, lines.size()));
+            lines.clear();
 
-            fastqTail = String.join(NEW_LINE_INDICATION, tailLines);
-            if (readString.endsWith(NEW_LINE_INDICATION)) {
-                fastqTail += NEW_LINE_INDICATION;
+            fastqDataToProcess.append(String.join(NEW_LINE_INDICATION, tailLines));
+            tailLines.clear();
+            if (endsWithNewLine) {
+                fastqDataToProcess.append(NEW_LINE_INDICATION);
             }
 
-            currentLines = currentLines.stream()
-                    .filter(line -> !line.isEmpty())
-                    .map(line -> line + NEW_LINE_INDICATION)
-                    .collect(Collectors.toList());
-            linesCollector.addAll(currentLines);
+            currentLines.removeAll(Arrays.asList("", null));
 
-            while (linesCollector.size() > batchSize * FASTQ_READ_LINE_COUNT) {
-                List<String> outputList = new ArrayList<>(linesCollector.subList(0, batchSize * FASTQ_READ_LINE_COUNT));
-                String output = String.join("", outputList);
-                callback.onFindFastqPart(output, indexCounter);
-                indexCounter++;
+            for (int i = 0; i < currentLines.size(); i++) {
+                currentLines.set(i, currentLines.get(i) + NEW_LINE_INDICATION);
+            }
 
-                linesCollector.subList(0, batchSize * FASTQ_READ_LINE_COUNT).clear();
+            for (int lineIndex = 0; lineIndex < currentLines.size() / FASTQ_READ_LINE_COUNT; lineIndex++) {
+                for (int i = 0; i < FASTQ_READ_LINE_COUNT; i++) {
+                    linesBuilder.append(currentLines.get((lineIndex * FASTQ_READ_LINE_COUNT) + i));
+                }
+                linesBuilderLineConter++;
+                if (linesBuilderLineConter == batchSize) {
+                    callback.onFindFastqPart(linesBuilder.toString(), indexCounter);
+                    indexCounter++;
+
+                    linesBuilder.setLength(0);
+                    linesBuilderLineConter = 0;
+                }
+            }
+            currentLines.clear();
+
+            if (linesBuilderLineConter % 1000 == 0) {
+                LOG.info(String.format("%d Total: %d, Free: %d, Diff: %d", linesBuilderLineConter, Runtime.getRuntime().totalMemory() / (1024 * 1024),
+                        Runtime.getRuntime().freeMemory() / (1024 * 1024), (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024)));
             }
             timeCount += System.currentTimeMillis() - start;
         }
-        if (linesCollector.size() > 0) {
-            callback.onFindFastqPart(String.join("", linesCollector) + fastqTail, indexCounter);
+        if (linesBuilderLineConter > 0) {
+            callback.onFindFastqPart(linesBuilder.append(fastqDataToProcess).toString(), indexCounter);
         }
         LOG.info(String.format("Spent time ms: %d", timeCount));
     }
+
 
     public static interface Callback {
 

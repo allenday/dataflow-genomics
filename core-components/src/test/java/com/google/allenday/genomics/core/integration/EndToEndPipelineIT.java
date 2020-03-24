@@ -4,6 +4,8 @@ import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
 import com.google.allenday.genomics.core.io.*;
+import com.google.allenday.genomics.core.model.Instrument;
+import com.google.allenday.genomics.core.model.Instrument;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
@@ -50,6 +52,8 @@ public class EndToEndPipelineIT implements Serializable {
 
     private final static String TEST_EXAMPLE_SRA = "SRS0000001";
 
+    private final static String FASTQ_SIZE_CHUNK_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_fastq_size_chunk/";
+    private final static String FASTQ_COUNT_CHUNK_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_fastq_count_chunk/";
     private final static String ALIGN_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_aligned_bam/";
     private final static String SORT_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_sorted_bam/";
     private final static String MERGE_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_merged_bam/";
@@ -59,9 +63,8 @@ public class EndToEndPipelineIT implements Serializable {
     private final static String TEST_GCS_INPUT_DATA_DIR = "testing/input/";
     private final static String TEST_GCS_REFERENCE_DIR = "testing/reference/";
 
-    private final static int MEMORY_OUTPUT_LIMIT_MB = 0;
     private final static int TEST_MAX_FASTQ_CHUNK_SIZE = 1000;
-    private final static int TEST_MAX_FASTQ_CONTENT_SIZE_MB = 1000;
+    private final static int TEST_MAX_FASTQ_CONTENT_SIZE_MB = 50;
 
     private final static String TEST_REFERENCE_NAME = "PRJNA482748_10";
     private final static String TEST_REFERENCE_FILE = "PRJNA482748_10.fa";
@@ -97,6 +100,7 @@ public class EndToEndPipelineIT implements Serializable {
         String jobTime = simpleDateFormat.format(new Date());
 
         FileUtils fileUtils = new FileUtils();
+        IoUtils ioUtils = new IoUtils();
         FastqReader fastqReader = new FastqReader();
         String testBucket = Optional
                 .ofNullable(System.getenv("TEST_BUCKET"))
@@ -117,19 +121,24 @@ public class EndToEndPipelineIT implements Serializable {
         ReferenceProvider referencesProvider = new ReferenceProvider(fileUtils);
         DeepVariantService deepVariantService = new DeepVariantService(new LifeSciencesService(), new DeepVariantOptions());
 
+        TransformIoHandler splitFastqIntoBatchesIoHandler = new TransformIoHandler(
+                testBucket, String.format(FASTQ_COUNT_CHUNK_RESULT_GCS_DIR_PATH_PATTERN, jobTime), fileUtils);
+        TransformIoHandler buildFastqContentIoHandler = new TransformIoHandler(
+                testBucket, String.format(FASTQ_SIZE_CHUNK_RESULT_GCS_DIR_PATH_PATTERN, jobTime), fileUtils);
         TransformIoHandler alignTransformIoHandler =
-                new TransformIoHandler(testBucket, String.format(ALIGN_RESULT_GCS_DIR_PATH_PATTERN, jobTime), MEMORY_OUTPUT_LIMIT_MB, fileUtils);
+                new TransformIoHandler(testBucket, String.format(ALIGN_RESULT_GCS_DIR_PATH_PATTERN, jobTime), fileUtils);
         TransformIoHandler sortTransformIoHandler =
-                new TransformIoHandler(testBucket, String.format(SORT_RESULT_GCS_DIR_PATH_PATTERN, jobTime), MEMORY_OUTPUT_LIMIT_MB, fileUtils);
+                new TransformIoHandler(testBucket, String.format(SORT_RESULT_GCS_DIR_PATH_PATTERN, jobTime), fileUtils);
         TransformIoHandler mergeTransformIoHandler =
-                new TransformIoHandler(testBucket, mergeResultGcsPath, MEMORY_OUTPUT_LIMIT_MB, fileUtils);
+                new TransformIoHandler(testBucket, mergeResultGcsPath, fileUtils);
         TransformIoHandler indexTransformIoHandler =
-                new TransformIoHandler(testBucket, indexResultGcsPath, MEMORY_OUTPUT_LIMIT_MB, fileUtils);
+                new TransformIoHandler(testBucket, indexResultGcsPath, fileUtils);
 
         SplitFastqIntoBatches.ReadFastqPartFn readFastqPartFn =
-                new SplitFastqIntoBatches.ReadFastqPartFn(fileUtils, fastqReader, TEST_MAX_FASTQ_CHUNK_SIZE);
+                new SplitFastqIntoBatches.ReadFastqPartFn(fileUtils, fastqReader, splitFastqIntoBatchesIoHandler,
+                        TEST_MAX_FASTQ_CHUNK_SIZE, TEST_MAX_FASTQ_CONTENT_SIZE_MB);
         SplitFastqIntoBatches.BuildFastqContentFn buildFastqContentFn =
-                new SplitFastqIntoBatches.BuildFastqContentFn(TEST_MAX_FASTQ_CONTENT_SIZE_MB);
+                new SplitFastqIntoBatches.BuildFastqContentFn(buildFastqContentIoHandler, fileUtils, ioUtils, TEST_MAX_FASTQ_CONTENT_SIZE_MB);
 
         AlignFn alignFn = new AlignFn(new AlignService(new WorkerSetupService(cmdExecutor), cmdExecutor, fileUtils),
                 referencesProvider,
@@ -147,7 +156,7 @@ public class EndToEndPipelineIT implements Serializable {
                 .apply(new ParseSourceCsvTransform(inputCsvUriAndProvider.getValue0(),
                         new TestSraParser(SampleMetaData.Parser.Separation.COMMA),
                         inputCsvUriAndProvider.getValue1(), fileUtils))
-                .apply(new SplitFastqIntoBatches(readFastqPartFn, buildFastqContentFn))
+                .apply(new SplitFastqIntoBatches(readFastqPartFn, buildFastqContentFn, TEST_MAX_FASTQ_CONTENT_SIZE_MB))
                 .apply(new AlignAndPostProcessTransform("AlignAndPostProcessTransform", alignTransform, sortFn, mergeFn, createBamIndexFn))
 
 //        TODO DeepVeariant temporary excluded from end-to-end tests
@@ -185,7 +194,7 @@ public class EndToEndPipelineIT implements Serializable {
             String libraryLayout = list.size() == 2 ? "PAIRED" : "SINGLE";
 
             String csvLine = String.join(",", new String[]{
-                    TEST_EXAMPLE_SRA, fileNameBase, libraryLayout, AlignService.Instrument.ILLUMINA.name()});
+                    TEST_EXAMPLE_SRA, fileNameBase, libraryLayout, Instrument.ILLUMINA.name()});
             csvLines.append(csvLine).append("\n");
 
         });

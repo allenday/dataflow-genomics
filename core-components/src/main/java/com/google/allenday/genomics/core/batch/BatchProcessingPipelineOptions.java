@@ -30,7 +30,7 @@ public interface BatchProcessingPipelineOptions extends GenomicsPipelineOptions 
     void setWithVariantCalling(Boolean value);
 
     @Description("Max size of fastq file (MB) that will be formed before Align step")
-    @Default.Integer(1000)
+    @Default.Integer(-1)
     Integer getMaxFastqSizeMB();
 
     void setMaxFastqSizeMB(Integer value);

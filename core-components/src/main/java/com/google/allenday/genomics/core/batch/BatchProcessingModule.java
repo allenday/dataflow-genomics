@@ -3,10 +3,7 @@ package com.google.allenday.genomics.core.batch;
 import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
-import com.google.allenday.genomics.core.io.FastqReader;
-import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.io.TransformIoHandler;
-import com.google.allenday.genomics.core.io.UriProvider;
+import com.google.allenday.genomics.core.io.*;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraParser;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
@@ -102,9 +99,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Singleton
     public MergeFn provideMergeFn(SamBamManipulationService samBamManipulationService, FileUtils fileUtils, NameProvider nameProvider) {
         TransformIoHandler mergeIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
-                String.format(genomicsOptions.getMergedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
-                genomicsOptions.getMemoryOutputLimit(), fileUtils);
-
+                String.format(genomicsOptions.getMergedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()), fileUtils);
         return new MergeFn(mergeIoHandler, samBamManipulationService, fileUtils);
     }
 
@@ -116,10 +111,10 @@ public abstract class BatchProcessingModule extends AbstractModule {
                                                   NameProvider nameProvider) {
         TransformIoHandler mergeIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
                 String.format(genomicsOptions.getMergedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
-                genomicsOptions.getMemoryOutputLimit(), fileUtils);
+                fileUtils);
         TransformIoHandler indexIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
                 String.format(genomicsOptions.getBamIndexOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
-                genomicsOptions.getMemoryOutputLimit(), fileUtils);
+                fileUtils);
 
         return new MergeAndIndexFn(mergeIoHandler, indexIoHandler, samBamManipulationService, fileUtils);
     }
@@ -130,7 +125,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
     public SortFn provideSortFn(SamBamManipulationService samBamManipulationService, FileUtils fileUtils, NameProvider nameProvider) {
         TransformIoHandler sortIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
                 String.format(genomicsOptions.getSortedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
-                genomicsOptions.getMemoryOutputLimit(), fileUtils);
+                fileUtils);
 
         return new SortFn(sortIoHandler, samBamManipulationService, fileUtils);
     }
@@ -140,7 +135,8 @@ public abstract class BatchProcessingModule extends AbstractModule {
     public AlignFn provideAlignFn(AlignService alignService, ReferenceProvider referencesProvider, FileUtils fileUtils, NameProvider nameProvider) {
         TransformIoHandler alignIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
                 String.format(genomicsOptions.getAlignedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
-                genomicsOptions.getMemoryOutputLimit(), fileUtils);
+                fileUtils);
+        alignIoHandler.setMemoryOutputLimitMb(genomicsOptions.getMemoryOutputLimit());
 
         return new AlignFn(alignService, referencesProvider, alignIoHandler, fileUtils);
     }
@@ -151,10 +147,10 @@ public abstract class BatchProcessingModule extends AbstractModule {
                                                 FileUtils fileUtils, NameProvider nameProvider) {
         TransformIoHandler alignIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
                 String.format(genomicsOptions.getAlignedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
-                genomicsOptions.getMemoryOutputLimit(), fileUtils);
+                fileUtils);
         TransformIoHandler sortIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
                 String.format(genomicsOptions.getSortedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
-                genomicsOptions.getMemoryOutputLimit(), fileUtils);
+                fileUtils);
         return new AlignAndSortFn(alignService, samBamManipulationService, referencesProvider, alignIoHandler, sortIoHandler, fileUtils);
     }
 
@@ -181,7 +177,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
     public CreateBamIndexFn provideCreateBamIndexFn(SamBamManipulationService samBamManipulationService, FileUtils fileUtils, NameProvider nameProvider) {
         TransformIoHandler indexIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
                 String.format(genomicsOptions.getBamIndexOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
-                genomicsOptions.getMemoryOutputLimit(), fileUtils);
+                fileUtils);
 
         return new CreateBamIndexFn(indexIoHandler, samBamManipulationService, fileUtils);
     }
@@ -261,19 +257,35 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Singleton
     public SplitFastqIntoBatches provideSplitFastqIntoBatches(SplitFastqIntoBatches.ReadFastqPartFn readFastqPartFn,
                                                               SplitFastqIntoBatches.BuildFastqContentFn buildFastqContentFn) {
-        return new SplitFastqIntoBatches(readFastqPartFn, buildFastqContentFn);
+        return new SplitFastqIntoBatches(readFastqPartFn, buildFastqContentFn, maxFastqSizeMB);
     }
 
 
     @Provides
     @Singleton
-    public SplitFastqIntoBatches.ReadFastqPartFn provideSplitFastqIntoBatches(FileUtils fileUtils, FastqReader fastqReader) {
-        return new SplitFastqIntoBatches.ReadFastqPartFn(fileUtils, fastqReader, maxFastqChunkSize);
+    public SplitFastqIntoBatches.ReadFastqPartFn provideSplitFastqIntoBatches(FileUtils fileUtils,
+                                                                              FastqReader fastqReader,
+                                                                              NameProvider nameProvider) {
+        TransformIoHandler splitFastqIntoBatchesIoHandler = new TransformIoHandler(
+                genomicsOptions.getResultBucket(),
+                String.format(genomicsOptions.getChuncksByCountOutputDirPattern(),
+                        nameProvider.getCurrentTimeInDefaultFormat()),
+                fileUtils);
+        splitFastqIntoBatchesIoHandler.setMemoryOutputLimitMb(0);
+        return new SplitFastqIntoBatches.ReadFastqPartFn(fileUtils, fastqReader, splitFastqIntoBatchesIoHandler, maxFastqChunkSize, maxFastqSizeMB);
     }
 
     @Provides
     @Singleton
-    public SplitFastqIntoBatches.BuildFastqContentFn provideBuildFastqContentFn() {
-        return new SplitFastqIntoBatches.BuildFastqContentFn(maxFastqSizeMB);
+    public SplitFastqIntoBatches.BuildFastqContentFn provideBuildFastqContentFn(FileUtils fileUtils, IoUtils ioUtils,
+                                                                                NameProvider nameProvider) {
+        TransformIoHandler buildFastqContentIoHandler = new TransformIoHandler(
+                genomicsOptions.getResultBucket(),
+                String.format(genomicsOptions.getChuncksBySizeOutputDirPattern(),
+                        nameProvider.getCurrentTimeInDefaultFormat()),
+                fileUtils);
+
+        buildFastqContentIoHandler.setMemoryOutputLimitMb(Integer.MAX_VALUE);
+        return new SplitFastqIntoBatches.BuildFastqContentFn(buildFastqContentIoHandler, fileUtils, ioUtils, maxFastqSizeMB);
     }
 }

@@ -27,7 +27,7 @@ public class TransformIoHandlerTests {
 
         Mockito.when(fileWrapperMock.getFileName()).thenReturn(FILE_NAME);
 
-        TransformIoHandler transformIoHandler = new TransformIoHandler(RESULT_BUCKET, DEST_GCS_PREFIX, 100, fileUtilsMock);
+        TransformIoHandler transformIoHandler = new TransformIoHandler(RESULT_BUCKET, DEST_GCS_PREFIX, fileUtilsMock);
         String result = transformIoHandler.handleInputAsLocalFile(gcsServiceMock, fileWrapperMock, WORK_DIR);
 
         Assert.assertEquals("Result asserting", WORK_DIR + FILE_NAME, result);
@@ -45,7 +45,7 @@ public class TransformIoHandlerTests {
         Mockito.when(fileWrapperMock.getBlobUri()).thenReturn(BLOB_URI);
         Mockito.when(gcsServiceMock.getBlob(Mockito.any())).thenReturn(blobMock);
 
-        TransformIoHandler transformIoHandler = new TransformIoHandler(RESULT_BUCKET, DEST_GCS_PREFIX, 100, fileUtilsMock);
+        TransformIoHandler transformIoHandler = new TransformIoHandler(RESULT_BUCKET, DEST_GCS_PREFIX, fileUtilsMock);
         transformIoHandler.handleInputAsLocalFile(gcsServiceMock, fileWrapperMock, WORK_DIR);
 
         Mockito.verify(gcsServiceMock).getBlobIdFromUri(BLOB_URI);
@@ -64,7 +64,7 @@ public class TransformIoHandlerTests {
         Mockito.when(fileWrapperMock.getDataType()).thenReturn(FileWrapper.DataType.CONTENT);
         Mockito.when(fileWrapperMock.getContent()).thenReturn(byteArray);
 
-        TransformIoHandler transformIoHandler = new TransformIoHandler(RESULT_BUCKET, DEST_GCS_PREFIX, 100, fileUtilsMock);
+        TransformIoHandler transformIoHandler = new TransformIoHandler(RESULT_BUCKET, DEST_GCS_PREFIX, fileUtilsMock);
         transformIoHandler.handleInputAsLocalFile(gcsServiceMock, fileWrapperMock, WORK_DIR);
 
         Mockito.verify(fileUtilsMock).saveDataToFile(byteArray, WORK_DIR + FILE_NAME);

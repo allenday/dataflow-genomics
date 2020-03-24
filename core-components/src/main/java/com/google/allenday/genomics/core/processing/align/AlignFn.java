@@ -73,7 +73,9 @@ public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSo
                             referencesProvider.getReferenceDbWithDownload(gcsService, referenceDBSource);
                     String alignedSamPath = null;
                     try {
-                        String outPrefix = geneSampleMetaData.getRunId() + "_" + geneSampleMetaData.getPartIndex();
+                        String outPrefix = geneSampleMetaData.getRunId()
+                                + "_" + geneSampleMetaData.getPartIndex()
+                                + "_" + geneSampleMetaData.getSubPartIndex();
                         alignedSamPath = alignService.alignFastq(
                                 referenceDatabase.getFastaLocalPath(),
                                 srcFilesPaths,

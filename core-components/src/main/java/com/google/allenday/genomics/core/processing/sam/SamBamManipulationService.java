@@ -58,23 +58,24 @@ public class SamBamManipulationService implements Serializable {
         final SamReader reader1 = SamReaderFactory.makeDefault().open(file1);
         final SamReader reader2 = SamReaderFactory.makeDefault().open(file2);
 
-        SAMRecordIterator iterator1 = reader1.iterator();
-        SAMRecordIterator iterator2 = reader2.iterator();
-        while (true) {
-            if (iterator1.hasNext() != iterator2.hasNext()) {
-                CloserUtil.close(Arrays.asList(reader1, reader2));
-                return false;
-            } else if (iterator1.hasNext()) {
-                boolean recordsEquals = iterator1.next().equals(iterator2.next());
-                if (!recordsEquals) {
+        List<SAMRecord> samRecords1 = reader1.iterator().toList();
+        List<SAMRecord> samRecords2 = reader2.iterator().toList();
+
+        if (samRecords1.size() != samRecords2.size()){
+            LOG.info("Sam files have difference size");
+            CloserUtil.close(Arrays.asList(reader1, reader2));
+            return false;
+        } else {
+            LOG.info("Sam files have the same size");
+            for (SAMRecord samRecord: samRecords1){
+                if (!samRecords2.contains(samRecord)){
                     CloserUtil.close(Arrays.asList(reader1, reader2));
                     return false;
                 }
-            } else {
-                CloserUtil.close(Arrays.asList(reader1, reader2));
-                return true;
             }
         }
+        CloserUtil.close(Arrays.asList(reader1, reader2));
+        return true;
     }
 
     public String generateMergedFileName(String outPrefix, String outSuffix) {

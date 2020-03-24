@@ -29,16 +29,16 @@ public interface BatchProcessingPipelineOptions extends GenomicsPipelineOptions 
 
     void setWithVariantCalling(Boolean value);
 
-    @Description("Size of batch (MB) in which will be splited large FASTQ")
-    @Default.Integer(0)
-    Integer getFastqBatchSizeMB();
+    @Description("Max size of fastq file (MB) that will be formed before Align step")
+    @Default.Integer(1000)
+    Integer getMaxFastqSizeMB();
 
-    void setFastqBatchSizeMB(Integer value);
+    void setMaxFastqSizeMB(Integer value);
 
-    @Description("Size of batch (read count) in which will be splited large FASTQ")
+    @Description("Size of chunk (in reads count) in which will be splited large FASTQ")
     @Default.Integer(1000000)
-    Integer getFastqBatchSizeReadCount();
+    Integer getMaxFastqChunkSize();
 
-    void setFastqBatchSizeReadCount(Integer value);
+    void setMaxFastqChunkSize(Integer value);
 }
 

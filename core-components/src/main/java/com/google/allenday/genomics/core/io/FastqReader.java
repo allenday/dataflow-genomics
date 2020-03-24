@@ -65,8 +65,8 @@ public class FastqReader implements Serializable {
 
             int startOfLastFastq = ((lines.size() - 1) / FASTQ_READ_LINE_COUNT) * FASTQ_READ_LINE_COUNT;
 
-            List<String> currentLines = lines.subList(0, startOfLastFastq);
-            List<String> tailLines = lines.subList(startOfLastFastq, lines.size());
+            List<String> currentLines = new ArrayList<>(lines.subList(0, startOfLastFastq));
+            List<String> tailLines = new ArrayList<>(lines.subList(startOfLastFastq, lines.size()));
 
             fastqTail = String.join(NEW_LINE_INDICATION, tailLines);
             if (readString.endsWith(NEW_LINE_INDICATION)) {
@@ -117,8 +117,8 @@ public class FastqReader implements Serializable {
 
             int startOfLastFastq = ((lines.size() - 1) / FASTQ_READ_LINE_COUNT) * FASTQ_READ_LINE_COUNT;
 
-            List<String> currentLines = lines.subList(0, startOfLastFastq);
-            List<String> tailLines = lines.subList(startOfLastFastq, lines.size());
+            List<String> currentLines = new ArrayList<>(lines.subList(0, startOfLastFastq));
+            List<String> tailLines = new ArrayList<>(lines.subList(startOfLastFastq, lines.size()));
 
             fastqTail = String.join(NEW_LINE_INDICATION, tailLines);
             if (readString.endsWith(NEW_LINE_INDICATION)) {
@@ -132,12 +132,12 @@ public class FastqReader implements Serializable {
             linesCollector.addAll(currentLines);
 
             while (linesCollector.size() > batchSize * FASTQ_READ_LINE_COUNT) {
-                List<String> outputList = linesCollector.subList(0, batchSize * FASTQ_READ_LINE_COUNT);
+                List<String> outputList = new ArrayList<>(linesCollector.subList(0, batchSize * FASTQ_READ_LINE_COUNT));
                 String output = String.join("", outputList);
                 callback.onFindFastqPart(output, indexCounter);
                 indexCounter++;
 
-                linesCollector = linesCollector.subList(batchSize * FASTQ_READ_LINE_COUNT, linesCollector.size());
+                linesCollector.subList(0, batchSize * FASTQ_READ_LINE_COUNT).clear();
             }
             timeCount += System.currentTimeMillis() - start;
         }

@@ -37,13 +37,13 @@ public abstract class BatchProcessingModule extends AbstractModule {
     protected String project;
     protected String region;
     protected GenomicsOptions genomicsOptions;
-    protected Integer fastqBatchSizeMB;
-    protected Integer fastqBatchSizeReadCount;
+    protected Integer maxFastqSizeMB;
+    protected Integer maxFastqChunkSize;
 
     public BatchProcessingModule(String srcBucket, String inputCsvUri, List<String> sraSamplesToFilter,
                                  List<String> sraSamplesToSkip, String project, String region,
-                                 GenomicsOptions genomicsOptions, Integer fastqBatchSizeMB,
-                                 Integer fastqBatchSizeReadCount) {
+                                 GenomicsOptions genomicsOptions, Integer maxFastqSizeMB,
+                                 Integer maxFastqChunkSize) {
         this.srcBucket = srcBucket;
         this.inputCsvUri = inputCsvUri;
         this.sraSamplesToFilter = sraSamplesToFilter;
@@ -51,8 +51,8 @@ public abstract class BatchProcessingModule extends AbstractModule {
         this.project = project;
         this.region = region;
         this.genomicsOptions = genomicsOptions;
-        this.fastqBatchSizeMB = fastqBatchSizeMB;
-        this.fastqBatchSizeReadCount = fastqBatchSizeReadCount;
+        this.maxFastqSizeMB = maxFastqSizeMB;
+        this.maxFastqChunkSize = maxFastqChunkSize;
     }
 
     @Provides
@@ -259,19 +259,21 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public SplitFastqIntoBatches provideSplitFastqIntoBatches(SplitFastqIntoBatches.ReadFastqPartFn readFastqPartFn) {
-
-        return new SplitFastqIntoBatches(readFastqPartFn);
+    public SplitFastqIntoBatches provideSplitFastqIntoBatches(SplitFastqIntoBatches.ReadFastqPartFn readFastqPartFn,
+                                                              SplitFastqIntoBatches.BuildFastqContentFn buildFastqContentFn) {
+        return new SplitFastqIntoBatches(readFastqPartFn, buildFastqContentFn);
     }
 
 
     @Provides
     @Singleton
     public SplitFastqIntoBatches.ReadFastqPartFn provideSplitFastqIntoBatches(FileUtils fileUtils, FastqReader fastqReader) {
-        if (fastqBatchSizeReadCount > 0) {
-            return SplitFastqIntoBatches.ReadFastqPartFn.withCountLimit(fileUtils, fastqReader, fastqBatchSizeReadCount);
-        } else {
-            return SplitFastqIntoBatches.ReadFastqPartFn.withSizeLimit(fileUtils, fastqReader, fastqBatchSizeMB);
-        }
+        return new SplitFastqIntoBatches.ReadFastqPartFn(fileUtils, fastqReader, maxFastqChunkSize);
+    }
+
+    @Provides
+    @Singleton
+    public SplitFastqIntoBatches.BuildFastqContentFn provideBuildFastqContentFn() {
+        return new SplitFastqIntoBatches.BuildFastqContentFn(maxFastqSizeMB);
     }
 }

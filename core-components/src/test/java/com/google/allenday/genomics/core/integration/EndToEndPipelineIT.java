@@ -21,12 +21,13 @@ import com.google.allenday.genomics.core.processing.sam.SortFn;
 import com.google.allenday.genomics.core.reference.ReferenceProvider;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
+import org.apache.beam.runners.direct.DirectOptions;
+import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
-import org.apache.beam.sdk.testing.TestPipeline;
+import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.javatuples.Pair;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +59,10 @@ public class EndToEndPipelineIT implements Serializable {
     private final static String TEST_GCS_INPUT_DATA_DIR = "testing/input/";
     private final static String TEST_GCS_REFERENCE_DIR = "testing/reference/";
 
+    private final static int MEMORY_OUTPUT_LIMIT_MB = 0;
+    private final static int TEST_MAX_FASTQ_CHUNK_SIZE = 1000;
+    private final static int TEST_MAX_FASTQ_CONTENT_SIZE_MB = 1000;
+
     private final static String TEST_REFERENCE_NAME = "PRJNA482748_10";
     private final static String TEST_REFERENCE_FILE = "PRJNA482748_10.fa";
     private final static String TEMP_DIR = "temp/";
@@ -67,9 +72,6 @@ public class EndToEndPipelineIT implements Serializable {
 
     private final static String TEST_CSV_FILE = "source.csv";
     private final static String EXPECTED_SINGLE_END_RESULT_CONTENT_FILE = "expected_result_5k.merged.sorted.bam";
-
-    @Rule
-    public final transient TestPipeline testPipeline = TestPipeline.create();
 
     public class TestSraParser extends SampleMetaData.Parser {
 
@@ -84,7 +86,12 @@ public class EndToEndPipelineIT implements Serializable {
     }
 
     @Test
-    public void testEndToEndPipelineWithSingleEnd() throws IOException {
+    public void testEndToEndPipeline() throws IOException {
+        DirectOptions directOptions = PipelineOptionsFactory
+                .as(DirectOptions.class);
+        directOptions.setTargetParallelism(1);
+        Pipeline pipeline = Pipeline.create(directOptions);
+
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd--HH-mm-ss-z");
         simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         String jobTime = simpleDateFormat.format(new Date());
@@ -110,13 +117,19 @@ public class EndToEndPipelineIT implements Serializable {
         ReferenceProvider referencesProvider = new ReferenceProvider(fileUtils);
         DeepVariantService deepVariantService = new DeepVariantService(new LifeSciencesService(), new DeepVariantOptions());
 
-        TransformIoHandler alignTransformIoHandler = new TransformIoHandler(testBucket, String.format(ALIGN_RESULT_GCS_DIR_PATH_PATTERN, jobTime), 300, fileUtils);
-        TransformIoHandler sortTransformIoHandler = new TransformIoHandler(testBucket, String.format(SORT_RESULT_GCS_DIR_PATH_PATTERN, jobTime), 300, fileUtils);
-        TransformIoHandler mergeTransformIoHandler = new TransformIoHandler(testBucket, mergeResultGcsPath, 0, fileUtils);
-        TransformIoHandler indexTransformIoHandler = new TransformIoHandler(testBucket, indexResultGcsPath, 0, fileUtils);
+        TransformIoHandler alignTransformIoHandler =
+                new TransformIoHandler(testBucket, String.format(ALIGN_RESULT_GCS_DIR_PATH_PATTERN, jobTime), MEMORY_OUTPUT_LIMIT_MB, fileUtils);
+        TransformIoHandler sortTransformIoHandler =
+                new TransformIoHandler(testBucket, String.format(SORT_RESULT_GCS_DIR_PATH_PATTERN, jobTime), MEMORY_OUTPUT_LIMIT_MB, fileUtils);
+        TransformIoHandler mergeTransformIoHandler =
+                new TransformIoHandler(testBucket, mergeResultGcsPath, MEMORY_OUTPUT_LIMIT_MB, fileUtils);
+        TransformIoHandler indexTransformIoHandler =
+                new TransformIoHandler(testBucket, indexResultGcsPath, MEMORY_OUTPUT_LIMIT_MB, fileUtils);
 
         SplitFastqIntoBatches.ReadFastqPartFn readFastqPartFn =
-                SplitFastqIntoBatches.ReadFastqPartFn.withCountLimit(fileUtils, fastqReader, 500000);
+                new SplitFastqIntoBatches.ReadFastqPartFn(fileUtils, fastqReader, TEST_MAX_FASTQ_CHUNK_SIZE);
+        SplitFastqIntoBatches.BuildFastqContentFn buildFastqContentFn =
+                new SplitFastqIntoBatches.BuildFastqContentFn(TEST_MAX_FASTQ_CONTENT_SIZE_MB);
 
         AlignFn alignFn = new AlignFn(new AlignService(new WorkerSetupService(cmdExecutor), cmdExecutor, fileUtils),
                 referencesProvider,
@@ -130,18 +143,18 @@ public class EndToEndPipelineIT implements Serializable {
         MergeFn mergeFn = new MergeFn(mergeTransformIoHandler, samBamManipulationService, fileUtils);
         CreateBamIndexFn createBamIndexFn = new CreateBamIndexFn(indexTransformIoHandler, samBamManipulationService, fileUtils);
 
-        testPipeline
+        pipeline
                 .apply(new ParseSourceCsvTransform(inputCsvUriAndProvider.getValue0(),
                         new TestSraParser(SampleMetaData.Parser.Separation.COMMA),
                         inputCsvUriAndProvider.getValue1(), fileUtils))
-                .apply(new SplitFastqIntoBatches(readFastqPartFn))
+                .apply(new SplitFastqIntoBatches(readFastqPartFn, buildFastqContentFn))
                 .apply(new AlignAndPostProcessTransform("AlignAndPostProcessTransform", alignTransform, sortFn, mergeFn, createBamIndexFn))
 
 //        TODO DeepVeariant temporary excluded from end-to-end tests
 //                .apply(ParDo.of(new DeepVariantFn(deepVariantService, dvResultGcsPath)))
         ;
 
-        PipelineResult pipelineResult = testPipeline.run();
+        PipelineResult pipelineResult = pipeline.run();
         pipelineResult.waitUntilFinish();
 
         BlobId expectedResultMergeBlob = BlobId.of(testBucket, mergeResultGcsPath + TEST_EXAMPLE_SRA + "_" + TEST_REFERENCE_NAME + ".merged.sorted.bam");

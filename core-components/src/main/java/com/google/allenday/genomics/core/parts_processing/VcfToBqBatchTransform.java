@@ -107,7 +107,7 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
                     processMap.forEach((key, value) -> {
                         int currentSize = value.size();
                         if (value.size() % BATCH_SIZE == 0) {
-                            processCopyAndOutput(c, key, blobsToProcess.subList(currentSize - BATCH_SIZE, currentSize), currentSize);
+                            processCopyAndOutput(c, key, new ArrayList<>(blobsToProcess.subList(currentSize - BATCH_SIZE, currentSize)), currentSize);
                         }
                     });
                 });
@@ -115,7 +115,7 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
                 processMap.forEach((key, value) -> {
                     int currentSize = value.size();
                     int lastBatchSize = currentSize % BATCH_SIZE;
-                    processCopyAndOutput(c, key, blobsToProcess.subList(currentSize - lastBatchSize, currentSize), currentSize);
+                    processCopyAndOutput(c, key, new ArrayList<>(blobsToProcess.subList(currentSize - lastBatchSize, currentSize)), currentSize);
 
                 });
             } catch (Exception e) {

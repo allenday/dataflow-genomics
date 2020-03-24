@@ -81,7 +81,9 @@ public class AlignAndSortFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDat
                     String alignedSamPath = null;
                     String alignedSortedBamPath = null;
                     try {
-                        String outPrefix = geneSampleMetaData.getRunId() + "_" + geneSampleMetaData.getPartIndex();
+                        String outPrefix = geneSampleMetaData.getRunId()
+                                + "_" + geneSampleMetaData.getPartIndex()
+                                + "_" + geneSampleMetaData.getSubPartIndex();
                         alignedSamPath = alignService.alignFastq(
                                 referenceDatabase.getFastaLocalPath(),
                                 srcFilesPaths,

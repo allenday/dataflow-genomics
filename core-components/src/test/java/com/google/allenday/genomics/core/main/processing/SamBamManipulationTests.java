@@ -19,6 +19,6 @@ public class SamBamManipulationTests implements Serializable {
         SamBamManipulationService samBamManipulationService = new SamBamManipulationService(new FileUtils());
 
         List<SAMRecord> samRecords = samBamManipulationService.samRecordsFromBamFile(getClass().getClassLoader().getResource(BAM_FILE).getFile());
-        Assert.assertEquals(samRecords.size(), 10000);
+        Assert.assertEquals(samRecords.size(), 20000);
     }
 }

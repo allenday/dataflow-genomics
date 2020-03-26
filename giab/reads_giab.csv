@@ -1,0 +1,5 @@
+AvgSpotLen	BioSample	DATASTORE_provider	DATASTORE_region	Experiment	InsertSize	LibraryLayout	Library_Name	MBases	MBytes	Run	SRA_Sample	Sample_Name	Assay_Type	BioProject	Center_Name	Consent	DATASTORE_filetype	Instrument	LibrarySelection	LibrarySource	LoadDate	Organism	Platform	ReleaseDate	SRA_Study
+150						PAIRED				V100003043_L01 	NA12878	NA12878						MGISEQ-2000				Homo sapiens	MGISEQ		GIAB-MGISEQ
+150						PAIRED				V100003043_L02 	NA12878	NA12878						MGISEQ-2000				Homo sapiens	MGISEQ		GIAB-MGISEQ
+150						PAIRED				V100002698_L01 	NA12878	NA12878						MGISEQ-2000				Homo sapiens	MGISEQ		GIAB-MGISEQ
+150						PAIRED				V100002698_L02	NA12878	NA12878						MGISEQ-2000				Homo sapiens	MGISEQ		GIAB-MGISEQ

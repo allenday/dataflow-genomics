@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.google.allenday</groupId>
+    <artifactId>genomics-dataflow</artifactId>
+    <version>0.0.1</version>
+    <modules>
+        <module>giab-example</module>
+        <module>genomics-dataflow-core</module>
+    </modules>
+    <packaging>pom</packaging>
+
+    <name>Genomics Dataflow Core Components</name>
+    <description>Components for implementation Google Cloud Dataflow piplines to solve genomics processing tasks
+    </description>
+    <url>https://github.com/allenday/dataflow-genomics</url>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/allenday/dataflow-genomics.git</url>
+        <connection>git@github.com:allenday/dataflow-genomics.git</connection>
+        <developerConnection>scm:git:https://github.com/allenday/dataflow-genomics.git</developerConnection>
+    </scm>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <beam.version>[2.4.0, 2.99)</beam.version>
+    </properties>
+
+    <developers>
+        <developer>
+            <name>Allen Day</name>
+            <email>allenday@google.com</email>
+            <organization>Google Cloud</organization>
+            <organizationUrl>https://cloud.google.com</organizationUrl>
+        </developer>
+    </developers>
+
+</project>

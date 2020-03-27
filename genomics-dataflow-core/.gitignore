@@ -1,0 +1,8 @@
+core-components/target/
+core-components/.idea/
+*.iml
+*.iws
+.idea/
+
+# maven temporary
+core-components/dependency-reduced-pom.xml

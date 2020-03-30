@@ -12,13 +12,15 @@ import java.util.List;
 
 
 public class SamBamManipulationTests implements Serializable {
+
     private final static String BAM_FILE = "expected_result_5k.merged.sorted.bam";
+    private final static int BAM_FILE_LINES_SIZE = 20000;
 
     @Test
     public void testSamRecordsFromBamFile() throws IOException {
         SamBamManipulationService samBamManipulationService = new SamBamManipulationService(new FileUtils());
 
         List<SAMRecord> samRecords = samBamManipulationService.samRecordsFromBamFile(getClass().getClassLoader().getResource(BAM_FILE).getFile());
-        Assert.assertEquals(samRecords.size(), 20000);
+        Assert.assertEquals(samRecords.size(), BAM_FILE_LINES_SIZE);
     }
 }

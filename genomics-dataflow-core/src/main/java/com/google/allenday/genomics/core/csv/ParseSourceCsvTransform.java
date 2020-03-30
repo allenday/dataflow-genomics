@@ -15,6 +15,11 @@ import org.apache.beam.sdk.values.PCollection;
 import javax.annotation.Nullable;
 import java.util.List;
 
+/**
+ * Provides queue of input data transformation.
+ * It includes reading input CSV file parsing, filtering, check for anomalies in metadata.
+ * Return ready to use key-value pair of {@link SampleMetaData} and list of {@link FileWrapper}
+ */
 public class ParseSourceCsvTransform extends PTransform<PBegin,
         PCollection<KV<SampleMetaData, List<FileWrapper>>>> {
 

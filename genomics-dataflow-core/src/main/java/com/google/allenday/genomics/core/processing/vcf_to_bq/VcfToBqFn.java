@@ -9,6 +9,10 @@ import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Apache Beam DoFn function, that exports Variant Calling results (VCF) into the <a href="https://cloud.google.com/bigquery">BigQuery</a> table.
+ * Uses vcf-to-bigquery transform from <a href="https://github.com/googlegenomics/gcp-variant-transforms">GCP Variant Transforms</a>
+ */
 public class VcfToBqFn extends DoFn<KV<String, String>, KV<String, String>> {
 
     private Logger LOG = LoggerFactory.getLogger(VcfToBqFn.class);

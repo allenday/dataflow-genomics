@@ -75,7 +75,7 @@ public class SampleMetaData implements Serializable {
     private String comment;
 
     private Integer partIndex = -1;
-    private Integer subPartIndex = -1;
+    private Integer subPartIndex = 0;
 
     public SampleMetaData() {
     }

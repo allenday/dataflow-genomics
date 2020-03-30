@@ -43,7 +43,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * Tests full pipeline lifecycle in DirectRunner mode
+ * Tests genomics data processing in Fastq to merged BAM mode with DirectRunner
  */
 public class EndToEndPipelineIT implements Serializable {
     private Logger LOG = LoggerFactory.getLogger(EndToEndPipelineIT.class);
@@ -90,9 +90,6 @@ public class EndToEndPipelineIT implements Serializable {
 
     @Test
     public void testEndToEndPipeline() throws IOException {
-        if (true){
-            return;
-        }
         DirectOptions directOptions = PipelineOptionsFactory
                 .as(DirectOptions.class);
         directOptions.setTargetParallelism(1);

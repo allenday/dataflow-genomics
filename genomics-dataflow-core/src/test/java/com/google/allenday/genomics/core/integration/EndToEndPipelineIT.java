@@ -10,7 +10,7 @@ import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
 import com.google.allenday.genomics.core.processing.align.*;
-import com.google.allenday.genomics.core.processing.dv.DeepVariantService;
+import com.google.allenday.genomics.core.processing.variantcall.DeepVariantService;
 import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
 import com.google.allenday.genomics.core.processing.sam.CreateBamIndexFn;
 import com.google.allenday.genomics.core.processing.sam.MergeFn;
@@ -156,7 +156,7 @@ public class EndToEndPipelineIT implements Serializable {
                 .apply(new AlignAndPostProcessTransform("AlignAndPostProcessTransform", alignTransform, sortFn, mergeFn, createBamIndexFn))
 
 //        TODO DeepVeariant temporary excluded from end-to-end tests
-//                .apply(ParDo.of(new DeepVariantFn(deepVariantService, dvResultGcsPath)))
+//                .apply(ParDo.of(new VariantCallingtFn(deepVariantService, dvResultGcsPath)))
         ;
 
         PipelineResult pipelineResult = pipeline.run();

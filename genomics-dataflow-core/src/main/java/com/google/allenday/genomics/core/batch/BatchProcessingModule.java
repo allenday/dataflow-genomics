@@ -10,8 +10,9 @@ import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
 import com.google.allenday.genomics.core.processing.align.*;
-import com.google.allenday.genomics.core.processing.dv.DeepVariantFn;
-import com.google.allenday.genomics.core.processing.dv.DeepVariantService;
+import com.google.allenday.genomics.core.processing.variantcall.VariantCallingService;
+import com.google.allenday.genomics.core.processing.variantcall.VariantCallingtFn;
+import com.google.allenday.genomics.core.processing.variantcall.DeepVariantService;
 import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
 import com.google.allenday.genomics.core.processing.sam.*;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqFn;
@@ -229,15 +230,15 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public DeepVariantService provideDeepVariantService(LifeSciencesService lifeSciencesService) {
+    public VariantCallingService provideVariantCallingService(LifeSciencesService lifeSciencesService) {
         return new DeepVariantService(lifeSciencesService, genomicsOptions.getDeepVariantOptions());
     }
 
     @Provides
     @Singleton
-    public DeepVariantFn provideDeepVariantFn(DeepVariantService deepVariantService, FileUtils fileUtils, ReferenceProvider referencesProvider, NameProvider nameProvider) {
+    public VariantCallingtFn provideDeepVariantFn(VariantCallingService variantCallingService, FileUtils fileUtils, ReferenceProvider referencesProvider, NameProvider nameProvider) {
 
-        return new DeepVariantFn(deepVariantService, fileUtils, referencesProvider,
+        return new VariantCallingtFn(variantCallingService, fileUtils, referencesProvider,
                 genomicsOptions.getResultBucket(), String.format(genomicsOptions.getDeepVariantOutputDirPattern(),
                 nameProvider.getCurrentTimeInDefaultFormat()));
     }

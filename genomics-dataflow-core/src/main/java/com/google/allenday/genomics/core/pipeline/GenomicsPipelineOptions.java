@@ -10,6 +10,12 @@ import java.util.List;
 
 public interface GenomicsPipelineOptions extends DataflowPipelineOptions {
 
+    @Description("Sequence aligner")
+    @Default.String("minimap2")
+    String getAligner();
+
+    void setAligner(String value);
+
     @Description("Fasta model reference names list")
     List<String> getReferenceNamesList();
 

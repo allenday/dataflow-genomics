@@ -36,6 +36,12 @@ It includes reading input CSV file ([example](docs/sra_reads_annotations_example
 - [DeepVariantFn](genomics-dataflow-core/src/main/java/com/google/allenday/genomics/core/processing/dv/DeepVariantFn.java) - Apache Beam DoFn function, that provides [Variant Calling](https://www.ebi.ac.uk/training/online/course/human-genetic-variation-i-introduction-2019/variant-identification-and-analysis) logic. Currently supported [Deep Variant](https://github.com/google/deepvariant) variant caller pipeline from Google.
 - [VcfToBqFn](genomics-dataflow-core/src/main/java/com/google/allenday/genomics/core/processing/vcf_to_bq/VcfToBqFn.java) - Apache Beam DoFn function, that exports Variant Calling results (VCF) into the [BigQuery](https://cloud.google.com/bigquery) table. Uses vcf-to-bigquery transform from [GCP Variant Transforms
 ](https://github.com/googlegenomics/gcp-variant-transforms)
+
+### Sequence aligning
+By default, [minimap2](https://github.com/lh3/minimap2) aligner is used for Sequence aligning stage. Optionally you can use [BWA] aligner by setting `--aligner=bwa` option.
+
+Also, you can add a custom aligner by extending [AlignService](genomics-dataflow-core/src/main/java/com/google/allenday/genomics/core/processing/align/AlignService.java) class
+
 ## Usage
 This repository contains an [example](giab-example) of usage of Dataflow Genomics Core Components library, that provides a demo pipeline with batch processing of the [NA12878](https://www.coriell.org/0/Sections/Search/Sample_Detail.aspx?Ref=NA12878&product=DNA) sample from [Genome in a Bottle](https://www.nist.gov/programs-projects/genome-bottle).
  

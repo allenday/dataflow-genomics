@@ -1,17 +1,15 @@
 package com.google.allenday.genomics.core.model;
 
 public enum Instrument {
-    OXFORD_NANOPORE("map-ont", 1000),
-    ILLUMINA("sr", 1),
-    PACBIO_SMRT("map-pb", 100),
-    LS454("sr", 1),
-    MGISEQ("sr", 2);
+    OXFORD_NANOPORE(1000),
+    ILLUMINA(1),
+    PACBIO_SMRT(100),
+    LS454(1),
+    MGISEQ(2);
 
-    public final String flag;
     public final int sizeMultiplier;
 
-    Instrument(String flag, int sizeMultiplier) {
-        this.flag = flag;
+    Instrument(int sizeMultiplier) {
         this.sizeMultiplier = sizeMultiplier;
     }
 }

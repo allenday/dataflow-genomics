@@ -5,15 +5,11 @@ import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
 import com.google.allenday.genomics.core.io.*;
 import com.google.allenday.genomics.core.model.Instrument;
-import com.google.allenday.genomics.core.model.Instrument;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
-import com.google.allenday.genomics.core.processing.align.AddReferenceDataSourceFn;
-import com.google.allenday.genomics.core.processing.align.AlignFn;
-import com.google.allenday.genomics.core.processing.align.AlignService;
-import com.google.allenday.genomics.core.processing.align.AlignTransform;
+import com.google.allenday.genomics.core.processing.align.*;
 import com.google.allenday.genomics.core.processing.dv.DeepVariantService;
 import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
 import com.google.allenday.genomics.core.processing.sam.CreateBamIndexFn;
@@ -43,7 +39,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * Tests full pipeline lifecycle in DirectRunner mode
+ * Tests genomics data processing in Fastq to merged BAM mode with DirectRunner
  */
 public class EndToEndPipelineIT implements Serializable {
     private Logger LOG = LoggerFactory.getLogger(EndToEndPipelineIT.class);
@@ -90,9 +86,6 @@ public class EndToEndPipelineIT implements Serializable {
 
     @Test
     public void testEndToEndPipeline() throws IOException {
-        if (true){
-            return;
-        }
         DirectOptions directOptions = PipelineOptionsFactory
                 .as(DirectOptions.class);
         directOptions.setTargetParallelism(1);
@@ -143,7 +136,7 @@ public class EndToEndPipelineIT implements Serializable {
         SplitFastqIntoBatches.BuildFastqContentFn buildFastqContentFn =
                 new SplitFastqIntoBatches.BuildFastqContentFn(buildFastqContentIoHandler, fileUtils, ioUtils, TEST_MAX_FASTQ_CONTENT_SIZE_MB);
 
-        AlignFn alignFn = new AlignFn(new AlignService(new WorkerSetupService(cmdExecutor), cmdExecutor, fileUtils),
+        AlignFn alignFn = new AlignFn(new Minimap2AlignService(new WorkerSetupService(cmdExecutor), cmdExecutor, fileUtils),
                 referencesProvider,
                 alignTransformIoHandler, fileUtils);
 
@@ -251,13 +244,13 @@ public class EndToEndPipelineIT implements Serializable {
         SamBamManipulationService samBamManipulationService = new SamBamManipulationService(fileUtils);
 
         boolean isTwoEqual = samBamManipulationService.isRecordsInBamEquals(expectedResultsFile, actualResultsFile);
-        Assert.assertTrue("Results content is equals to expected", isTwoEqual);
+        Assert.assertTrue("Result content is not equals with expected", isTwoEqual);
     }
 
     @After
     public void finalizeTests() {
         FileUtils fileUtils = new FileUtils();
-        fileUtils.deleteDir(AlignService.MINIMAP_NAME);
+        fileUtils.deleteDir(Minimap2AlignService.MINIMAP_NAME);
         fileUtils.deleteDir(TEMP_DIR);
         fileUtils.deleteDir(REFERENCE_LOCAL_DIR);
     }

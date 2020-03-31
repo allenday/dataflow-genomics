@@ -22,6 +22,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
+/**
+ * Provides FASTQ splitting mechanism to increase parallelism and balance load between workers
+ */
 public class SplitFastqIntoBatches extends PTransform<PCollection<KV<SampleMetaData, List<FileWrapper>>>,
         PCollection<KV<SampleMetaData, List<FileWrapper>>>> {
 

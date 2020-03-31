@@ -86,7 +86,13 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Provides
     @Singleton
     public AlignService provideAlignService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor, FileUtils fileUtils) {
-        return new AlignService(workerSetupService, cmdExecutor, fileUtils);
+        if (genomicsOptions.getAligner().equals("minimap2")) {
+            return new Minimap2AlignService(workerSetupService, cmdExecutor, fileUtils);
+        } else if (genomicsOptions.getAligner().equals("bwa")) {
+            return new BwaAlignService(workerSetupService, cmdExecutor, fileUtils);
+        } else {
+            throw new IllegalArgumentException(String.format("Aligner %s not supported", genomicsOptions.getAligner()));
+        }
     }
 
     @Provides

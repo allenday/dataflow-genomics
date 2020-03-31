@@ -16,6 +16,11 @@ import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Apache Beam DoFn function,
+ * that provides <a href="https://www.ebi.ac.uk/training/online/course/human-genetic-variation-i-introduction-2019/variant-identification-and-analysis">Variant Calling</a> logic.
+ * Currently supported <a href="https://github.com/google/deepvariant>Deep Varian</a> variant caller pipeline from Google.
+ */
 public class DeepVariantFn extends DoFn<KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, BamWithIndexUris>>, KV<SraSampleIdReferencePair, String>> {
 
     private Logger LOG = LoggerFactory.getLogger(DeepVariantFn.class);

@@ -134,7 +134,7 @@ To run pipeline in `FASTQ => Vcf in BigQuery` mode you should call from current 
 ```bash
 mvn clean package
 java -cp target/giab-example-1.0.0.jar \
-    com.google.allenday.popgen.PopGenProcessingApp \
+    com.google.allenday.genomics.core.example.GiabExampleApp \
         --project=$PROJECT_ID \
         --runner=DataflowRunner \
         --region=$REGION \

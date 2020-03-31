@@ -41,7 +41,7 @@ public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSo
     @Setup
     public void setUp() {
         gcsService = GCSService.initialize(fileUtils);
-        alignService.setupMinimap2();
+        alignService.setup();
     }
 
     @ProcessElement

@@ -22,6 +22,11 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Contains queue of genomics transformation namely
+ * <a href="https://en.wikipedia.org/wiki/Sequence_alignment">Sequence alignment</a> (FASTQ->SAM),
+ * converting to binary format (SAM->BAM), sorting FASTQ and merging FASTQ in scope of single sample
+ */
 public class AlignAndPostProcessTransform extends PTransform<PCollection<KV<SampleMetaData, List<FileWrapper>>>,
         PCollection<KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, BamWithIndexUris>>>> {
 

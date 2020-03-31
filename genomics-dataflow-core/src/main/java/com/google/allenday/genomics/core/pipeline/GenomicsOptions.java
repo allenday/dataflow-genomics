@@ -17,6 +17,7 @@ public class GenomicsOptions {
     public final static String VCF_TO_BQ_PATH = "/vcf_to_bq/";
     public final static String ANOMALY_PATH_PATTERN = "%s/anomaly_samples/";
 
+    private String aligner;
     private String resultBucket;
     private List<String> geneReferences;
     private String allReferencesDirGcsUri;
@@ -27,7 +28,7 @@ public class GenomicsOptions {
     private String vcfBqDatasetAndTablePattern;
     private String outputDir;
 
-    public GenomicsOptions(String resultBucket, List<String> geneReferences,
+    public GenomicsOptions(String aligner, String resultBucket, List<String> geneReferences,
                            String allReferencesDirGcsUri, ValueProvider<String> refDataJsonString,
                            String outputDir,
                            long memoryOutputLimit) {
@@ -47,6 +48,7 @@ public class GenomicsOptions {
 
         Pair<String, String> bucketDirPair = splitGcsPath(alignerPipelineOptions.getOutputGcsUri());
         GenomicsOptions genomicsOptions = new GenomicsOptions(
+                alignerPipelineOptions.getAligner(),
                 bucketDirPair.getValue0(),
                 alignerPipelineOptions.getReferenceNamesList(),
                 alignerPipelineOptions.getAllReferencesDirGcsUri(),
@@ -167,5 +169,9 @@ public class GenomicsOptions {
 
     public ValueProvider<String> getRefDataJsonString() {
         return refDataJsonString;
+    }
+
+    public String getAligner() {
+        return aligner;
     }
 }

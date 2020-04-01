@@ -162,7 +162,6 @@ java -cp target/giab-example-1.0.0.jar \
         --makeExamplesWorkers=$M_E_WORKERS \
         --callVariantsWorkers=$C_V_WORKERS \
         --deepVariantShards=$M_E_SHARDS \
-        --exportVcfToBq=True \
         --vcfBqDatasetAndTablePattern=$VCF_BQ_TABLE_PATH_PATTERN
 ```
 ### Results

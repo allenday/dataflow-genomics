@@ -5,7 +5,7 @@ import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
 import com.google.allenday.genomics.core.pipeline.PipelineSetupUtils;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
-import com.google.allenday.genomics.core.processing.dv.DeepVariantFn;
+import com.google.allenday.genomics.core.processing.variantcall.VariantCallingtFn;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqFn;
 import com.google.allenday.genomics.core.transform.SampleIdRefPairToRefKeyTransform;
 import com.google.allenday.genomics.core.utils.NameProvider;
@@ -38,7 +38,7 @@ public class GiabExampleApp {
                 .apply("Parse data", injector.getInstance(ParseSourceCsvTransform.class))
                 .apply("Split large FASTQ into chunks", injector.getInstance(SplitFastqIntoBatches.class))
                 .apply("Align reads and prepare for DV", injector.getInstance(AlignAndPostProcessTransform.class))
-                .apply("Variant Calling", ParDo.of(injector.getInstance(DeepVariantFn.class)))
+                .apply("Variant Calling", ParDo.of(injector.getInstance(VariantCallingtFn.class)))
                 .apply("Prepare to VcfToBq transform", new SampleIdRefPairToRefKeyTransform<String>())
                 .apply("Export to BigQuery", ParDo.of(injector.getInstance(VcfToBqFn.class)));
 

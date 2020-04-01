@@ -2,7 +2,7 @@ package com.google.allenday.genomics.core.parts_processing;
 
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.processing.align.AlignService;
-import com.google.allenday.genomics.core.processing.dv.DeepVariantService;
+import com.google.allenday.genomics.core.processing.variantcall.DeepVariantService;
 import com.google.allenday.genomics.core.processing.sam.SamBamManipulationService;
 import com.google.cloud.storage.BlobId;
 

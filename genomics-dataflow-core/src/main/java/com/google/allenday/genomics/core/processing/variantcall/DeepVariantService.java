@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.processing.dv;
+package com.google.allenday.genomics.core.processing.variantcall;
 
 import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
 import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
@@ -19,7 +19,7 @@ import java.util.Map;
  * Service that provides access to Google Cloud Lifesciences API used to execute Deep Variant processing.
  */
 
-public class DeepVariantService implements Serializable {
+public class DeepVariantService extends VariantCallingService {
     private Logger LOG = LoggerFactory.getLogger(DeepVariantService.class);
 
     private final static int MAX_JOB_NAME_PREFIX_LEN = 20;
@@ -33,9 +33,6 @@ public class DeepVariantService implements Serializable {
     private final static String DEEP_VARIANT_STAGING_DIR_NAME = "deep-variant-staging";
 
     private final static String DEEP_VARIANT_MACHINE_TYPE = "n1-standard-1";
-
-    public final static String DEEP_VARIANT_RESULT_EXTENSION = ".vcf";
-
 
     public enum DeepVariantArguments {
         PROJECT("project"),
@@ -85,11 +82,12 @@ public class DeepVariantService implements Serializable {
         this.deepVariantOptions = deepVariantOptions;
     }
 
-    public Triplet<String, Boolean, String> processSampleWithDeepVariant(ResourceProvider resourceProvider,
-                                                                         String outDirGcsUri, String outFilePrefix,
-                                                                         String bamUri, String baiUri,
-                                                                         ReferenceDatabase referenceDatabase,
-                                                                         String readGroupName) {
+    @Override
+    public Triplet<String, Boolean, String> processSampleWithVariantCaller(ResourceProvider resourceProvider,
+                                                                           String outDirGcsUri, String outFilePrefix,
+                                                                           String bamUri, String baiUri,
+                                                                           ReferenceDatabase referenceDatabase,
+                                                                           String readGroupName) {
         String outFileUri = outDirGcsUri + outFilePrefix + DEEP_VARIANT_RESULT_EXTENSION;
 
         String jobNamePrefix = generateJobNamePrefix(outFilePrefix);

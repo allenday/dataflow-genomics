@@ -13,13 +13,17 @@ public class DefaultUriProvider extends UriProvider {
     }
 
     public static DefaultUriProvider withDefaultProviderRule(String srcBucket) {
+        return withDefaultProviderRule(srcBucket, FASTQ_EXTENSION);
+    }
+
+    public static DefaultUriProvider withDefaultProviderRule(String srcBucket, String extension) {
         return new DefaultUriProvider(srcBucket, (ProviderRule) (geneSampleMetaData, bucket) -> {
             String uriPrefix = String.format(DEFAULT_SRC_DIR_URI_PATTERN, bucket, geneSampleMetaData.getSraStudy(),
                     geneSampleMetaData.getSraSample());
-            String fileNameForward = geneSampleMetaData.getRunId() + "_" + 1 + FASTQ_EXTENSION;
+            String fileNameForward = geneSampleMetaData.getRunId() + "_" + 1 + extension;
             List<String> urisList = new ArrayList<>(Collections.singletonList(uriPrefix + fileNameForward));
             if (geneSampleMetaData.isPaired()) {
-                String fileNameBack = geneSampleMetaData.getRunId() + "_" + 2 + FASTQ_EXTENSION;
+                String fileNameBack = geneSampleMetaData.getRunId() + "_" + 2 + extension;
                 urisList.add(uriPrefix + fileNameBack);
             }
             return urisList;

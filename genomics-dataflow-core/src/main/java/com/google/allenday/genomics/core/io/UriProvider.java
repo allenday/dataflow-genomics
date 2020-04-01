@@ -7,7 +7,20 @@ import java.util.List;
 
 public class UriProvider implements Serializable {
 
-    public final static String FASTQ_EXTENSION = ".fastq";
+    public static enum FastqExt {
+        FASTQ(".fastq"),
+        FQ(".fq");
+
+        final String ext;
+
+        FastqExt(String ext) {
+            this.ext = ext;
+        }
+
+        public static FastqExt defaultExt() {
+            return FASTQ;
+        }
+    }
 
     private String srcBucket;
     private ProviderRule providerRule;

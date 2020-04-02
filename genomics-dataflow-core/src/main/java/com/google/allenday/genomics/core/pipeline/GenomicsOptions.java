@@ -32,6 +32,7 @@ public class GenomicsOptions {
                            String allReferencesDirGcsUri, ValueProvider<String> refDataJsonString,
                            String outputDir,
                            long memoryOutputLimit) {
+        this.aligner = aligner;
         this.resultBucket = resultBucket;
         this.geneReferences = geneReferences;
         this.allReferencesDirGcsUri = allReferencesDirGcsUri;

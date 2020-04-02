@@ -23,7 +23,7 @@
         <dependency>
             <groupId>com.google.allenday</groupId>
             <artifactId>genomics-dataflow-core</artifactId>
-            <version>0.0.6-SNAPSHOT</version>
+            <version>0.0.7</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

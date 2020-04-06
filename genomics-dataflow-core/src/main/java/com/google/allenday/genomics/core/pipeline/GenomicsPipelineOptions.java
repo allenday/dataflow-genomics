@@ -126,4 +126,10 @@ public interface GenomicsPipelineOptions extends DataflowPipelineOptions {
     String getVcfBqDatasetAndTablePattern();
 
     void setVcfBqDatasetAndTablePattern(String value);
+
+    @Description("Name of Variant Caller service. Supports: gatk, deep_variant")
+    @Default.String("gatk")
+    String getVariantCaller();
+
+    void setVariantCaller(String value);
 }

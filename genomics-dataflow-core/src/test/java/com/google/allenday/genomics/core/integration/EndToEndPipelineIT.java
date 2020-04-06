@@ -4,18 +4,18 @@ import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
 import com.google.allenday.genomics.core.io.*;
+import com.google.allenday.genomics.core.lifesciences.LifeSciencesService;
 import com.google.allenday.genomics.core.model.Instrument;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
-import com.google.allenday.genomics.core.processing.align.*;
+import com.google.allenday.genomics.core.processing.align.AddReferenceDataSourceFn;
+import com.google.allenday.genomics.core.processing.align.AlignFn;
+import com.google.allenday.genomics.core.processing.align.AlignTransform;
+import com.google.allenday.genomics.core.processing.align.Minimap2AlignService;
+import com.google.allenday.genomics.core.processing.sam.*;
 import com.google.allenday.genomics.core.processing.variantcall.DeepVariantService;
-import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
-import com.google.allenday.genomics.core.processing.sam.CreateBamIndexFn;
-import com.google.allenday.genomics.core.processing.sam.MergeFn;
-import com.google.allenday.genomics.core.processing.sam.SamBamManipulationService;
-import com.google.allenday.genomics.core.processing.sam.SortFn;
 import com.google.allenday.genomics.core.reference.ReferenceProvider;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -37,6 +37,8 @@ import java.io.Serializable;
 import java.nio.channels.Channels;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Tests genomics data processing in Fastq to merged BAM mode with DirectRunner
@@ -59,8 +61,9 @@ public class EndToEndPipelineIT implements Serializable {
     private final static String TEST_GCS_INPUT_DATA_DIR = "testing/input/";
     private final static String TEST_GCS_REFERENCE_DIR = "testing/reference/";
 
-    private final static int TEST_MAX_FASTQ_CHUNK_SIZE = 1000;
+    private final static int TEST_MAX_FASTQ_CHUNK_SIZE = 5000;
     private final static int TEST_MAX_FASTQ_CONTENT_SIZE_MB = 50;
+    private final static int TEST_MAX_SAM_RECORDS_BATCH_SIZE = 1000000;
 
     private final static String TEST_REFERENCE_NAME = "PRJNA482748_10";
     private final static String TEST_REFERENCE_FILE = "PRJNA482748_10.fa";
@@ -100,7 +103,7 @@ public class EndToEndPipelineIT implements Serializable {
         FastqReader fastqReader = new FastqReader();
         String testBucket = Optional
                 .ofNullable(System.getenv("TEST_BUCKET"))
-                .orElse("cannabis-3k-results");
+                .orElse("human1000-results");
 
         GCSService gcsService = GCSService.initialize(fileUtils);
         Pair<String, UriProvider> inputCsvUriAndProvider = prepareInputData(gcsService, fileUtils, testBucket, TEST_INPUT_FILES, TEST_CSV_FILE);
@@ -108,6 +111,7 @@ public class EndToEndPipelineIT implements Serializable {
 
         CmdExecutor cmdExecutor = new CmdExecutor();
         SamBamManipulationService samBamManipulationService = new SamBamManipulationService(fileUtils);
+        BatchSamParser batchSamParser = new BatchSamParser(samBamManipulationService, fileUtils);
 
         String mergeResultGcsPath = String.format(MERGE_RESULT_GCS_DIR_PATH_PATTERN, jobTime);
         String indexResultGcsPath = String.format(INDEX_RESULT_GCS_DIR_PATH_PATTERN, jobTime);
@@ -144,7 +148,8 @@ public class EndToEndPipelineIT implements Serializable {
                 allReferencesDirGcsUri, Collections.singletonList(TEST_REFERENCE_NAME));
 
         AlignTransform alignTransform = new AlignTransform("Align reads transform", alignFn, addReferenceDataSourceFn);
-        SortFn sortFn = new SortFn(sortTransformIoHandler, samBamManipulationService, fileUtils);
+        SamIntoRegionBatchesFn samIntoRegionBatchesFn = new SamIntoRegionBatchesFn(sortTransformIoHandler, samBamManipulationService,
+                batchSamParser, fileUtils, ioUtils, TEST_MAX_SAM_RECORDS_BATCH_SIZE);
         MergeFn mergeFn = new MergeFn(mergeTransformIoHandler, samBamManipulationService, fileUtils);
         CreateBamIndexFn createBamIndexFn = new CreateBamIndexFn(indexTransformIoHandler, samBamManipulationService, fileUtils);
 
@@ -153,7 +158,7 @@ public class EndToEndPipelineIT implements Serializable {
                         new TestSraParser(SampleMetaData.Parser.Separation.COMMA),
                         inputCsvUriAndProvider.getValue1(), fileUtils))
                 .apply(new SplitFastqIntoBatches(readFastqPartFn, buildFastqContentFn, TEST_MAX_FASTQ_CONTENT_SIZE_MB))
-                .apply(new AlignAndPostProcessTransform("AlignAndPostProcessTransform", alignTransform, sortFn, mergeFn, createBamIndexFn))
+                .apply(new AlignAndPostProcessTransform("AlignAndPostProcessTransformLegacy", alignTransform, samIntoRegionBatchesFn, mergeFn, createBamIndexFn))
 
 //        TODO DeepVeariant temporary excluded from end-to-end tests
 //                .apply(ParDo.of(new VariantCallingtFn(deepVariantService, dvResultGcsPath)))
@@ -162,10 +167,11 @@ public class EndToEndPipelineIT implements Serializable {
         PipelineResult pipelineResult = pipeline.run();
         pipelineResult.waitUntilFinish();
 
-        BlobId expectedResultMergeBlob = BlobId.of(testBucket, mergeResultGcsPath + TEST_EXAMPLE_SRA + "_" + TEST_REFERENCE_NAME + ".merged.sorted.bam");
-        BlobId expectedResultIndexBlob = BlobId.of(testBucket, indexResultGcsPath + TEST_EXAMPLE_SRA + "_" + TEST_REFERENCE_NAME + ".merged.sorted.bam.bai");
-        checkExists(gcsService, expectedResultIndexBlob);
-        checkResultContent(gcsService, fileUtils, expectedResultMergeBlob);
+        List<BlobId> mergeResults = getBlobIdsWithDirAndEnding(gcsService, testBucket, mergeResultGcsPath, ".merged.sorted.bam");
+        List<BlobId> indexResults = getBlobIdsWithDirAndEnding(gcsService, testBucket, mergeResultGcsPath, ".merged.sorted.bam");
+
+        Assert.assertEquals(mergeResults.size(), indexResults.size());
+        checkResultContent(gcsService, fileUtils, mergeResults);
     }
 
     private Pair<String, UriProvider> prepareInputData(GCSService gcsService, FileUtils fileUtils, String bucketName,
@@ -230,21 +236,38 @@ public class EndToEndPipelineIT implements Serializable {
         Assert.assertTrue("Results file exists", resultExists);
     }
 
-    private void checkResultContent(GCSService gcsService, FileUtils fileUtils, BlobId expectedResultBlob) throws IOException {
-        checkExists(gcsService, expectedResultBlob);
+    private void checkResultContent(GCSService gcsService, FileUtils fileUtils, List<BlobId> expectedResultBlobs) throws IOException {
+        expectedResultBlobs.forEach(expectedResultBlob -> {
+            try {
+                checkExists(gcsService, expectedResultBlob);
+            } catch (IOException e) {
+                LOG.error(e.getMessage());
+            }
+        });
 
-        String destFileName = TEMP_DIR + expectedResultBlob.getName();
+        List<String> expectedResultPaths = new ArrayList<>();
+        for (BlobId blobId : expectedResultBlobs) {
+            String destFileName = TEMP_DIR + blobId.getName();
 
-        fileUtils.mkdirFromUri(destFileName);
-        gcsService.downloadBlobTo(gcsService.getBlob(expectedResultBlob), destFileName);
+            fileUtils.mkdirFromUri(destFileName);
+            gcsService.downloadBlobTo(gcsService.getBlob(blobId), destFileName);
+            expectedResultPaths.add(destFileName);
+        }
+        SamBamManipulationService samBamManipulationService = new SamBamManipulationService(fileUtils);
+        String destFileName = samBamManipulationService.mergeBamFiles(expectedResultPaths, TEMP_DIR, UUID.randomUUID().toString(), "");
+
 
         File expectedResultsFile = new File(getClass().getClassLoader().getResource(EXPECTED_SINGLE_END_RESULT_CONTENT_FILE).getFile());
         File actualResultsFile = new File(fileUtils.getCurrentPath() + destFileName);
 
-        SamBamManipulationService samBamManipulationService = new SamBamManipulationService(fileUtils);
 
         boolean isTwoEqual = samBamManipulationService.isRecordsInBamEquals(expectedResultsFile, actualResultsFile);
         Assert.assertTrue("Result content is not equals with expected", isTwoEqual);
+    }
+
+    private List<BlobId> getBlobIdsWithDirAndEnding(GCSService gcsService, String bucket, String dir, String ending) {
+        return StreamSupport.stream(gcsService.getListOfBlobsInDir(bucket, dir).iterateAll().spliterator(), false)
+                .map(Blob::getBlobId).filter(blobId -> blobId.getName().endsWith(ending)).collect(Collectors.toList());
     }
 
     @After

@@ -1,5 +1,6 @@
 package com.google.allenday.genomics.core.model;
 
+import com.google.allenday.genomics.core.utils.StringUtils;
 import org.apache.beam.sdk.coders.AvroCoder;
 import org.apache.beam.sdk.coders.DefaultCoder;
 
@@ -26,6 +27,10 @@ public class SraSampleIdReferencePair implements Serializable {
 
     public String getReferenceName() {
         return referenceName;
+    }
+
+    public String generateFileSuffix() {
+        return "_" + StringUtils.generateSlug(referenceName);
     }
 
     @Override

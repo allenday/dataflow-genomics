@@ -16,8 +16,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class MergeFn extends DoFn<KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, List<FileWrapper>>>,
-        KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, FileWrapper>>> {
+public class MergeFn extends DoFn<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, List<FileWrapper>>>,
+        KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, FileWrapper>>> {
 
 
     private Logger LOG = LoggerFactory.getLogger(MergeFn.class);
@@ -55,14 +55,14 @@ public class MergeFn extends DoFn<KV<SraSampleIdReferencePair, KV<ReferenceDatab
     public void processElement(ProcessContext c) {
         LOG.info(String.format("Merge of sort with input: %s", c.element().toString()));
 
-        SraSampleIdReferencePair sraSampleIdReferencePair = c.element().getKey();
+        SamRecordsMetadaKey samRecordsMetadaKey = c.element().getKey();
 
-        if (sraSampleIdReferencePair == null) {
+        if (samRecordsMetadaKey == null) {
             LOG.error("Data error");
-            LOG.error("sraSampleIdReferencePair: " + sraSampleIdReferencePair);
+            LOG.error("samRecordsMetadaKey: " + samRecordsMetadaKey);
             return;
         }
-        SraSampleId sraSampleId = sraSampleIdReferencePair.getSraSampleId();
+        SraSampleId sraSampleId = samRecordsMetadaKey.getSraSampleId();
 
         KV<ReferenceDatabaseSource, List<FileWrapper>> fnValue = c.element().getValue();
         ReferenceDatabaseSource referenceDatabaseSource = fnValue.getKey();
@@ -85,12 +85,12 @@ public class MergeFn extends DoFn<KV<SraSampleIdReferencePair, KV<ReferenceDatab
                     fileWrappers.stream().findFirst().ifPresent(fileWrapper -> {
                                 String mergedFilename =
                                         samBamManipulationService.generateMergedFileName(sraSampleId.getValue(),
-                                                referenceDatabaseSource.getName());
+                                                samRecordsMetadaKey.generateFileSuffix());
                                 FileWrapper fileWrapperMerged = transformIoHandler.handleInputAndCopyToGcs(
                                         fileWrapper, gcsService, mergedFilename, workDir);
                                 fileUtils.deleteDir(workDir);
 
-                                c.output(KV.of(sraSampleIdReferencePair, KV.of(referenceDatabaseSource, fileWrapperMerged)));
+                                c.output(KV.of(samRecordsMetadaKey, KV.of(referenceDatabaseSource, fileWrapperMerged)));
 
                             }
                     );
@@ -100,11 +100,11 @@ public class MergeFn extends DoFn<KV<SraSampleIdReferencePair, KV<ReferenceDatab
                             .collect(Collectors.toList());
 
                     String mergedFileName = samBamManipulationService.mergeBamFiles(localBamPaths, workDir,
-                            sraSampleId.getValue(), referenceDatabaseSource.getName());
+                            sraSampleId.getValue(), samRecordsMetadaKey.generateFileSuffix());
                     FileWrapper fileWrapperMerged = transformIoHandler.saveFileToGcsOutput(gcsService, mergedFileName);
                     fileUtils.deleteDir(workDir);
 
-                    c.output(KV.of(sraSampleIdReferencePair, KV.of(referenceDatabaseSource, fileWrapperMerged)));
+                    c.output(KV.of(samRecordsMetadaKey, KV.of(referenceDatabaseSource, fileWrapperMerged)));
 
                 }
             } catch (IOException e) {

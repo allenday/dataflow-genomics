@@ -12,6 +12,8 @@ import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -96,26 +98,23 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
 
                 blobsToProcess.forEach(blobId -> {
                     String name = fileUtils.changeFileExtension(fileUtils.getFilenameFromPath(blobId.getName()), "");
-                    String[] nameParts = name.split("_");
-                    String reference = nameParts[1];
+                    int divider = name.indexOf("_");
+                    String reference = name.substring(divider+1);
 
                     if (!processMap.containsKey(reference)) {
                         processMap.put(reference, new ArrayList<>());
                     }
                     processMap.get(reference).add(blobId);
-
-                    processMap.forEach((key, value) -> {
-                        int currentSize = value.size();
-                        if (value.size() % BATCH_SIZE == 0) {
-                            processCopyAndOutput(c, key, new ArrayList<>(blobsToProcess.subList(currentSize - BATCH_SIZE, currentSize)), currentSize);
-                        }
-                    });
+                    int currentSize = processMap.get(reference).size();
+                    if (processMap.get(reference).size() % BATCH_SIZE == 0) {
+                        processCopyAndOutput(c, reference, new ArrayList<>(processMap.get(reference).subList(currentSize - BATCH_SIZE, currentSize)), currentSize);
+                    }
                 });
 
                 processMap.forEach((key, value) -> {
                     int currentSize = value.size();
                     int lastBatchSize = currentSize % BATCH_SIZE;
-                    processCopyAndOutput(c, key, new ArrayList<>(blobsToProcess.subList(currentSize - lastBatchSize, currentSize)), currentSize);
+                    processCopyAndOutput(c, key, new ArrayList<>(value.subList(currentSize - lastBatchSize, currentSize)), currentSize);
 
                 });
             } catch (Exception e) {
@@ -125,15 +124,19 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
     }
 
     public static class SaveVcfToBqResults extends DoFn<KV<String, String>, BlobId> {
+        Logger LOG = LoggerFactory.getLogger(SaveVcfToBqResults.class);
 
         private GCSService gcsService;
 
         private StagingPathsBulder stagingPathsBulder;
         private IoUtils ioUtils;
+        private FileUtils fileUtils;
 
-        public SaveVcfToBqResults(StagingPathsBulder stagingPathsBulder, IoUtils ioUtils) {
+        public SaveVcfToBqResults(StagingPathsBulder stagingPathsBulder,
+                                  IoUtils ioUtils, FileUtils fileUtils) {
             this.stagingPathsBulder = stagingPathsBulder;
             this.ioUtils = ioUtils;
+            this.fileUtils = fileUtils;
         }
 
         @Setup
@@ -154,9 +157,14 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
 
                 StringBuilder stringBuilder = new StringBuilder(vcfToBqProcessedData);
                 allBlobsIn.forEach(blob -> {
-                    System.out.println(blob.getBlobId());
-                    String[] parts = new FileUtils().getFilenameFromPath(blob.getBlobId().getName()).split("\\.")[0].split("_");
-                    stringBuilder.append(parts[0]).append(",").append(parts[1]).append("\n");
+                    LOG.info(String.format("BlobId: %s", blob.getBlobId()));
+
+                    String name = fileUtils.changeFileExtension(fileUtils.getFilenameFromPath(blob.getBlobId().getName()), "");
+                    int divider = name.indexOf("_");
+                    String reference = name.substring(divider+1);
+                    String sampleName = name.substring(0, divider);
+
+                    stringBuilder.append(sampleName).append(",").append(reference).append("\n");
                 });
                 gcsService.saveContentToGcs(stagingPathsBulder.getVcfToBqProcessedListFileBlobId(),
                         stringBuilder.toString().getBytes());

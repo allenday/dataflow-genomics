@@ -4,17 +4,18 @@ import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
 import com.google.allenday.genomics.core.io.*;
+import com.google.allenday.genomics.core.lifesciences.LifeSciencesService;
+import com.google.allenday.genomics.core.model.Aligner;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraParser;
+import com.google.allenday.genomics.core.model.VariantCaller;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
 import com.google.allenday.genomics.core.processing.align.*;
-import com.google.allenday.genomics.core.processing.variantcall.VariantCallingService;
-import com.google.allenday.genomics.core.processing.variantcall.VariantCallingtFn;
-import com.google.allenday.genomics.core.processing.variantcall.DeepVariantService;
-import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
 import com.google.allenday.genomics.core.processing.sam.*;
+import com.google.allenday.genomics.core.processing.variantcall.*;
+import com.google.allenday.genomics.core.processing.vcf_to_bq.PrepareAndExecuteVcfToBqTransform;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqFn;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqService;
 import com.google.allenday.genomics.core.reference.ReferenceProvider;
@@ -38,11 +39,13 @@ public abstract class BatchProcessingModule extends AbstractModule {
     protected Integer maxFastqSizeMB;
     protected Integer maxFastqChunkSize;
     protected UriProvider.FastqExt fastqExt;
+    protected Integer bamRegionSize;
 
     public BatchProcessingModule(String srcBucket, String inputCsvUri, List<String> sraSamplesToFilter,
                                  List<String> sraSamplesToSkip, String project, String region,
                                  GenomicsOptions genomicsOptions, Integer maxFastqSizeMB,
-                                 Integer maxFastqChunkSize, UriProvider.FastqExt fastqExt) {
+                                 Integer maxFastqChunkSize, UriProvider.FastqExt fastqExt,
+                                 Integer bamRegionSize) {
         this.srcBucket = srcBucket;
         this.inputCsvUri = inputCsvUri;
         this.sraSamplesToFilter = sraSamplesToFilter;
@@ -52,6 +55,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
         this.genomicsOptions = genomicsOptions;
         this.maxFastqSizeMB = maxFastqSizeMB;
         this.maxFastqChunkSize = maxFastqChunkSize;
+        this.bamRegionSize = bamRegionSize;
         this.fastqExt = fastqExt;
     }
 
@@ -88,13 +92,25 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public AlignService provideAlignService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor, FileUtils fileUtils) {
-        if (genomicsOptions.getAligner().equals("minimap2")) {
-            return new Minimap2AlignService(workerSetupService, cmdExecutor, fileUtils);
-        } else if (genomicsOptions.getAligner().equals("bwa")) {
-            return new BwaAlignService(workerSetupService, cmdExecutor, fileUtils);
+    public Minimap2AlignService provideMinimap2AlignService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor, FileUtils fileUtils) {
+        return new Minimap2AlignService(workerSetupService, cmdExecutor, fileUtils);
+    }
+
+    @Provides
+    @Singleton
+    public BwaAlignService provideBwaAlignService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor, FileUtils fileUtils) {
+        return new BwaAlignService(workerSetupService, cmdExecutor, fileUtils);
+    }
+
+    @Provides
+    @Singleton
+    public AlignService provideAlignService(Minimap2AlignService minimap2AlignService, BwaAlignService bwaAlignService) {
+        if (genomicsOptions.getAligner().equals(Aligner.MINIMAP2.arg)) {
+            return minimap2AlignService;
+        } else if (genomicsOptions.getAligner().equals(Aligner.BWA.arg)) {
+            return bwaAlignService;
         } else {
-            throw new IllegalArgumentException(String.format("Aligner %s not supported", genomicsOptions.getAligner()));
+            throw new IllegalArgumentException(String.format("Aligner %s is not supported", genomicsOptions.getAligner()));
         }
     }
 
@@ -193,17 +209,6 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public AlignAndPostProcessTransform provideAlignAndPostProcessTransform(AlignTransform alignTransform, SortFn sortFn,
-                                                                            MergeFn mergeFn, CreateBamIndexFn createBamIndexFn) {
-        return new AlignAndPostProcessTransform("Align -> Sort -> Merge transform -> Create index",
-                alignTransform,
-                sortFn,
-                mergeFn,
-                createBamIndexFn);
-    }
-
-    @Provides
-    @Singleton
     public SampleMetaData.Parser provideSampleMetaDataParser() {
         return new SraParser();
     }
@@ -232,8 +237,26 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public VariantCallingService provideVariantCallingService(LifeSciencesService lifeSciencesService) {
+    public DeepVariantService provideDeepVariantService(LifeSciencesService lifeSciencesService) {
         return new DeepVariantService(lifeSciencesService, genomicsOptions.getDeepVariantOptions());
+    }
+
+    @Provides
+    @Singleton
+    public GATKService provideGATKService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor) {
+        return new GATKService(workerSetupService, cmdExecutor);
+    }
+
+    @Provides
+    @Singleton
+    public VariantCallingService provideVariantCallingService(DeepVariantService deepVariantService, GATKService gatkService) {
+        if (genomicsOptions.getVariantCaller().equals(VariantCaller.GATK.arg)) {
+            return gatkService;
+        } else if (genomicsOptions.getAligner().equals(VariantCaller.DEEP_VARIANT.arg)) {
+            return deepVariantService;
+        } else {
+            throw new IllegalArgumentException(String.format("Variant Caller %s is not supported", genomicsOptions.getAligner()));
+        }
     }
 
     @Provides
@@ -248,8 +271,12 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Provides
     @Singleton
     public VcfToBqService provideVcfToBqService(LifeSciencesService lifeSciencesService, NameProvider nameProvider) {
-        VcfToBqService vcfToBqService = new VcfToBqService(lifeSciencesService, String.format("%s:%s", project, genomicsOptions.getVcfBqDatasetAndTablePattern()),
-                genomicsOptions.getResultBucket(), genomicsOptions.getVcfToBqOutputDir(), nameProvider.getCurrentTimeInDefaultFormat());
+        VcfToBqService vcfToBqService = new VcfToBqService(
+                lifeSciencesService,
+                String.format("%s:%s", project, genomicsOptions.getVcfBqDatasetAndTablePattern()),
+                genomicsOptions.getResultBucket(),
+                String.format(genomicsOptions.getVcfToBqOutputDir(), nameProvider.getCurrentTimeInDefaultFormat()),
+                nameProvider.getCurrentTimeInDefaultFormat());
         vcfToBqService.setRegion(region);
         return vcfToBqService;
     }
@@ -284,6 +311,28 @@ public abstract class BatchProcessingModule extends AbstractModule {
         return new SplitFastqIntoBatches.ReadFastqPartFn(fileUtils, fastqReader, splitFastqIntoBatchesIoHandler, maxFastqChunkSize, maxFastqSizeMB);
     }
 
+
+    @Provides
+    @Singleton
+    public BatchSamParser provideBatchSamParser(SamBamManipulationService samBamManipulationService, FileUtils fileUtils) {
+        return new BatchSamParser(samBamManipulationService, fileUtils);
+    }
+
+    @Provides
+    @Singleton
+    public SamIntoRegionBatchesFn provideParseSamRecordsFn(FileUtils fileUtils,
+                                                           IoUtils ioUtils,
+                                                           BatchSamParser batchSamParser,
+                                                           SamBamManipulationService samBamManipulationService,
+                                                           NameProvider nameProvider) {
+        TransformIoHandler sortIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
+                String.format(genomicsOptions.getSortedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
+                fileUtils);
+
+        return new SamIntoRegionBatchesFn(sortIoHandler, samBamManipulationService, batchSamParser, fileUtils,
+                ioUtils, bamRegionSize);
+    }
+
     @Provides
     @Singleton
     public SplitFastqIntoBatches.BuildFastqContentFn provideBuildFastqContentFn(FileUtils fileUtils, IoUtils ioUtils,
@@ -296,5 +345,29 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
         buildFastqContentIoHandler.setMemoryOutputLimitMb(genomicsOptions.getMemoryOutputLimit());
         return new SplitFastqIntoBatches.BuildFastqContentFn(buildFastqContentIoHandler, fileUtils, ioUtils, maxFastqSizeMB);
+    }
+
+    @Provides
+    @Singleton
+    public AlignAndPostProcessTransform provideAlignAndPostProcessTransform(AlignTransform alignTransform,
+                                                                            SamIntoRegionBatchesFn samIntoRegionBatchesFn,
+                                                                            MergeFn mergeFn, CreateBamIndexFn createBamIndexFn) {
+        return new AlignAndPostProcessTransform("Align -> SortAndSplit -> Merge transform -> Create index",
+                alignTransform,
+                samIntoRegionBatchesFn,
+                mergeFn,
+                createBamIndexFn);
+    }
+
+    @Provides
+    @Singleton
+    public VariantCallingTransform provideVariantCallingTransform(VariantCallingtFn variantCallingtFn) {
+        return new VariantCallingTransform(variantCallingtFn);
+    }
+
+    @Provides
+    @Singleton
+    public PrepareAndExecuteVcfToBqTransform providePrepareAndExecuteVcfToBqTransform(VcfToBqFn vcfToBqFn) {
+        return new PrepareAndExecuteVcfToBqTransform(vcfToBqFn);
     }
 }

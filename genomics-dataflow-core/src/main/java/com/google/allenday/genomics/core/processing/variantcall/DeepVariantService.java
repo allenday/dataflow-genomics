@@ -1,7 +1,7 @@
 package com.google.allenday.genomics.core.processing.variantcall;
 
 import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
-import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
+import com.google.allenday.genomics.core.lifesciences.LifeSciencesService;
 import com.google.allenday.genomics.core.reference.ReferenceDatabase;
 import com.google.allenday.genomics.core.utils.ResourceProvider;
 import org.javatuples.Pair;
@@ -9,7 +9,6 @@ import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,7 +61,8 @@ public class DeepVariantService extends VariantCallingService {
         PREEMPTIBLE("preemptible"),
         MAX_PREEMPTIBLE_TRIES("max_premptible_tries"),
         MAX_NON_PREEMPTIBLE_TRIES("max_non_premptible_tries"),
-        SHARDS("shards");
+        SHARDS("shards"),
+        REGIONS("regions");
         private final String argName;
 
         DeepVariantArguments(String argName) {
@@ -83,20 +83,28 @@ public class DeepVariantService extends VariantCallingService {
     }
 
     @Override
-    public Triplet<String, Boolean, String> processSampleWithVariantCaller(ResourceProvider resourceProvider,
-                                                                           String outDirGcsUri, String outFilePrefix,
-                                                                           String bamUri, String baiUri,
-                                                                           ReferenceDatabase referenceDatabase,
-                                                                           String readGroupName) {
-        String outFileUri = outDirGcsUri + outFilePrefix + DEEP_VARIANT_RESULT_EXTENSION;
+    public void setup() {
 
-        String jobNamePrefix = generateJobNamePrefix(outFilePrefix);
+    }
+
+    @Override
+    public Triplet<String, Boolean, String> processSampleWithVariantCaller(ResourceProvider resourceProvider,
+                                                                           String outDirGcsUri,
+                                                                           String outFileNameWithoutExt,
+                                                                           String bamUri,
+                                                                           String baiUri,
+                                                                           String regions,
+                                                                           ReferenceDatabase referenceDatabase,
+                                                                           String sampleName) {
+        String outFileUri = outDirGcsUri + outFileNameWithoutExt + DEEP_VARIANT_RESULT_EXTENSION;
+
+        String jobNamePrefix = generateJobNamePrefix(outFileNameWithoutExt);
         List<String> actionCommands = buildCommand(resourceProvider, outDirGcsUri, outFileUri, bamUri, baiUri,
-                referenceDatabase.getFastaGcsUri(), referenceDatabase.getFaiGcsUri(), readGroupName, jobNamePrefix);
+                referenceDatabase.getFastaGcsUri(), referenceDatabase.getFaiGcsUri(), regions, sampleName, jobNamePrefix);
 
         Pair<Boolean, String> operationResult = lifeSciencesService.runLifesciencesPipelineWithLogging(actionCommands,
                 DEEP_VARIANT_RUNNER_IMAGE_URI, outDirGcsUri, deepVariantOptions.getControlPipelineWorkerRegion(),
-                DEEP_VARIANT_MACHINE_TYPE, resourceProvider.getProjectNumber(), outFilePrefix);
+                DEEP_VARIANT_MACHINE_TYPE, resourceProvider.getProjectNumber(), outFileNameWithoutExt);
 
         return Triplet.with(outFileUri, operationResult.getValue0(), operationResult.getValue1());
     }
@@ -110,9 +118,15 @@ public class DeepVariantService extends VariantCallingService {
     }
 
     private List<String> buildCommand(ResourceProvider resourceProvider,
-                                      String outDirGcsUri, String outfileGcsUri, String bamUri, String baiUri,
-                                      String ref, String refIndex,
-                                      String sampleName, String jobNamePrefix) {
+                                      String outDirGcsUri,
+                                      String outfileGcsUri,
+                                      String bamUri,
+                                      String baiUri,
+                                      String ref,
+                                      String refIndex,
+                                      String regions,
+                                      String sampleName,
+                                      String jobNamePrefix) {
         Map<DeepVariantArguments, String> args = new HashMap<>();
 
         args.put(DeepVariantArguments.PROJECT, resourceProvider.getProjectId());
@@ -128,6 +142,9 @@ public class DeepVariantService extends VariantCallingService {
         args.put(DeepVariantArguments.SAMPLE_NAME, sampleName);
         args.put(DeepVariantArguments.JOB_NAME_PREFIX, jobNamePrefix);
         args.put(DeepVariantArguments.OPERATION_LABEL, jobNamePrefix);
+        if (regions != null) {
+            args.put(DeepVariantArguments.REGIONS, regions);
+        }
 
         deepVariantOptions.getMakeExamplesCoresPerWorker().ifPresent(value -> args.put(DeepVariantArguments.MAKE_EXAMPLES_CORES_PER_WORKER, String.valueOf(value)));
         deepVariantOptions.getMakeExamplesRamPerWorker().ifPresent(value -> args.put(DeepVariantArguments.MAKE_EXAMPLES_RAM_PER_WORKER, String.valueOf(value)));

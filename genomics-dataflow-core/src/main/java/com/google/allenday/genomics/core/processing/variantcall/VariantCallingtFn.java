@@ -3,8 +3,7 @@ package com.google.allenday.genomics.core.processing.variantcall;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.model.BamWithIndexUris;
-import com.google.allenday.genomics.core.model.SraSampleId;
-import com.google.allenday.genomics.core.model.SraSampleIdReferencePair;
+import com.google.allenday.genomics.core.processing.sam.SamRecordsMetadaKey;
 import com.google.allenday.genomics.core.reference.ReferenceDatabase;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.allenday.genomics.core.reference.ReferenceProvider;
@@ -21,7 +20,7 @@ import org.slf4j.LoggerFactory;
  * that provides <a href="https://www.ebi.ac.uk/training/online/course/human-genetic-variation-i-introduction-2019/variant-identification-and-analysis">Variant Calling</a> logic.
  * Currently supported <a href="https://github.com/google/deepvariant>Deep Varian</a> variant caller pipeline from Google.
  */
-public class VariantCallingtFn extends DoFn<KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, BamWithIndexUris>>, KV<SraSampleIdReferencePair, String>> {
+public class VariantCallingtFn extends DoFn<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, BamWithIndexUris>>, KV<SamRecordsMetadaKey, KV<String, String>>> {
 
     private Logger LOG = LoggerFactory.getLogger(VariantCallingtFn.class);
 
@@ -46,37 +45,46 @@ public class VariantCallingtFn extends DoFn<KV<SraSampleIdReferencePair, KV<Refe
     public void setUp() {
         resourceProvider = ResourceProvider.initialize();
         gcsService = GCSService.initialize(fileUtils);
+        variantCallingService.setup();
     }
 
     @ProcessElement
     public void processElement(ProcessContext c) {
-        LOG.info(String.format("Start of Deep Variant: %s", c.element().toString()));
+        LOG.info(String.format("Start of Variant Calling: %s", c.element().toString()));
 
-        KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, BamWithIndexUris>> input = c.element();
-        SraSampleId sraSampleId = input.getKey().getSraSampleId();
+        KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, BamWithIndexUris>> input = c.element();
+        SamRecordsMetadaKey samRecordsMetadaKey = input.getKey();
         KV<ReferenceDatabaseSource, BamWithIndexUris> dbAndBamWithIndexUris = input.getValue();
         ReferenceDatabaseSource referenceDatabaseSource = dbAndBamWithIndexUris.getKey();
         BamWithIndexUris bamWithIndexUris = dbAndBamWithIndexUris.getValue();
 
 
-        if (sraSampleId == null || bamWithIndexUris == null || referenceDatabaseSource == null) {
+        if (samRecordsMetadaKey == null || bamWithIndexUris == null || referenceDatabaseSource == null) {
             LOG.error("Data error");
             LOG.error("referenceDatabase: " + referenceDatabaseSource);
-            LOG.error("geneReadGroupMetaData: " + sraSampleId);
+            LOG.error("samRecordsMetadaKey: " + samRecordsMetadaKey);
             LOG.error("bamWithIndexUris: " + bamWithIndexUris);
             return;
         }
         ReferenceDatabase referenceDd = referencesProvider.getReferenceDd(gcsService, referenceDatabaseSource);
 
-        String readGroupAndDb = sraSampleId + "_" + referenceDatabaseSource.getName();
-        String dvGcsOutputDir = gcsService.getUriFromBlob(BlobId.of(outputBucketName, gcsOutputDir + readGroupAndDb + "/"));
+        String outputNameWithoutExt = samRecordsMetadaKey.generateSlug();
 
-        Triplet<String, Boolean, String> result = variantCallingService.processSampleWithVariantCaller(resourceProvider,
-                dvGcsOutputDir, readGroupAndDb, bamWithIndexUris.getBamUri(), bamWithIndexUris.getIndexUri(), referenceDd,
-                sraSampleId.getValue());
+        String dirPrefix = samRecordsMetadaKey.getSraSampleId().getValue() + "_" + referenceDd.getDbName();
+        String dvGcsOutputDir = gcsService.getUriFromBlob(BlobId.of(outputBucketName, gcsOutputDir + dirPrefix + "/"));
+
+        Triplet<String, Boolean, String> result = variantCallingService.processSampleWithVariantCaller(
+                resourceProvider,
+                dvGcsOutputDir,
+                outputNameWithoutExt,
+                bamWithIndexUris.getBamUri(),
+                bamWithIndexUris.getIndexUri(),
+                samRecordsMetadaKey.generatRegionsValue(),
+                referenceDd,
+                samRecordsMetadaKey.getSraSampleId().getValue());
 
         if (result.getValue1()) {
-            c.output(KV.of(input.getKey(), result.getValue0()));
+            c.output(KV.of(input.getKey(), KV.of(result.getValue0(), dvGcsOutputDir)));
         }
     }
 }

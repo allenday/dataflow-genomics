@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.processing.lifesciences;
+package com.google.allenday.genomics.core.lifesciences;
 
 import com.google.allenday.genomics.core.processing.variantcall.DeepVariantService;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;

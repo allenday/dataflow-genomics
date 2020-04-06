@@ -5,7 +5,7 @@ import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraSampleId;
-import com.google.allenday.genomics.core.model.SraSampleIdReferencePair;
+import com.google.allenday.genomics.core.processing.sam.SamRecordsMetadaKey;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.cloud.storage.BlobId;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -17,7 +17,7 @@ import javax.annotation.Nonnull;
 import java.util.List;
 
 public class PrepareIndexNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<SampleMetaData>>,
-        KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, FileWrapper>>> {
+        KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, FileWrapper>>> {
 
     private Logger LOG = LoggerFactory.getLogger(PrepareIndexNotProcessedFn.class);
 
@@ -57,7 +57,7 @@ public class PrepareIndexNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<Sa
                 String uriFromBlob = gcsService.getUriFromBlob(blobIdMerge);
                 ReferenceDatabaseSource referenceDatabaseSource =
                         new ReferenceDatabaseSource.ByNameAndUriSchema(ref, allReferencesDirGcsUri);
-                c.output(KV.of(new SraSampleIdReferencePair(sraSampleId, referenceDatabaseSource.getName()),
+                c.output(KV.of(new SamRecordsMetadaKey(sraSampleId, referenceDatabaseSource.getName()),
                         KV.of(referenceDatabaseSource, FileWrapper.fromBlobUri(uriFromBlob, new FileUtils().getFilenameFromPath(uriFromBlob)))));
             }
         }

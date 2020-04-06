@@ -13,9 +13,14 @@ public abstract class VariantCallingService implements Serializable {
 
     public final static String DEEP_VARIANT_RESULT_EXTENSION = ".vcf";
 
+    public abstract void setup();
+
     public abstract Triplet<String, Boolean, String> processSampleWithVariantCaller(ResourceProvider resourceProvider,
-                                                                                    String outDirGcsUri, String outFilePrefix,
-                                                                                    String bamUri, String baiUri,
+                                                                                    String outDirGcsUri,
+                                                                                    String outFileNameWithoutExt,
+                                                                                    String bamUri,
+                                                                                    String baiUri,
+                                                                                    String region,
                                                                                     ReferenceDatabase referenceDatabase,
                                                                                     String readGroupName);
 }

@@ -3,6 +3,7 @@ package com.google.allenday.genomics.core.processing.sam;
 import com.google.allenday.genomics.core.io.FileUtils;
 import htsjdk.samtools.*;
 import htsjdk.samtools.util.*;
+import org.javatuples.Pair;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,6 +12,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static htsjdk.samtools.ValidationStringency.LENIENT;
 
@@ -61,14 +64,14 @@ public class SamBamManipulationService implements Serializable {
         List<SAMRecord> samRecords1 = reader1.iterator().toList();
         List<SAMRecord> samRecords2 = reader2.iterator().toList();
 
-        if (samRecords1.size() != samRecords2.size()){
+        if (samRecords1.size() != samRecords2.size()) {
             LOG.info("Sam files have difference size");
             CloserUtil.close(Arrays.asList(reader1, reader2));
             return false;
         } else {
             LOG.info("Sam files have the same size");
-            for (SAMRecord samRecord: samRecords1){
-                if (!samRecords2.contains(samRecord)){
+            for (SAMRecord samRecord : samRecords1) {
+                if (!samRecords2.contains(samRecord)) {
                     CloserUtil.close(Arrays.asList(reader1, reader2));
                     return false;
                 }
@@ -92,6 +95,42 @@ public class SamBamManipulationService implements Serializable {
         reader.close();
         return samRecords;
     }
+
+    public String samRecordsToBam(SAMFileHeader samFileHeader, String filepath, List<SAMRecord> samRecords) throws IOException {
+        SAMFileWriter samFileWriter = new SAMFileWriterFactory()
+                .makeBAMWriter(samFileHeader, false, new File(filepath));
+
+        samRecords.forEach(samFileWriter::addAlignment);
+        samFileWriter.close();
+        return filepath;
+    }
+
+    public Pair<SAMFileHeader, Stream<SAMRecord>> samRecordsStreamFromBamFile(String inputFilePath) throws IOException {
+        final SamReader reader = samReaderFromBamFile(inputFilePath, ValidationStringency.DEFAULT_STRINGENCY);
+        SAMFileHeader fileHeader = reader.getFileHeader();
+        return Pair.with(fileHeader, StreamSupport.stream(reader.spliterator(), false).onClose(() -> {
+            try {
+                reader.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e.getMessage());
+            }
+        }));
+    }
+
+
+    public Stream<SAMRecord> samRecordsBatchesStreamFromBamFile(String inputFilePath) throws IOException {
+        final SamReader reader = samReaderFromBamFile(inputFilePath, ValidationStringency.DEFAULT_STRINGENCY);
+        reader.getFileHeader().setSortOrder(SAMFileHeader.SortOrder.coordinate);
+
+        return StreamSupport.stream(reader.spliterator(), false).onClose(() -> {
+            try {
+                reader.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e.getMessage());
+            }
+        });
+    }
+
 
     public SamReader samReaderFromBamFile(String inputFilePath, ValidationStringency validationStringency) throws IOException {
         return SamReaderFactory.makeDefault().validationStringency(validationStringency).open(new File(inputFilePath));
@@ -208,5 +247,14 @@ public class SamBamManipulationService implements Serializable {
         BAMIndexer.createIndex(reader, new File(outputFilePath));
         reader.close();
         return outputFilePath;
+    }
+
+
+    public Map<String, Long> parseIndexToContigAndLengthMap(String indexContent) {
+        return Stream.of(indexContent.split("\n"))
+                .map(line -> {
+                    String[] elements = line.split("\t");
+                    return new AbstractMap.SimpleEntry<>(elements[0], Long.parseLong(elements[1]));
+                }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 }

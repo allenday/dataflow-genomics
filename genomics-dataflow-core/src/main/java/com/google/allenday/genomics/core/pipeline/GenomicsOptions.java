@@ -24,12 +24,14 @@ public class GenomicsOptions {
     private ValueProvider<String> refDataJsonString;
     private long memoryOutputLimit;
     private DeepVariantOptions deepVariantOptions;
+    private String variantCaller;
 
     private String vcfBqDatasetAndTablePattern;
     private String outputDir;
 
     public GenomicsOptions(String aligner, String resultBucket, List<String> geneReferences,
                            String allReferencesDirGcsUri, ValueProvider<String> refDataJsonString,
+                           String variantCaller,
                            String outputDir,
                            long memoryOutputLimit) {
         this.aligner = aligner;
@@ -37,6 +39,7 @@ public class GenomicsOptions {
         this.geneReferences = geneReferences;
         this.allReferencesDirGcsUri = allReferencesDirGcsUri;
         this.refDataJsonString = refDataJsonString;
+        this.variantCaller = variantCaller;
         this.outputDir = outputDir;
         this.memoryOutputLimit = memoryOutputLimit;
 
@@ -54,6 +57,7 @@ public class GenomicsOptions {
                 alignerPipelineOptions.getReferenceNamesList(),
                 alignerPipelineOptions.getAllReferencesDirGcsUri(),
                 alignerPipelineOptions.getRefDataJsonString(),
+                alignerPipelineOptions.getVariantCaller(),
                 bucketDirPair.getValue1(),
                 alignerPipelineOptions.getMemoryOutputLimit());
 
@@ -141,7 +145,7 @@ public class GenomicsOptions {
     }
 
     public String getVcfToBqOutputDir() {
-        return outputDir + VCF_TO_BQ_PATH;
+        return outputDir + "%s" + VCF_TO_BQ_PATH;
     }
 
     public String getCustomOutputDirPattern(String patternSuffix) {
@@ -174,5 +178,9 @@ public class GenomicsOptions {
 
     public String getAligner() {
         return aligner;
+    }
+
+    public String getVariantCaller() {
+        return variantCaller;
     }
 }

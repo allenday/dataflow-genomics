@@ -47,5 +47,11 @@ public interface BatchProcessingPipelineOptions extends GenomicsPipelineOptions 
     UriProvider.FastqExt getFastqExt();
 
     void setFastqExt(UriProvider.FastqExt value);
+
+    @Description("Num of bases that will contain region splitted BAM file")
+    @Default.Integer(10000000)
+    Integer getBamRegionSize();
+
+    void setBamRegionSize(Integer value);
 }
 

@@ -37,11 +37,12 @@ public abstract class BatchProcessingModule extends AbstractModule {
     protected GenomicsOptions genomicsOptions;
     protected Integer maxFastqSizeMB;
     protected Integer maxFastqChunkSize;
+    protected UriProvider.FastqExt fastqExt;
 
     public BatchProcessingModule(String srcBucket, String inputCsvUri, List<String> sraSamplesToFilter,
                                  List<String> sraSamplesToSkip, String project, String region,
                                  GenomicsOptions genomicsOptions, Integer maxFastqSizeMB,
-                                 Integer maxFastqChunkSize) {
+                                 Integer maxFastqChunkSize, UriProvider.FastqExt fastqExt) {
         this.srcBucket = srcBucket;
         this.inputCsvUri = inputCsvUri;
         this.sraSamplesToFilter = sraSamplesToFilter;
@@ -51,6 +52,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
         this.genomicsOptions = genomicsOptions;
         this.maxFastqSizeMB = maxFastqSizeMB;
         this.maxFastqChunkSize = maxFastqChunkSize;
+        this.fastqExt = fastqExt;
     }
 
     @Provides

@@ -82,7 +82,7 @@ public class SamBamManipulationService implements Serializable {
     }
 
     public String generateMergedFileName(String outPrefix, String outSuffix) {
-        return outPrefix + "_" + outSuffix + MERGE_SORTED_FILE_SUFFIX;
+        return outPrefix + outSuffix + MERGE_SORTED_FILE_SUFFIX;
     }
 
     public List<SAMRecord> samRecordsFromBamFile(String inputFilePath) throws IOException {

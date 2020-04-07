@@ -15,16 +15,42 @@ import java.nio.channels.Channels;
 public class TransformIoHandler implements Serializable {
 
     private static Logger LOG = LoggerFactory.getLogger(TransformIoHandler.class);
+    private final static String DEFAULT_DEST_GCS_DIR = "results/";
 
     private String resultsBucket;
-    private String destGcsPrefix;
-    private long memoryOutputLimitMb = 0;
+    private String jobDateTime;
+    private String destGcsDir;
     private FileUtils fileUtils;
+    private long memoryOutputLimitMb = 0;
 
-    public TransformIoHandler(String resultsBucket, String destGcsPrefix, FileUtils fileUtils) {
+    public TransformIoHandler(String resultsBucket, FileUtils fileUtils) {
         this.resultsBucket = resultsBucket;
-        this.destGcsPrefix = destGcsPrefix;
         this.fileUtils = fileUtils;
+        this.destGcsDir = DEFAULT_DEST_GCS_DIR;
+    }
+
+    public TransformIoHandler(String resultsBucket, FileUtils fileUtils, String jobDateTime) {
+        this(resultsBucket, fileUtils);
+        this.jobDateTime = jobDateTime;
+        this.destGcsDir = jobDateTime + "/" + DEFAULT_DEST_GCS_DIR;
+    }
+
+    public TransformIoHandler withTimestampedDestGcsDir(String dirPattern) {
+        this.destGcsDir = String.format(dirPattern, jobDateTime);
+        return this;
+    }
+
+    public TransformIoHandler withDestGcsDir(String dir) {
+        this.destGcsDir = dir;
+        return this;
+    }
+
+    public void overwriteWithTimestampedDestGcsDir(String dirPattern) {
+        this.destGcsDir = String.format(dirPattern, jobDateTime);
+    }
+
+    public void overwriteWithDestGcsDir(String dir) {
+        this.destGcsDir = dir;
     }
 
     public FileWrapper handleContentOutput(GCSService gcsService, byte[] content, String filename) throws IOException {
@@ -39,7 +65,7 @@ public class TransformIoHandler implements Serializable {
     }
 
     public FileWrapper saveContentToGcsOutput(GCSService gcsService, byte[] content, String filename) throws IOException {
-        String gcsFilePath = destGcsPrefix + filename;
+        String gcsFilePath = destGcsDir + filename;
 
         LOG.info(String.format("Export %s content to GCS %s", filename, gcsFilePath));
 
@@ -61,7 +87,7 @@ public class TransformIoHandler implements Serializable {
     }
 
     public FileWrapper saveFileToGcsOutput(GCSService gcsService, String filepath, String gcsDestFilename) throws IOException {
-        String gcsFilePath = destGcsPrefix + gcsDestFilename;
+        String gcsFilePath = destGcsDir + gcsDestFilename;
 
         LOG.info(String.format("Export %s file to GCS %s", filepath, gcsFilePath));
         Blob blob = gcsService.writeToGcs(resultsBucket, gcsFilePath, filepath);
@@ -104,7 +130,7 @@ public class TransformIoHandler implements Serializable {
     }
 
     public FileWrapper handleInputAndCopyToGcs(FileWrapper fileWrapper, GCSService gcsService, String newFileName, String workDir) throws RuntimeException {
-        String gcsFilePath = destGcsPrefix + newFileName;
+        String gcsFilePath = destGcsDir + newFileName;
         Blob resultBlob;
         try {
             if (fileWrapper.getDataType() == FileWrapper.DataType.CONTENT) {

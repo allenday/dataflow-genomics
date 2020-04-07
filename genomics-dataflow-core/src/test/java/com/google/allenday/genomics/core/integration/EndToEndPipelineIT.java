@@ -7,6 +7,7 @@ import com.google.allenday.genomics.core.io.*;
 import com.google.allenday.genomics.core.lifesciences.LifeSciencesService;
 import com.google.allenday.genomics.core.model.Instrument;
 import com.google.allenday.genomics.core.model.SampleMetaData;
+import com.google.allenday.genomics.core.model.SraSampleId;
 import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
 import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
@@ -46,20 +47,23 @@ import java.util.stream.StreamSupport;
 public class EndToEndPipelineIT implements Serializable {
     private Logger LOG = LoggerFactory.getLogger(EndToEndPipelineIT.class);
 
+    private final static String DEFAULT_TEST_BUCKET = "human1000-results";
     private final static String REFERENCE_LOCAL_DIR = "reference/";
 
     private final static String TEST_EXAMPLE_SRA = "SRS0000001";
 
-    private final static String FASTQ_SIZE_CHUNK_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_fastq_size_chunk/";
-    private final static String FASTQ_COUNT_CHUNK_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_fastq_count_chunk/";
-    private final static String ALIGN_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_aligned_bam/";
-    private final static String SORT_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_sorted_bam/";
-    private final static String MERGE_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_merged_bam/";
-    private final static String INDEX_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_merged_bam/";
-    private final static String DV_RESULT_GCS_DIR_PATH_PATTERN = "testing/cannabis_processing_output/%s/result_dv/";
+    private final static String MAIN_TESTING_GCS_DIR = "testing/";
 
-    private final static String TEST_GCS_INPUT_DATA_DIR = "testing/input/";
-    private final static String TEST_GCS_REFERENCE_DIR = "testing/reference/";
+    private final static String FASTQ_SIZE_CHUNK_RESULT_GCS_DIR_PATH_PATTERN = MAIN_TESTING_GCS_DIR + "processing_output/%s/result_fastq_size_chunk/";
+    private final static String FASTQ_COUNT_CHUNK_RESULT_GCS_DIR_PATH_PATTERN = MAIN_TESTING_GCS_DIR + "processing_output/%s/result_fastq_count_chunk/";
+    private final static String ALIGN_RESULT_GCS_DIR_PATH_PATTERN = MAIN_TESTING_GCS_DIR + "processing_output/%s/result_aligned_bam/";
+    private final static String SORT_RESULT_GCS_DIR_PATH_PATTERN = MAIN_TESTING_GCS_DIR + "processing_output/%s/result_sorted_bam/";
+    private final static String MERGE_RESULT_GCS_DIR_PATH_PATTERN = MAIN_TESTING_GCS_DIR + "processing_output/%s/result_merged_bam/";
+    private final static String FINAL_MERGE_RESULT_GCS_DIR_PATH_PATTERN = MAIN_TESTING_GCS_DIR + "processing_output/%s/result_final_merged_bam/";
+    private final static String DV_RESULT_GCS_DIR_PATH_PATTERN = MAIN_TESTING_GCS_DIR + "processing_output/%s/result_dv/";
+
+    private final static String TEST_GCS_INPUT_DATA_DIR = MAIN_TESTING_GCS_DIR + "input/";
+    private final static String TEST_GCS_REFERENCE_DIR = MAIN_TESTING_GCS_DIR + "reference/";
 
     private final static int TEST_MAX_FASTQ_CHUNK_SIZE = 5000;
     private final static int TEST_MAX_FASTQ_CONTENT_SIZE_MB = 50;
@@ -103,7 +107,7 @@ public class EndToEndPipelineIT implements Serializable {
         FastqReader fastqReader = new FastqReader();
         String testBucket = Optional
                 .ofNullable(System.getenv("TEST_BUCKET"))
-                .orElse("human1000-results");
+                .orElse(DEFAULT_TEST_BUCKET);
 
         GCSService gcsService = GCSService.initialize(fileUtils);
         Pair<String, UriProvider> inputCsvUriAndProvider = prepareInputData(gcsService, fileUtils, testBucket, TEST_INPUT_FILES, TEST_CSV_FILE);
@@ -114,7 +118,7 @@ public class EndToEndPipelineIT implements Serializable {
         BatchSamParser batchSamParser = new BatchSamParser(samBamManipulationService, fileUtils);
 
         String mergeResultGcsPath = String.format(MERGE_RESULT_GCS_DIR_PATH_PATTERN, jobTime);
-        String indexResultGcsPath = String.format(INDEX_RESULT_GCS_DIR_PATH_PATTERN, jobTime);
+        String mergeFinalResultGcsPath = String.format(FINAL_MERGE_RESULT_GCS_DIR_PATH_PATTERN, jobTime);
 
         String dvResultGcsPath = gcsService.getUriFromBlob(BlobId.of(testBucket, String.format(DV_RESULT_GCS_DIR_PATH_PATTERN, jobTime)));
 
@@ -122,17 +126,17 @@ public class EndToEndPipelineIT implements Serializable {
         DeepVariantService deepVariantService = new DeepVariantService(new LifeSciencesService(), new DeepVariantOptions());
 
         TransformIoHandler splitFastqIntoBatchesIoHandler = new TransformIoHandler(
-                testBucket, String.format(FASTQ_COUNT_CHUNK_RESULT_GCS_DIR_PATH_PATTERN, jobTime), fileUtils);
+                testBucket, fileUtils, jobTime).withTimestampedDestGcsDir(FASTQ_COUNT_CHUNK_RESULT_GCS_DIR_PATH_PATTERN);
         TransformIoHandler buildFastqContentIoHandler = new TransformIoHandler(
-                testBucket, String.format(FASTQ_SIZE_CHUNK_RESULT_GCS_DIR_PATH_PATTERN, jobTime), fileUtils);
+                testBucket, fileUtils, jobTime).withTimestampedDestGcsDir(FASTQ_SIZE_CHUNK_RESULT_GCS_DIR_PATH_PATTERN);
         TransformIoHandler alignTransformIoHandler =
-                new TransformIoHandler(testBucket, String.format(ALIGN_RESULT_GCS_DIR_PATH_PATTERN, jobTime), fileUtils);
+                new TransformIoHandler(testBucket, fileUtils, jobTime).withTimestampedDestGcsDir(ALIGN_RESULT_GCS_DIR_PATH_PATTERN);
         TransformIoHandler sortTransformIoHandler =
-                new TransformIoHandler(testBucket, String.format(SORT_RESULT_GCS_DIR_PATH_PATTERN, jobTime), fileUtils);
+                new TransformIoHandler(testBucket, fileUtils, jobTime).withTimestampedDestGcsDir(SORT_RESULT_GCS_DIR_PATH_PATTERN);
         TransformIoHandler mergeTransformIoHandler =
-                new TransformIoHandler(testBucket, mergeResultGcsPath, fileUtils);
-        TransformIoHandler indexTransformIoHandler =
-                new TransformIoHandler(testBucket, indexResultGcsPath, fileUtils);
+                new TransformIoHandler(testBucket, fileUtils).withDestGcsDir(mergeResultGcsPath);
+        TransformIoHandler finalMergeTransformIoHandler =
+                new TransformIoHandler(testBucket, fileUtils).withDestGcsDir(mergeFinalResultGcsPath);
 
         SplitFastqIntoBatches.ReadFastqPartFn readFastqPartFn =
                 new SplitFastqIntoBatches.ReadFastqPartFn(fileUtils, fastqReader, splitFastqIntoBatchesIoHandler,
@@ -151,14 +155,22 @@ public class EndToEndPipelineIT implements Serializable {
         SamIntoRegionBatchesFn samIntoRegionBatchesFn = new SamIntoRegionBatchesFn(sortTransformIoHandler, samBamManipulationService,
                 batchSamParser, fileUtils, ioUtils, TEST_MAX_SAM_RECORDS_BATCH_SIZE);
         MergeFn mergeFn = new MergeFn(mergeTransformIoHandler, samBamManipulationService, fileUtils);
-        CreateBamIndexFn createBamIndexFn = new CreateBamIndexFn(indexTransformIoHandler, samBamManipulationService, fileUtils);
+        AlignAndPostProcessTransform.FinalMergeTransform finalMergeTransform = new AlignAndPostProcessTransform.FinalMergeTransform(
+                new MergeFn(finalMergeTransformIoHandler, samBamManipulationService, fileUtils)
+        );
+        CreateBamIndexFn createBamIndexFn = new CreateBamIndexFn(mergeTransformIoHandler, samBamManipulationService, fileUtils);
 
         pipeline
                 .apply(new ParseSourceCsvTransform(inputCsvUriAndProvider.getValue0(),
                         new TestSraParser(SampleMetaData.Parser.Separation.COMMA),
                         inputCsvUriAndProvider.getValue1(), fileUtils))
                 .apply(new SplitFastqIntoBatches(readFastqPartFn, buildFastqContentFn, TEST_MAX_FASTQ_CONTENT_SIZE_MB))
-                .apply(new AlignAndPostProcessTransform("AlignAndPostProcessTransformLegacy", alignTransform, samIntoRegionBatchesFn, mergeFn, createBamIndexFn))
+                .apply(new AlignAndPostProcessTransform(
+                        alignTransform,
+                        samIntoRegionBatchesFn,
+                        mergeFn,
+                        finalMergeTransform,
+                        createBamIndexFn))
 
 //        TODO DeepVeariant temporary excluded from end-to-end tests
 //                .apply(ParDo.of(new VariantCallingtFn(deepVariantService, dvResultGcsPath)))
@@ -168,10 +180,13 @@ public class EndToEndPipelineIT implements Serializable {
         pipelineResult.waitUntilFinish();
 
         List<BlobId> mergeResults = getBlobIdsWithDirAndEnding(gcsService, testBucket, mergeResultGcsPath, ".merged.sorted.bam");
-        List<BlobId> indexResults = getBlobIdsWithDirAndEnding(gcsService, testBucket, mergeResultGcsPath, ".merged.sorted.bam");
+        List<BlobId> indexResults = getBlobIdsWithDirAndEnding(gcsService, testBucket, mergeResultGcsPath, ".merged.sorted.bam.bai");
+
+        BlobId finalMergeBlobId = BlobId.of(testBucket, mergeFinalResultGcsPath +
+                new SamRecordsMetadaKey(SraSampleId.create(TEST_EXAMPLE_SRA), TEST_REFERENCE_NAME, SamRecordsMetadaKey.Region.UNDEFINED).generateSlug() + ".merged.sorted.bam");
 
         Assert.assertEquals(mergeResults.size(), indexResults.size());
-        checkResultContent(gcsService, fileUtils, mergeResults);
+        checkResultContent(gcsService, fileUtils, finalMergeBlobId);
     }
 
     private Pair<String, UriProvider> prepareInputData(GCSService gcsService, FileUtils fileUtils, String bucketName,
@@ -233,29 +248,17 @@ public class EndToEndPipelineIT implements Serializable {
 
     private void checkExists(GCSService gcsService, BlobId expectedResultBlob) throws IOException {
         boolean resultExists = gcsService.isExists(expectedResultBlob);
-        Assert.assertTrue("Results file exists", resultExists);
+        Assert.assertTrue(String.format("File %s not exists", expectedResultBlob.toString()), resultExists);
     }
 
-    private void checkResultContent(GCSService gcsService, FileUtils fileUtils, List<BlobId> expectedResultBlobs) throws IOException {
-        expectedResultBlobs.forEach(expectedResultBlob -> {
-            try {
-                checkExists(gcsService, expectedResultBlob);
-            } catch (IOException e) {
-                LOG.error(e.getMessage());
-            }
-        });
+    private void checkResultContent(GCSService gcsService, FileUtils fileUtils, BlobId expectedResultBlob) throws IOException {
+        checkExists(gcsService, expectedResultBlob);
+        String destFileName = TEMP_DIR + expectedResultBlob.getName();
+        fileUtils.mkdirFromUri(destFileName);
 
-        List<String> expectedResultPaths = new ArrayList<>();
-        for (BlobId blobId : expectedResultBlobs) {
-            String destFileName = TEMP_DIR + blobId.getName();
+        gcsService.downloadBlobTo(gcsService.getBlob(expectedResultBlob), destFileName);
 
-            fileUtils.mkdirFromUri(destFileName);
-            gcsService.downloadBlobTo(gcsService.getBlob(blobId), destFileName);
-            expectedResultPaths.add(destFileName);
-        }
         SamBamManipulationService samBamManipulationService = new SamBamManipulationService(fileUtils);
-        String destFileName = samBamManipulationService.mergeBamFiles(expectedResultPaths, TEMP_DIR, UUID.randomUUID().toString(), "");
-
 
         File expectedResultsFile = new File(getClass().getClassLoader().getResource(EXPECTED_SINGLE_END_RESULT_CONTENT_FILE).getFile());
         File actualResultsFile = new File(fileUtils.getCurrentPath() + destFileName);
@@ -276,5 +279,15 @@ public class EndToEndPipelineIT implements Serializable {
         fileUtils.deleteDir(Minimap2AlignService.MINIMAP_NAME);
         fileUtils.deleteDir(TEMP_DIR);
         fileUtils.deleteDir(REFERENCE_LOCAL_DIR);
+
+        GCSService gcsService = GCSService.initialize(fileUtils);
+        String testBucket = Optional
+                .ofNullable(System.getenv("TEST_BUCKET"))
+                .orElse(DEFAULT_TEST_BUCKET);
+        gcsService.getListOfBlobsInDir(testBucket, MAIN_TESTING_GCS_DIR)
+                .iterateAll().forEach(blob -> {
+            LOG.info(String.format("Deleting: %s ...", blob.getBlobId().toString()));
+            blob.delete();
+        });
     }
 }

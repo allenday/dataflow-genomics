@@ -7,15 +7,16 @@ import java.util.List;
 
 public class GenomicsOptions {
 
-    public final static String CHUNKS_BY_COUNT_OUTPUT_PATH_PATTERN = "%s/result_chunked_fastq_by_count/";
-    public final static String CHUNKS_BY_SIZE_OUTPUT_PATH_PATTERN = "%s/result_chunked_fastq_by_size/";
-    public final static String ALIGNED_OUTPUT_PATH_PATTERN = "%s/result_aligned_bam/";
-    public final static String SORTED_OUTPUT_PATH_PATTERN = "%s/result_sorted_bam/";
-    public final static String MERGED_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
-    public final static String BAM_INDEX_OUTPUT_PATH_PATTERN = "%s/result_merged_bam/";
-    public final static String DEEP_VARIANT_OUTPUT_PATH_PATTERN = "%s/result_dv/";
-    public final static String VCF_TO_BQ_PATH = "/vcf_to_bq/";
-    public final static String ANOMALY_PATH_PATTERN = "%s/anomaly_samples/";
+    public final static String CHUNKS_BY_COUNT_OUTPUT_PATH_PATTERN = "%s/intermediate/chunked_fastq_by_count/";
+    public final static String CHUNKS_BY_SIZE_OUTPUT_PATH_PATTERN = "%s/intermediate/chunked_fastq_by_size/";
+    public final static String ALIGNED_OUTPUT_PATH_PATTERN = "%s/intermediate/aligned_sam/";
+    public final static String SORTED_OUTPUT_PATH_PATTERN = "%s/intermediate/sorted_bam/";
+    public final static String SORTED_AND_SPLITTED_PATH_PATTERN = "%s/intermediate/sorted_and_splitted_bam/";
+    public final static String FINAL_MERGED_PATH_PATTERN = "%s/final/result_merged_bam/";
+    public final static String MERGED_REGIONS_PATH_PATTERN = "%s/intermediate/merged_regions_bam/";
+    public final static String VARIANT_CALLING_OUTPUT_PATH_PATTERN = "%s/final/result_variant_calling/";
+    public final static String VCF_TO_BQ_PATH = "%s/intermediate/vcf_to_bq/";
+    public final static String ANOMALY_PATH_PATTERN = "%s/final/anomaly_samples/";
 
     private String aligner;
     private String resultBucket;
@@ -128,24 +129,28 @@ public class GenomicsOptions {
         return outputDir + SORTED_OUTPUT_PATH_PATTERN;
     }
 
-    public String getMergedOutputDirPattern() {
-        return outputDir + MERGED_OUTPUT_PATH_PATTERN;
+    public String getSortedAndSplittedOutputDirPattern() {
+        return outputDir + SORTED_AND_SPLITTED_PATH_PATTERN;
     }
 
-    public String getBamIndexOutputDirPattern() {
-        return outputDir + BAM_INDEX_OUTPUT_PATH_PATTERN;
+    public String getMergedRegionsDirPattern() {
+        return outputDir + MERGED_REGIONS_PATH_PATTERN;
+    }
+
+    public String getFinalMergedDirPattern() {
+        return outputDir + FINAL_MERGED_PATH_PATTERN;
     }
 
     public String getAnomalyOutputDirPattern() {
         return outputDir + ANOMALY_PATH_PATTERN;
     }
 
-    public String getDeepVariantOutputDirPattern() {
-        return outputDir + DEEP_VARIANT_OUTPUT_PATH_PATTERN;
+    public String getVariantCallingOutputDirPattern() {
+        return outputDir + VARIANT_CALLING_OUTPUT_PATH_PATTERN;
     }
 
     public String getVcfToBqOutputDir() {
-        return outputDir + "%s" + VCF_TO_BQ_PATH;
+        return outputDir + VCF_TO_BQ_PATH;
     }
 
     public String getCustomOutputDirPattern(String patternSuffix) {

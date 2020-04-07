@@ -3,6 +3,7 @@ package com.google.allenday.genomics.core.processing.variantcall;
 import com.google.allenday.genomics.core.model.BamWithIndexUris;
 import com.google.allenday.genomics.core.processing.sam.SamRecordsMetadaKey;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
+import org.apache.beam.sdk.transforms.Filter;
 import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.transforms.Reshuffle;
@@ -25,6 +26,7 @@ public class VariantCallingTransform extends PTransform<PCollection<KV<SamRecord
     @Override
     public PCollection<KV<SamRecordsMetadaKey, KV<String, String>>> expand(PCollection<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, BamWithIndexUris>>> input) {
         return input
+                .apply(Filter.by(kv -> kv.getKey().getRegion().isMapped()))
                 .apply(Reshuffle.viaRandomKey())
                 .apply("Variant Calling Fn", ParDo.of(variantCallingtFn));
     }

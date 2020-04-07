@@ -6,19 +6,16 @@ import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.processing.align.AlignTransform;
 import com.google.allenday.genomics.core.processing.sam.CreateBamIndexFn;
 import com.google.allenday.genomics.core.processing.sam.MergeFn;
-import com.google.allenday.genomics.core.processing.sam.SamRecordsMetadaKey;
 import com.google.allenday.genomics.core.processing.sam.SamIntoRegionBatchesFn;
+import com.google.allenday.genomics.core.processing.sam.SamRecordsMetadaKey;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.allenday.genomics.core.utils.ValueIterableToValueListTransform;
 import org.apache.beam.sdk.transforms.*;
 import org.apache.beam.sdk.transforms.join.CoGbkResult;
 import org.apache.beam.sdk.transforms.join.CoGroupByKey;
 import org.apache.beam.sdk.transforms.join.KeyedPCollectionTuple;
-import org.apache.beam.sdk.values.KV;
-import org.apache.beam.sdk.values.PCollection;
-import org.apache.beam.sdk.values.TupleTag;
+import org.apache.beam.sdk.values.*;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,16 +29,19 @@ public class AlignAndPostProcessTransform extends PTransform<PCollection<KV<Samp
 
     public AlignTransform alignTransform;
     public SamIntoRegionBatchesFn samIntoRegionBatchesFn;
-    public MergeFn mergeFn;
+    public MergeFn regionsMergeFn;
+    public FinalMergeTransform finalMergeTransform;
     public CreateBamIndexFn createBamIndexFn;
 
-    public AlignAndPostProcessTransform(@Nullable String name, AlignTransform alignTransform,
+    public AlignAndPostProcessTransform(AlignTransform alignTransform,
                                         SamIntoRegionBatchesFn samIntoRegionBatchesFn,
-                                        MergeFn mergeFn, CreateBamIndexFn createBamIndexFn) {
-        super(name);
+                                        MergeFn regionsMergeFn,
+                                        FinalMergeTransform finalMergeTransform,
+                                        CreateBamIndexFn createBamIndexFn) {
         this.alignTransform = alignTransform;
         this.samIntoRegionBatchesFn = samIntoRegionBatchesFn;
-        this.mergeFn = mergeFn;
+        this.regionsMergeFn = regionsMergeFn;
+        this.finalMergeTransform = finalMergeTransform;
         this.createBamIndexFn = createBamIndexFn;
     }
 
@@ -54,9 +54,13 @@ public class AlignAndPostProcessTransform extends PTransform<PCollection<KV<Samp
                 .apply("Group by meta data and reference", GroupByKey.create())
                 .apply(new ValueIterableToValueListTransform<>())
                 .apply("Prepare for Merge", ParDo.of(new PrepareForMergeFn<>()))
-                .apply("Merge aligned results", ParDo.of(mergeFn));
+                .apply("Merge aligned results", ParDo.of(regionsMergeFn));
+
+        mergedAlignedSequences.apply("Output final merge results", finalMergeTransform);
+
         PCollection<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, FileWrapper>>> bamIndexes =
-                mergedAlignedSequences.apply("Create BAM index", ParDo.of(createBamIndexFn));
+                mergedAlignedSequences
+                        .apply("Create BAM index", ParDo.of(createBamIndexFn));
 
         final TupleTag<KV<ReferenceDatabaseSource, FileWrapper>> mergedAlignedSequencesTag = new TupleTag<>();
         final TupleTag<KV<ReferenceDatabaseSource, FileWrapper>> bamIndexesTag = new TupleTag<>();
@@ -97,4 +101,29 @@ public class AlignAndPostProcessTransform extends PTransform<PCollection<KV<Samp
 
         }
     }
+
+
+    public static class FinalMergeTransform extends PTransform<PCollection<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, FileWrapper>>>,
+            PCollection<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, FileWrapper>>>> {
+
+        private MergeFn finalMergeFn;
+
+        public FinalMergeTransform(MergeFn finalMergeFn) {
+            this.finalMergeFn = finalMergeFn;
+        }
+
+        @Override
+        public PCollection<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, FileWrapper>>> expand(
+                PCollection<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, FileWrapper>>> input) {
+            return input.apply(MapElements
+                    .into(TypeDescriptors.kvs(TypeDescriptor.of(SamRecordsMetadaKey.class),
+                            TypeDescriptors.kvs(TypeDescriptor.of(ReferenceDatabaseSource.class), TypeDescriptor.of(FileWrapper.class))))
+                    .via(kv -> KV.of(kv.getKey().cloneWithUndefinedRegion(), kv.getValue())))
+                    .apply("Group by meta data and reference", GroupByKey.create())
+                    .apply(new ValueIterableToValueListTransform<>())
+                    .apply("Prepare for Merge", ParDo.of(new PrepareForMergeFn<>()))
+                    .apply("Merge final", ParDo.of(finalMergeFn));
+        }
+    }
+
 }

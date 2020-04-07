@@ -41,8 +41,20 @@ public class SamRecordsMetadaKey implements Serializable {
     }
 
     public String generateFileSuffix() {
-        return "_" + StringUtils.generateSlug(referenceName) + "_" + StringUtils.generateSlug(region.contig)
-                + "_" + region.start + "_" + region.end;
+        StringBuilder suffixBuilder = new StringBuilder();
+        suffixBuilder.append("_").append(StringUtils.generateSlug(referenceName));
+        if (!region.equals(Region.UNDEFINED)) {
+            if (region.contig.equals("*")) {
+                suffixBuilder
+                        .append("_").append("not_mapped");
+            } else {
+                suffixBuilder
+                        .append("_").append(StringUtils.generateSlug(region.contig));
+            }
+            suffixBuilder.append("_").append(region.start)
+                    .append("_").append(region.end);
+        }
+        return suffixBuilder.toString();
     }
 
     public String generateSlug() {
@@ -77,8 +89,15 @@ public class SamRecordsMetadaKey implements Serializable {
                 '}';
     }
 
+    public SamRecordsMetadaKey cloneWithUndefinedRegion() {
+        return new SamRecordsMetadaKey(SraSampleId.create(sraSampleId.getValue()), referenceName, Region.UNDEFINED);
+    }
+
     @DefaultCoder(AvroCoder.class)
     public static class Region implements Serializable {
+
+        public static Region UNDEFINED = new Region("", -1l, -1l);
+
         private String contig;
         private Long start;
         private Long end;
@@ -126,6 +145,10 @@ public class SamRecordsMetadaKey implements Serializable {
                     ", start=" + start +
                     ", end=" + end +
                     '}';
+        }
+
+        public boolean isMapped() {
+            return !contig.equals("*");
         }
     }
 }

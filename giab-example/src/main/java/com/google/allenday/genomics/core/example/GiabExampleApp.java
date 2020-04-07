@@ -3,7 +3,7 @@ package com.google.allenday.genomics.core.example;
 import com.google.allenday.genomics.core.batch.BatchProcessingPipelineOptions;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
 import com.google.allenday.genomics.core.pipeline.PipelineSetupUtils;
-import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
+import com.google.allenday.genomics.core.processing.AlignAndSamProcessingTransform;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
 import com.google.allenday.genomics.core.processing.variantcall.VariantCallingTransform;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.PrepareAndExecuteVcfToBqTransform;
@@ -35,7 +35,7 @@ public class GiabExampleApp {
         pipeline
                 .apply("Parse data", injector.getInstance(ParseSourceCsvTransform.class))
                 .apply("Split large FASTQ into chunks", injector.getInstance(SplitFastqIntoBatches.class))
-                .apply("Align reads and prepare for DV", injector.getInstance(AlignAndPostProcessTransform.class))
+                .apply("Align reads and prepare for DV", injector.getInstance(AlignAndSamProcessingTransform.class))
                 .apply("Variant Calling", injector.getInstance(VariantCallingTransform.class))
                 .apply("Prepare and execute export to BigQuery", injector.getInstance(PrepareAndExecuteVcfToBqTransform.class))
         ;

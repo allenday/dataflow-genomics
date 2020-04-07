@@ -50,7 +50,9 @@ Alternatively, FASTQ runs could be downloaded from NCPI ftp `ftp://ftp-trace.ncb
 Reference FASTA file could be retrieved from [Human Genome Resources at NCBI](https://www.ncbi.nlm.nih.gov/genome/guide/human/). 
 Here is [link](ftp://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/annotation/GRCh38_latest/refseq_identifiers/GRCh38_latest_genomic.fna.gz) to GRCh38 latest genome reference. 
 Reference size - 3.09 GB. Also, you must create reference index `.fai` file. 
-For indexing could be used [SAM Tools utilities](http://samtools.sourceforge.net/) 
+For indexing could be used [SAM Tools utilities](http://samtools.sourceforge.net/).
+If you are going to use [GATK Haplotaype Caller](https://gatk.broadinstitute.org/hc/en-us/articles/360037225632-HaplotypeCaller) there also should be reference sequence dictionary file (`.dict`).
+[Here](https://gatk.broadinstitute.org/hc/en-us/articles/360037068312-CreateSequenceDictionary-Picard-) you can find an example how to create it with a GATK command-line util. 
 
 ### Data placement
 1. Data should be placed in your `SRC_BUCKET_NAME` GCS bucket. You could simply copy it from `gs://dataflow-genomics-giab-demo/` bucket with following commands:
@@ -78,6 +80,7 @@ For indexing could be used [SAM Tools utilities](http://samtools.sourceforge.net
         + reference/
             - GRCh38_latest_genomic.fasta
             - GRCh38_latest_genomic.fasta.fai
+            - GRCh38_latest_genomic.dict
     ```
 2. Store into variables:
     ```bash
@@ -105,9 +108,18 @@ For indexing could be used [SAM Tools utilities](http://samtools.sourceforge.net
     TEMP_LOC=gs://${WORKING_BUCKET_NAME}/dataflow/temp/
     STAGING_LOC=gs://${WORKING_BUCKET_NAME}/dataflow/staging/
     ```
-### Deep Variant settings
-To run the pipeline with variant calling step you should add Deep Variant settings parameters:
+    
+### BigQuery settings
+To add export of VCF files into BigQuery following parameter should be added:
+```bash
+VCF_BQ_TABLE_PATH_PATTERN=${BQ_DATASET}.GENOMICS_VARIATIONS_%s
 ```
+
+### (Optional) Deep Variant settings
+By default, pipeline uses [GATK Haplotaype Caller](https://gatk.broadinstitute.org/hc/en-us/articles/360037225632-HaplotypeCaller).
+If you want to run the pipeline with a [Deep Variant](https://github.com/google/deepvariant) variant caller you should add following settings parameters:
+```
+VARIANT_CALLER=DEEP_VARIANT
 CONTROL_PIPELIE_WORKER_REGION=$REGION
 STEPS_WORKER_REGION=$REGION
 M_E_CORES=16
@@ -122,11 +134,6 @@ P_V_DISK=$DISK_SIZE
 M_E_WORKERS=16
 C_V_WORKERS=16
 M_E_SHARDS=$M_E_WORKERS
-```
-### BigQuery settings
-To add export of VCF files into BigQuery following parameter should be added:
-```bash
-VCF_BQ_TABLE_PATH_PATTERN=${BQ_DATASET}.GENOMICS_VARIATIONS_%s
 ```
 
 ### Running pipeline
@@ -148,6 +155,29 @@ java -cp target/giab-example-1.0.0.jar \
         --srcBucket=$SRC_BUCKET_NAME \
         --refDataJsonString=$REFERENCE_DATA_JSON_STRING \
         --outputGcsUri=$OUTPUT_GCS_URI \
+        --vcfBqDatasetAndTablePattern=$VCF_BQ_TABLE_PATH_PATTERN
+```
+### (Optional) Running pipeline with DeepVariant 
+Here is an example of the command for running pipeline with DeepVariant caller:
+
+```bash
+mvn clean package
+java -cp target/giab-example-1.0.0.jar \
+    com.google.allenday.genomics.core.example.GiabExampleApp \
+        --project=$PROJECT_ID \
+        --runner=DataflowRunner \
+        --region=$REGION \
+        --inputCsvUri=$CSV_URI \
+        --workerMachineType=$MACHINE_TYPE \
+        --maxNumWorkers=$MAX_WORKERS \
+        --numWorkers=$MAX_WORKERS \
+        --diskSizeGb=$DISK_SIZE \
+        --stagingLocation=$STAGING_LOC \
+        --tempLocation=$TEMP_LOC \
+        --srcBucket=$SRC_BUCKET_NAME \
+        --refDataJsonString=$REFERENCE_DATA_JSON_STRING \
+        --variantCaller=$VARIANT_CALLER \
+        --outputGcsUri=$OUTPUT_GCS_URI \
         --controlPipelineWorkerRegion=$CONTROL_PIPELIE_WORKER_REGION \
         --stepsWorkerRegion=$STEPS_WORKER_REGION \
         --makeExamplesCoresPerWorker=$M_E_CORES \
@@ -164,25 +194,19 @@ java -cp target/giab-example-1.0.0.jar \
         --deepVariantShards=$M_E_SHARDS \
         --vcfBqDatasetAndTablePattern=$VCF_BQ_TABLE_PATH_PATTERN
 ```
+
 ### Results
 All intermediate results (.sam, .bam aligned results) will be stored in `WORKING_BUCKET_NAME` bucket. Here is files structure of results:
 ```
 + ${WORKING_BUCKET_NAME}/
     + processing_output/
         + <processing_date>/
-            + result_sorted_bam/
-                - V100002698_L01_GRCh38_latest_genomic.aligned.sorted.bam
-                - V100002698_L02_GRCh38_latest_genomic.aligned.sorted.bam
-                - V100003043_L01_GRCh38_latest_genomic.aligned.sorted.bam
-                - V100003043_L02_GRCh38_latest_genomic.aligned.sorted.bam
-            + result_merged_bam/
-                - NA12878_GRCh38_latest_genomic.aligned.sorted.merged.bam
-            + result_dv/
-                + NA12878_GRCh38_latest_genomic/
-                    - NA12878_GRCh38_latest_genomic.vcf
-                    - (log_files)
+            + final/
+                - (final_resluts_files)
+            + intermediate/
+                - (intermediate_resluts_files)
 ```
-VCF results files will be stored in `gs://${WORKING_BUCKET_NAME}/processing_output/<processing_date>/result_dv` directory.
+VCF results files will be stored in `gs://${WORKING_BUCKET_NAME}/processing_output/<processing_date>/final/result_variant_calling/` directory.
 
 BigQuery VCF data will be stored in `${PROJECT_ID}:${BQ_DATASET}.GENOMICS_VARIATIONS_${REFERENCE_NAME}` table.
 

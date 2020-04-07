@@ -9,7 +9,7 @@ import com.google.allenday.genomics.core.model.Instrument;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraSampleId;
 import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
-import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
+import com.google.allenday.genomics.core.processing.AlignAndSamProcessingTransform;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
 import com.google.allenday.genomics.core.processing.align.AddReferenceDataSourceFn;
 import com.google.allenday.genomics.core.processing.align.AlignFn;
@@ -155,7 +155,7 @@ public class EndToEndPipelineIT implements Serializable {
         SamIntoRegionBatchesFn samIntoRegionBatchesFn = new SamIntoRegionBatchesFn(sortTransformIoHandler, samBamManipulationService,
                 batchSamParser, fileUtils, ioUtils, TEST_MAX_SAM_RECORDS_BATCH_SIZE);
         MergeFn mergeFn = new MergeFn(mergeTransformIoHandler, samBamManipulationService, fileUtils);
-        AlignAndPostProcessTransform.FinalMergeTransform finalMergeTransform = new AlignAndPostProcessTransform.FinalMergeTransform(
+        AlignAndSamProcessingTransform.FinalMergeTransform finalMergeTransform = new AlignAndSamProcessingTransform.FinalMergeTransform(
                 new MergeFn(finalMergeTransformIoHandler, samBamManipulationService, fileUtils)
         );
         CreateBamIndexFn createBamIndexFn = new CreateBamIndexFn(mergeTransformIoHandler, samBamManipulationService, fileUtils);
@@ -165,7 +165,7 @@ public class EndToEndPipelineIT implements Serializable {
                         new TestSraParser(SampleMetaData.Parser.Separation.COMMA),
                         inputCsvUriAndProvider.getValue1(), fileUtils))
                 .apply(new SplitFastqIntoBatches(readFastqPartFn, buildFastqContentFn, TEST_MAX_FASTQ_CONTENT_SIZE_MB))
-                .apply(new AlignAndPostProcessTransform(
+                .apply(new AlignAndSamProcessingTransform(
                         alignTransform,
                         samIntoRegionBatchesFn,
                         mergeFn,
@@ -173,7 +173,7 @@ public class EndToEndPipelineIT implements Serializable {
                         createBamIndexFn))
 
 //        TODO DeepVeariant temporary excluded from end-to-end tests
-//                .apply(ParDo.of(new VariantCallingtFn(deepVariantService, dvResultGcsPath)))
+//                .apply(ParDo.of(new VariantCallingFn(deepVariantService, dvResultGcsPath)))
         ;
 
         PipelineResult pipelineResult = pipeline.run();

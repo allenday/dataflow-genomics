@@ -78,7 +78,7 @@ public class BatchSamParser implements Serializable {
             long end = (long) (index + 1) * batchSize;
 
             String fileName = workDir + fileNameBase + "_"
-                    + StringUtils.generateSlug(contig)
+                    + StringUtils.generateSlug(contig.equals("*") ? "not_mapped" : contig)
                     + "_" + start + "_" + end + SamBamManipulationService.SORTED_BAM_FILE_SUFFIX;
             try {
                 samBamManipulationService.samRecordsToBam(samFileHeader, fileName, batches.get(index));

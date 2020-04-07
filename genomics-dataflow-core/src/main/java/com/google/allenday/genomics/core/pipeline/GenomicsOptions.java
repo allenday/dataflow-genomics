@@ -1,5 +1,7 @@
 package com.google.allenday.genomics.core.pipeline;
 
+import com.google.allenday.genomics.core.model.Aligner;
+import com.google.allenday.genomics.core.model.VariantCaller;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.javatuples.Pair;
 
@@ -18,21 +20,21 @@ public class GenomicsOptions {
     public final static String VCF_TO_BQ_PATH = "%s/intermediate/vcf_to_bq/";
     public final static String ANOMALY_PATH_PATTERN = "%s/final/anomaly_samples/";
 
-    private String aligner;
+    private Aligner aligner;
     private String resultBucket;
     private List<String> geneReferences;
     private String allReferencesDirGcsUri;
     private ValueProvider<String> refDataJsonString;
     private long memoryOutputLimit;
     private DeepVariantOptions deepVariantOptions;
-    private String variantCaller;
+    private VariantCaller variantCaller;
 
     private String vcfBqDatasetAndTablePattern;
     private String outputDir;
 
-    public GenomicsOptions(String aligner, String resultBucket, List<String> geneReferences,
+    public GenomicsOptions(Aligner aligner, String resultBucket, List<String> geneReferences,
                            String allReferencesDirGcsUri, ValueProvider<String> refDataJsonString,
-                           String variantCaller,
+                           VariantCaller variantCaller,
                            String outputDir,
                            long memoryOutputLimit) {
         this.aligner = aligner;
@@ -181,11 +183,11 @@ public class GenomicsOptions {
         return refDataJsonString;
     }
 
-    public String getAligner() {
+    public Aligner getAligner() {
         return aligner;
     }
 
-    public String getVariantCaller() {
+    public VariantCaller getVariantCaller() {
         return variantCaller;
     }
 }

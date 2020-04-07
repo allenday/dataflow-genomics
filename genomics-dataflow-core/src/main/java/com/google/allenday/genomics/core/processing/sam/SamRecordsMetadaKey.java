@@ -44,7 +44,7 @@ public class SamRecordsMetadaKey implements Serializable {
         StringBuilder suffixBuilder = new StringBuilder();
         suffixBuilder.append("_").append(StringUtils.generateSlug(referenceName));
         if (!region.equals(Region.UNDEFINED)) {
-            if (region.contig.equals("*")) {
+            if (!region.isMapped()) {
                 suffixBuilder
                         .append("_").append("not_mapped");
             } else {

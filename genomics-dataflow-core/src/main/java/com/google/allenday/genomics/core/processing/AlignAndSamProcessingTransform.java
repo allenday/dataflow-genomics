@@ -22,9 +22,9 @@ import java.util.stream.Collectors;
 /**
  * Contains queue of genomics transformation namely
  * <a href="https://en.wikipedia.org/wiki/Sequence_alignment">Sequence alignment</a> (FASTQ->SAM),
- * converting to binary format (SAM->BAM), sorting FASTQ and merging FASTQ in scope of single sample
+ * converting to binary format (SAM->BAM), sorting FASTQ and merging FASTQ merging BAM in scope of specific <a href="https://en.wikipedia.org/wiki/Contig">contig</a> region
  */
-public class AlignAndPostProcessTransform extends PTransform<PCollection<KV<SampleMetaData, List<FileWrapper>>>,
+public class AlignAndSamProcessingTransform extends PTransform<PCollection<KV<SampleMetaData, List<FileWrapper>>>,
         PCollection<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, BamWithIndexUris>>>> {
 
     public AlignTransform alignTransform;
@@ -33,11 +33,11 @@ public class AlignAndPostProcessTransform extends PTransform<PCollection<KV<Samp
     public FinalMergeTransform finalMergeTransform;
     public CreateBamIndexFn createBamIndexFn;
 
-    public AlignAndPostProcessTransform(AlignTransform alignTransform,
-                                        SamIntoRegionBatchesFn samIntoRegionBatchesFn,
-                                        MergeFn regionsMergeFn,
-                                        FinalMergeTransform finalMergeTransform,
-                                        CreateBamIndexFn createBamIndexFn) {
+    public AlignAndSamProcessingTransform(AlignTransform alignTransform,
+                                          SamIntoRegionBatchesFn samIntoRegionBatchesFn,
+                                          MergeFn regionsMergeFn,
+                                          FinalMergeTransform finalMergeTransform,
+                                          CreateBamIndexFn createBamIndexFn) {
         this.alignTransform = alignTransform;
         this.samIntoRegionBatchesFn = samIntoRegionBatchesFn;
         this.regionsMergeFn = regionsMergeFn;

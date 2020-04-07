@@ -32,6 +32,7 @@ public class BatchSamParserTest {
                 }
             }, 100000);
             Assert.assertEquals("Wrong result size", 25, fileNames.size());
+            fileUtils.deleteFile(destPath);
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -9,6 +9,10 @@ import org.apache.beam.sdk.values.TypeDescriptors;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+/**
+ * Apache Beam PTransform that groups Variant Calling results (VCF) of contig regions and exports them into the <a href="https://cloud.google.com/bigquery">BigQuery</a> table.
+ * Uses vcf-to-bigquery transform from <a href="https://github.com/googlegenomics/gcp-variant-transforms">GCP Variant Transforms</a>
+ */
 public class PrepareAndExecuteVcfToBqTransform extends PTransform<PCollection<KV<SamRecordsMetadaKey, KV<String, String>>>, PCollection<KV<String, String>>> {
 
     private VcfToBqFn vcfToBqFn;

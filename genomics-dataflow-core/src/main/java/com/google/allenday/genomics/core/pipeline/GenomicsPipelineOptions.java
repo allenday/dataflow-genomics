@@ -1,5 +1,7 @@
 package com.google.allenday.genomics.core.pipeline;
 
+import com.google.allenday.genomics.core.model.Aligner;
+import com.google.allenday.genomics.core.model.VariantCaller;
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
@@ -10,11 +12,11 @@ import java.util.List;
 
 public interface GenomicsPipelineOptions extends DataflowPipelineOptions {
 
-    @Description("Sequence aligner")
-    @Default.String("minimap2")
-    String getAligner();
+    @Description("Sequence aligner. Supports: MINIMAP2, BWA")
+    @Default.Enum("MINIMAP2")
+    Aligner getAligner();
 
-    void setAligner(String value);
+    void setAligner(Aligner value);
 
     @Description("Fasta model reference names list")
     List<String> getReferenceNamesList();
@@ -127,9 +129,9 @@ public interface GenomicsPipelineOptions extends DataflowPipelineOptions {
 
     void setVcfBqDatasetAndTablePattern(String value);
 
-    @Description("Name of Variant Caller service. Supports: gatk, deep_variant")
-    @Default.String("gatk")
-    String getVariantCaller();
+    @Description("Name of Variant Caller service. Supports: GATK, DEEP_VARIANT")
+    @Default.Enum("GATK")
+    VariantCaller getVariantCaller();
 
-    void setVariantCaller(String value);
+    void setVariantCaller(VariantCaller value);
 }

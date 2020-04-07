@@ -18,11 +18,10 @@ import org.slf4j.LoggerFactory;
 /**
  * Apache Beam DoFn function,
  * that provides <a href="https://www.ebi.ac.uk/training/online/course/human-genetic-variation-i-introduction-2019/variant-identification-and-analysis">Variant Calling</a> logic.
- * Currently supported <a href="https://github.com/google/deepvariant>Deep Varian</a> variant caller pipeline from Google.
  */
-public class VariantCallingtFn extends DoFn<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, BamWithIndexUris>>, KV<SamRecordsMetadaKey, KV<String, String>>> {
+public class VariantCallingFn extends DoFn<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, BamWithIndexUris>>, KV<SamRecordsMetadaKey, KV<String, String>>> {
 
-    private Logger LOG = LoggerFactory.getLogger(VariantCallingtFn.class);
+    private Logger LOG = LoggerFactory.getLogger(VariantCallingFn.class);
 
     private VariantCallingService variantCallingService;
     private String gcsOutputDir;
@@ -32,8 +31,8 @@ public class VariantCallingtFn extends DoFn<KV<SamRecordsMetadaKey, KV<Reference
     private GCSService gcsService;
     private ReferenceProvider referencesProvider;
 
-    public VariantCallingtFn(VariantCallingService variantCallingService, FileUtils fileUtils, ReferenceProvider referencesProvider,
-                             String outputBucketName, String gcsOutputDir) {
+    public VariantCallingFn(VariantCallingService variantCallingService, FileUtils fileUtils, ReferenceProvider referencesProvider,
+                            String outputBucketName, String gcsOutputDir) {
         this.variantCallingService = variantCallingService;
         this.gcsOutputDir = gcsOutputDir;
         this.fileUtils = fileUtils;

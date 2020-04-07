@@ -13,14 +13,13 @@ import org.apache.beam.sdk.values.PCollection;
 /**
  * Apache Beam PTransform,
  * that provides <a href="https://www.ebi.ac.uk/training/online/course/human-genetic-variation-i-introduction-2019/variant-identification-and-analysis">Variant Calling</a> logic.
- * Currently supported <a href="https://github.com/google/deepvariant>Deep Varian</a> variant caller pipeline from Google.
  */
 public class VariantCallingTransform extends PTransform<PCollection<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, BamWithIndexUris>>>, PCollection<KV<SamRecordsMetadaKey, KV<String, String>>>> {
 
-    private VariantCallingtFn variantCallingtFn;
+    private VariantCallingFn variantCallingFn;
 
-    public VariantCallingTransform(VariantCallingtFn variantCallingtFn) {
-        this.variantCallingtFn = variantCallingtFn;
+    public VariantCallingTransform(VariantCallingFn variantCallingFn) {
+        this.variantCallingFn = variantCallingFn;
     }
 
     @Override
@@ -28,6 +27,6 @@ public class VariantCallingTransform extends PTransform<PCollection<KV<SamRecord
         return input
                 .apply(Filter.by(kv -> kv.getKey().getRegion().isMapped()))
                 .apply(Reshuffle.viaRandomKey())
-                .apply("Variant Calling Fn", ParDo.of(variantCallingtFn));
+                .apply("Variant Calling Fn", ParDo.of(variantCallingFn));
     }
 }

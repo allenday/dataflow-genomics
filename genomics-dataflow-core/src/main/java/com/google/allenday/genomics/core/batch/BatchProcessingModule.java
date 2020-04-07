@@ -10,7 +10,7 @@ import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraParser;
 import com.google.allenday.genomics.core.model.VariantCaller;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
-import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
+import com.google.allenday.genomics.core.processing.AlignAndSamProcessingTransform;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
 import com.google.allenday.genomics.core.processing.align.*;
 import com.google.allenday.genomics.core.processing.sam.*;
@@ -109,9 +109,9 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Provides
     @Singleton
     public AlignService provideAlignService(Minimap2AlignService minimap2AlignService, BwaAlignService bwaAlignService) {
-        if (genomicsOptions.getAligner().equals(Aligner.MINIMAP2.arg)) {
+        if (genomicsOptions.getAligner().equals(Aligner.MINIMAP2)) {
             return minimap2AlignService;
-        } else if (genomicsOptions.getAligner().equals(Aligner.BWA.arg)) {
+        } else if (genomicsOptions.getAligner().equals(Aligner.BWA)) {
             return bwaAlignService;
         } else {
             throw new IllegalArgumentException(String.format("Aligner %s is not supported", genomicsOptions.getAligner()));
@@ -233,20 +233,20 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Provides
     @Singleton
     public VariantCallingService provideVariantCallingService(DeepVariantService deepVariantService, GATKService gatkService) {
-        if (genomicsOptions.getVariantCaller().equals(VariantCaller.GATK.arg)) {
+        if (genomicsOptions.getVariantCaller().equals(VariantCaller.GATK)) {
             return gatkService;
-        } else if (genomicsOptions.getAligner().equals(VariantCaller.DEEP_VARIANT.arg)) {
+        } else if (genomicsOptions.getVariantCaller().equals(VariantCaller.DEEP_VARIANT)) {
             return deepVariantService;
         } else {
-            throw new IllegalArgumentException(String.format("Variant Caller %s is not supported", genomicsOptions.getAligner()));
+            throw new IllegalArgumentException(String.format("Variant Caller %s is not supported", genomicsOptions.getVariantCaller()));
         }
     }
 
     @Provides
     @Singleton
-    public VariantCallingtFn provideDeepVariantFn(VariantCallingService variantCallingService, FileUtils fileUtils, ReferenceProvider referencesProvider, NameProvider nameProvider) {
+    public VariantCallingFn provideDeepVariantFn(VariantCallingService variantCallingService, FileUtils fileUtils, ReferenceProvider referencesProvider, NameProvider nameProvider) {
 
-        return new VariantCallingtFn(
+        return new VariantCallingFn(
                 variantCallingService,
                 fileUtils,
                 referencesProvider,
@@ -323,24 +323,24 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public AlignAndPostProcessTransform.FinalMergeTransform provideFinalMergeTransform(@MergeFinal MergeFn mergeFn) {
-        return new AlignAndPostProcessTransform.FinalMergeTransform(mergeFn);
+    public AlignAndSamProcessingTransform.FinalMergeTransform provideFinalMergeTransform(@MergeFinal MergeFn mergeFn) {
+        return new AlignAndSamProcessingTransform.FinalMergeTransform(mergeFn);
     }
 
     @Provides
     @Singleton
-    public AlignAndPostProcessTransform provideAlignAndPostProcessTransform(AlignTransform alignTransform,
-                                                                            SamIntoRegionBatchesFn samIntoRegionBatchesFn,
-                                                                            @MergeRegions MergeFn mergeFn,
-                                                                            AlignAndPostProcessTransform.FinalMergeTransform finalMergeTransform,
-                                                                            CreateBamIndexFn createBamIndexFn) {
-        return new AlignAndPostProcessTransform(alignTransform, samIntoRegionBatchesFn, mergeFn, finalMergeTransform, createBamIndexFn);
+    public AlignAndSamProcessingTransform provideAlignAndPostProcessTransform(AlignTransform alignTransform,
+                                                                              SamIntoRegionBatchesFn samIntoRegionBatchesFn,
+                                                                              @MergeRegions MergeFn mergeFn,
+                                                                              AlignAndSamProcessingTransform.FinalMergeTransform finalMergeTransform,
+                                                                              CreateBamIndexFn createBamIndexFn) {
+        return new AlignAndSamProcessingTransform(alignTransform, samIntoRegionBatchesFn, mergeFn, finalMergeTransform, createBamIndexFn);
     }
 
     @Provides
     @Singleton
-    public VariantCallingTransform provideVariantCallingTransform(VariantCallingtFn variantCallingtFn) {
-        return new VariantCallingTransform(variantCallingtFn);
+    public VariantCallingTransform provideVariantCallingTransform(VariantCallingFn variantCallingFn) {
+        return new VariantCallingTransform(variantCallingFn);
     }
 
     @Provides

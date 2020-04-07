@@ -27,9 +27,11 @@ public class GiabExampleAppModule extends BatchProcessingModule {
                                 String region,
                                 GenomicsOptions genomicsOptions,
                                 Integer maxFastqSizeMB,
-                                Integer maxFastqChunkSize) {
+                                Integer maxFastqChunkSize,
+                                UriProvider.FastqExt fastqExt,
+                                Integer bamRegionSize) {
         super(srcBucket, inputCsvUri, sraSamplesToFilter, sraSamplesToSkip, project, region,
-                genomicsOptions, maxFastqSizeMB, maxFastqChunkSize);
+                genomicsOptions, maxFastqSizeMB, maxFastqChunkSize, fastqExt, bamRegionSize);
     }
 
     public GiabExampleAppModule(BatchProcessingPipelineOptions batchProcessingPipelineOptions) {
@@ -42,7 +44,9 @@ public class GiabExampleAppModule extends BatchProcessingModule {
                 batchProcessingPipelineOptions.getRegion(),
                 GenomicsOptions.fromAlignerPipelineOptions(batchProcessingPipelineOptions),
                 batchProcessingPipelineOptions.getMaxFastqSizeMB(),
-                batchProcessingPipelineOptions.getMaxFastqChunkSize()
+                batchProcessingPipelineOptions.getMaxFastqChunkSize(),
+                batchProcessingPipelineOptions.getFastqExt(),
+                batchProcessingPipelineOptions.getBamRegionSize()
         );
     }
 
@@ -61,6 +65,6 @@ public class GiabExampleAppModule extends BatchProcessingModule {
     @Provides
     @Singleton
     public UriProvider provideUriProvider() {
-        return DefaultUriProvider.withDefaultProviderRule(srcBucket);
+        return DefaultUriProvider.withDefaultProviderRule(srcBucket, fastqExt);
     }
 }

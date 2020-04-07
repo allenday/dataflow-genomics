@@ -2,8 +2,9 @@ package com.google.allenday.genomics.core.processing.vcf_to_bq;
 
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
-import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
+import com.google.allenday.genomics.core.lifesciences.LifeSciencesService;
 import com.google.allenday.genomics.core.utils.ResourceProvider;
+import com.google.allenday.genomics.core.utils.StringUtils;
 import com.google.cloud.storage.BlobId;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -79,6 +80,8 @@ public class VcfToBqService implements Serializable {
 
         String[] parts = vcfFileUri.split("/");
         String suffix = parts[parts.length - 1].contains("*") ? parts[parts.length - 2] : fileUtils.changeFileExtension(parts[parts.length - 1], "");
+
+        referenceName = StringUtils.generateSlug(referenceName);
 
         String jobTag = jobStartTime + "_" + referenceName + "_" + suffix;
         String outputPath = gcsService.getUriFromBlob(BlobId.of(tempAndLogsBucket, tempAndLogsGcsDir)) + jobTag + "/";

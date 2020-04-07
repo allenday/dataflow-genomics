@@ -5,7 +5,7 @@ import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraSampleId;
-import com.google.allenday.genomics.core.model.SraSampleIdReferencePair;
+import com.google.allenday.genomics.core.processing.sam.SamRecordsMetadaKey;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.cloud.storage.BlobId;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PrepareMergeNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<SampleMetaData>>,
-        KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, List<FileWrapper>>>> {
+        KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, List<FileWrapper>>>> {
 
     private Logger LOG = LoggerFactory.getLogger(PrepareMergeNotProcessedFn.class);
 
@@ -73,7 +73,7 @@ public class PrepareMergeNotProcessedFn extends DoFn<KV<SraSampleId, Iterable<Sa
                 if (redyToMerge) {
                     ReferenceDatabaseSource referenceDatabaseSource =
                             new ReferenceDatabaseSource.ByNameAndUriSchema(ref, allReferencesDirGcsUri);
-                    c.output(KV.of(new SraSampleIdReferencePair(sraSampleId, referenceDatabaseSource.getName()),
+                    c.output(KV.of(new SamRecordsMetadaKey(sraSampleId, referenceDatabaseSource.getName()),
                             KV.of(referenceDatabaseSource, fileWrappers)));
                 }
             }

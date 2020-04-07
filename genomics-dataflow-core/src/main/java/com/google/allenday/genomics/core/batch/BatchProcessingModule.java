@@ -4,25 +4,31 @@ import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
 import com.google.allenday.genomics.core.io.*;
+import com.google.allenday.genomics.core.lifesciences.LifeSciencesService;
+import com.google.allenday.genomics.core.model.Aligner;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraParser;
+import com.google.allenday.genomics.core.model.VariantCaller;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
-import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
+import com.google.allenday.genomics.core.processing.AlignAndSamProcessingTransform;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
 import com.google.allenday.genomics.core.processing.align.*;
-import com.google.allenday.genomics.core.processing.dv.DeepVariantFn;
-import com.google.allenday.genomics.core.processing.dv.DeepVariantService;
-import com.google.allenday.genomics.core.processing.lifesciences.LifeSciencesService;
 import com.google.allenday.genomics.core.processing.sam.*;
+import com.google.allenday.genomics.core.processing.variantcall.*;
+import com.google.allenday.genomics.core.processing.vcf_to_bq.PrepareAndExecuteVcfToBqTransform;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqFn;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqService;
 import com.google.allenday.genomics.core.reference.ReferenceProvider;
 import com.google.allenday.genomics.core.utils.NameProvider;
 import com.google.inject.AbstractModule;
+import com.google.inject.BindingAnnotation;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 
+import java.lang.annotation.Retention;
 import java.util.List;
+
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 
 public abstract class BatchProcessingModule extends AbstractModule {
@@ -36,11 +42,14 @@ public abstract class BatchProcessingModule extends AbstractModule {
     protected GenomicsOptions genomicsOptions;
     protected Integer maxFastqSizeMB;
     protected Integer maxFastqChunkSize;
+    protected UriProvider.FastqExt fastqExt;
+    protected Integer bamRegionSize;
 
     public BatchProcessingModule(String srcBucket, String inputCsvUri, List<String> sraSamplesToFilter,
                                  List<String> sraSamplesToSkip, String project, String region,
                                  GenomicsOptions genomicsOptions, Integer maxFastqSizeMB,
-                                 Integer maxFastqChunkSize) {
+                                 Integer maxFastqChunkSize, UriProvider.FastqExt fastqExt,
+                                 Integer bamRegionSize) {
         this.srcBucket = srcBucket;
         this.inputCsvUri = inputCsvUri;
         this.sraSamplesToFilter = sraSamplesToFilter;
@@ -50,6 +59,8 @@ public abstract class BatchProcessingModule extends AbstractModule {
         this.genomicsOptions = genomicsOptions;
         this.maxFastqSizeMB = maxFastqSizeMB;
         this.maxFastqChunkSize = maxFastqChunkSize;
+        this.bamRegionSize = bamRegionSize;
+        this.fastqExt = fastqExt;
     }
 
     @Provides
@@ -85,13 +96,25 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public AlignService provideAlignService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor, FileUtils fileUtils) {
-        if (genomicsOptions.getAligner().equals("minimap2")) {
-            return new Minimap2AlignService(workerSetupService, cmdExecutor, fileUtils);
-        } else if (genomicsOptions.getAligner().equals("bwa")) {
-            return new BwaAlignService(workerSetupService, cmdExecutor, fileUtils);
+    public Minimap2AlignService provideMinimap2AlignService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor, FileUtils fileUtils) {
+        return new Minimap2AlignService(workerSetupService, cmdExecutor, fileUtils);
+    }
+
+    @Provides
+    @Singleton
+    public BwaAlignService provideBwaAlignService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor, FileUtils fileUtils) {
+        return new BwaAlignService(workerSetupService, cmdExecutor, fileUtils);
+    }
+
+    @Provides
+    @Singleton
+    public AlignService provideAlignService(Minimap2AlignService minimap2AlignService, BwaAlignService bwaAlignService) {
+        if (genomicsOptions.getAligner().equals(Aligner.MINIMAP2)) {
+            return minimap2AlignService;
+        } else if (genomicsOptions.getAligner().equals(Aligner.BWA)) {
+            return bwaAlignService;
         } else {
-            throw new IllegalArgumentException(String.format("Aligner %s not supported", genomicsOptions.getAligner()));
+            throw new IllegalArgumentException(String.format("Aligner %s is not supported", genomicsOptions.getAligner()));
         }
     }
 
@@ -102,62 +125,43 @@ public abstract class BatchProcessingModule extends AbstractModule {
     }
 
     @Provides
-    @Singleton
-    public MergeFn provideMergeFn(SamBamManipulationService samBamManipulationService, FileUtils fileUtils, NameProvider nameProvider) {
-        TransformIoHandler mergeIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
-                String.format(genomicsOptions.getMergedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()), fileUtils);
-        return new MergeFn(mergeIoHandler, samBamManipulationService, fileUtils);
+    public TransformIoHandler provideTransformIoHandler(FileUtils fileUtils, NameProvider nameProvider) {
+        return new TransformIoHandler(genomicsOptions.getResultBucket(), fileUtils, nameProvider.getCurrentTimeInDefaultFormat());
     }
-
 
     @Provides
     @Singleton
-    public MergeAndIndexFn provideMergeAndIndexFn(SamBamManipulationService samBamManipulationService,
-                                                  FileUtils fileUtils,
-                                                  NameProvider nameProvider) {
-        TransformIoHandler mergeIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
-                String.format(genomicsOptions.getMergedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
-                fileUtils);
-        TransformIoHandler indexIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
-                String.format(genomicsOptions.getBamIndexOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
-                fileUtils);
-
-        return new MergeAndIndexFn(mergeIoHandler, indexIoHandler, samBamManipulationService, fileUtils);
+    @MergeRegions
+    public MergeFn provideRegionsMergeFn(SamBamManipulationService samBamManipulationService, FileUtils fileUtils,
+                                         TransformIoHandler transformIoHandler) {
+        transformIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getMergedRegionsDirPattern());
+        return new MergeFn(transformIoHandler, samBamManipulationService, fileUtils);
     }
-
 
     @Provides
     @Singleton
-    public SortFn provideSortFn(SamBamManipulationService samBamManipulationService, FileUtils fileUtils, NameProvider nameProvider) {
-        TransformIoHandler sortIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
-                String.format(genomicsOptions.getSortedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
-                fileUtils);
+    @MergeFinal
+    public MergeFn provideFinalMergeFn(SamBamManipulationService samBamManipulationService, FileUtils fileUtils,
+                                       TransformIoHandler transformIoHandler) {
+        transformIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getFinalMergedDirPattern());
+        return new MergeFn(transformIoHandler, samBamManipulationService, fileUtils);
+    }
 
+    @Provides
+    @Singleton
+    public SortFn provideSortFn(SamBamManipulationService samBamManipulationService, FileUtils fileUtils,
+                                TransformIoHandler sortIoHandler) {
+        sortIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getSortedOutputDirPattern());
         return new SortFn(sortIoHandler, samBamManipulationService, fileUtils);
     }
 
     @Provides
     @Singleton
-    public AlignFn provideAlignFn(AlignService alignService, ReferenceProvider referencesProvider, FileUtils fileUtils, NameProvider nameProvider) {
-        TransformIoHandler alignIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
-                String.format(genomicsOptions.getAlignedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
-                fileUtils);
+    public AlignFn provideAlignFn(AlignService alignService, ReferenceProvider referencesProvider, FileUtils fileUtils,
+                                  TransformIoHandler alignIoHandler) {
+        alignIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getAlignedOutputDirPattern());
         alignIoHandler.setMemoryOutputLimitMb(genomicsOptions.getMemoryOutputLimit());
-
         return new AlignFn(alignService, referencesProvider, alignIoHandler, fileUtils);
-    }
-
-    @Provides
-    @Singleton
-    public AlignAndSortFn provideAlignAndSortFn(SamBamManipulationService samBamManipulationService, AlignService alignService, ReferenceProvider referencesProvider,
-                                                FileUtils fileUtils, NameProvider nameProvider) {
-        TransformIoHandler alignIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
-                String.format(genomicsOptions.getAlignedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
-                fileUtils);
-        TransformIoHandler sortIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
-                String.format(genomicsOptions.getSortedOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
-                fileUtils);
-        return new AlignAndSortFn(alignService, samBamManipulationService, referencesProvider, alignIoHandler, sortIoHandler, fileUtils);
     }
 
 
@@ -180,23 +184,10 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public CreateBamIndexFn provideCreateBamIndexFn(SamBamManipulationService samBamManipulationService, FileUtils fileUtils, NameProvider nameProvider) {
-        TransformIoHandler indexIoHandler = new TransformIoHandler(genomicsOptions.getResultBucket(),
-                String.format(genomicsOptions.getBamIndexOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
-                fileUtils);
-
+    public CreateBamIndexFn provideCreateBamIndexFn(SamBamManipulationService samBamManipulationService, FileUtils fileUtils,
+                                                    TransformIoHandler indexIoHandler) {
+        indexIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getMergedRegionsDirPattern());
         return new CreateBamIndexFn(indexIoHandler, samBamManipulationService, fileUtils);
-    }
-
-    @Provides
-    @Singleton
-    public AlignAndPostProcessTransform provideAlignAndPostProcessTransform(AlignTransform alignTransform, SortFn sortFn,
-                                                                            MergeFn mergeFn, CreateBamIndexFn createBamIndexFn) {
-        return new AlignAndPostProcessTransform("Align -> Sort -> Merge transform -> Create index",
-                alignTransform,
-                sortFn,
-                mergeFn,
-                createBamIndexFn);
     }
 
     @Provides
@@ -235,18 +226,43 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public DeepVariantFn provideDeepVariantFn(DeepVariantService deepVariantService, FileUtils fileUtils, ReferenceProvider referencesProvider, NameProvider nameProvider) {
+    public GATKService provideGATKService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor) {
+        return new GATKService(workerSetupService, cmdExecutor);
+    }
 
-        return new DeepVariantFn(deepVariantService, fileUtils, referencesProvider,
-                genomicsOptions.getResultBucket(), String.format(genomicsOptions.getDeepVariantOutputDirPattern(),
-                nameProvider.getCurrentTimeInDefaultFormat()));
+    @Provides
+    @Singleton
+    public VariantCallingService provideVariantCallingService(DeepVariantService deepVariantService, GATKService gatkService) {
+        if (genomicsOptions.getVariantCaller().equals(VariantCaller.GATK)) {
+            return gatkService;
+        } else if (genomicsOptions.getVariantCaller().equals(VariantCaller.DEEP_VARIANT)) {
+            return deepVariantService;
+        } else {
+            throw new IllegalArgumentException(String.format("Variant Caller %s is not supported", genomicsOptions.getVariantCaller()));
+        }
+    }
+
+    @Provides
+    @Singleton
+    public VariantCallingFn provideDeepVariantFn(VariantCallingService variantCallingService, FileUtils fileUtils, ReferenceProvider referencesProvider, NameProvider nameProvider) {
+
+        return new VariantCallingFn(
+                variantCallingService,
+                fileUtils,
+                referencesProvider,
+                genomicsOptions.getResultBucket(),
+                String.format(genomicsOptions.getVariantCallingOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()));
     }
 
     @Provides
     @Singleton
     public VcfToBqService provideVcfToBqService(LifeSciencesService lifeSciencesService, NameProvider nameProvider) {
-        VcfToBqService vcfToBqService = new VcfToBqService(lifeSciencesService, String.format("%s:%s", project, genomicsOptions.getVcfBqDatasetAndTablePattern()),
-                genomicsOptions.getResultBucket(), genomicsOptions.getVcfToBqOutputDir(), nameProvider.getCurrentTimeInDefaultFormat());
+        VcfToBqService vcfToBqService = new VcfToBqService(
+                lifeSciencesService,
+                String.format("%s:%s", project, genomicsOptions.getVcfBqDatasetAndTablePattern()),
+                genomicsOptions.getResultBucket(),
+                String.format(genomicsOptions.getVcfToBqOutputDir(), nameProvider.getCurrentTimeInDefaultFormat()),
+                nameProvider.getCurrentTimeInDefaultFormat());
         vcfToBqService.setRegion(region);
         return vcfToBqService;
     }
@@ -271,27 +287,76 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Singleton
     public SplitFastqIntoBatches.ReadFastqPartFn provideSplitFastqIntoBatches(FileUtils fileUtils,
                                                                               FastqReader fastqReader,
-                                                                              NameProvider nameProvider) {
-        TransformIoHandler splitFastqIntoBatchesIoHandler = new TransformIoHandler(
-                genomicsOptions.getResultBucket(),
-                String.format(genomicsOptions.getChuncksByCountOutputDirPattern(),
-                        nameProvider.getCurrentTimeInDefaultFormat()),
-                fileUtils);
+                                                                              TransformIoHandler splitFastqIntoBatchesIoHandler) {
+        splitFastqIntoBatchesIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getChuncksByCountOutputDirPattern());
         splitFastqIntoBatchesIoHandler.setMemoryOutputLimitMb(genomicsOptions.getMemoryOutputLimit());
         return new SplitFastqIntoBatches.ReadFastqPartFn(fileUtils, fastqReader, splitFastqIntoBatchesIoHandler, maxFastqChunkSize, maxFastqSizeMB);
+    }
+
+
+    @Provides
+    @Singleton
+    public BatchSamParser provideBatchSamParser(SamBamManipulationService samBamManipulationService, FileUtils fileUtils) {
+        return new BatchSamParser(samBamManipulationService, fileUtils);
+    }
+
+    @Provides
+    @Singleton
+    public SamIntoRegionBatchesFn provideParseSamRecordsFn(FileUtils fileUtils,
+                                                           IoUtils ioUtils,
+                                                           BatchSamParser batchSamParser,
+                                                           SamBamManipulationService samBamManipulationService,
+                                                           TransformIoHandler sortAndSplitIoHandler) {
+        sortAndSplitIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getSortedAndSplittedOutputDirPattern());
+        return new SamIntoRegionBatchesFn(sortAndSplitIoHandler, samBamManipulationService, batchSamParser, fileUtils,
+                ioUtils, bamRegionSize);
     }
 
     @Provides
     @Singleton
     public SplitFastqIntoBatches.BuildFastqContentFn provideBuildFastqContentFn(FileUtils fileUtils, IoUtils ioUtils,
-                                                                                NameProvider nameProvider) {
-        TransformIoHandler buildFastqContentIoHandler = new TransformIoHandler(
-                genomicsOptions.getResultBucket(),
-                String.format(genomicsOptions.getChuncksBySizeOutputDirPattern(),
-                        nameProvider.getCurrentTimeInDefaultFormat()),
-                fileUtils);
-
+                                                                                TransformIoHandler buildFastqContentIoHandler) {
+        buildFastqContentIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getChuncksBySizeOutputDirPattern());
         buildFastqContentIoHandler.setMemoryOutputLimitMb(genomicsOptions.getMemoryOutputLimit());
         return new SplitFastqIntoBatches.BuildFastqContentFn(buildFastqContentIoHandler, fileUtils, ioUtils, maxFastqSizeMB);
+    }
+
+    @Provides
+    @Singleton
+    public AlignAndSamProcessingTransform.FinalMergeTransform provideFinalMergeTransform(@MergeFinal MergeFn mergeFn) {
+        return new AlignAndSamProcessingTransform.FinalMergeTransform(mergeFn);
+    }
+
+    @Provides
+    @Singleton
+    public AlignAndSamProcessingTransform provideAlignAndPostProcessTransform(AlignTransform alignTransform,
+                                                                              SamIntoRegionBatchesFn samIntoRegionBatchesFn,
+                                                                              @MergeRegions MergeFn mergeFn,
+                                                                              AlignAndSamProcessingTransform.FinalMergeTransform finalMergeTransform,
+                                                                              CreateBamIndexFn createBamIndexFn) {
+        return new AlignAndSamProcessingTransform(alignTransform, samIntoRegionBatchesFn, mergeFn, finalMergeTransform, createBamIndexFn);
+    }
+
+    @Provides
+    @Singleton
+    public VariantCallingTransform provideVariantCallingTransform(VariantCallingFn variantCallingFn) {
+        return new VariantCallingTransform(variantCallingFn);
+    }
+
+    @Provides
+    @Singleton
+    public PrepareAndExecuteVcfToBqTransform providePrepareAndExecuteVcfToBqTransform(VcfToBqFn vcfToBqFn) {
+        return new PrepareAndExecuteVcfToBqTransform(vcfToBqFn);
+    }
+
+    @Retention(RUNTIME)
+    @BindingAnnotation
+    @interface MergeRegions {
+    }
+
+
+    @Retention(RUNTIME)
+    @BindingAnnotation
+    @interface MergeFinal {
     }
 }

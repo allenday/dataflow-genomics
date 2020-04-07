@@ -3,17 +3,15 @@ package com.google.allenday.genomics.core.example;
 import com.google.allenday.genomics.core.batch.BatchProcessingPipelineOptions;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
 import com.google.allenday.genomics.core.pipeline.PipelineSetupUtils;
-import com.google.allenday.genomics.core.processing.AlignAndPostProcessTransform;
+import com.google.allenday.genomics.core.processing.AlignAndSamProcessingTransform;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
-import com.google.allenday.genomics.core.processing.dv.DeepVariantFn;
-import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqFn;
-import com.google.allenday.genomics.core.transform.SampleIdRefPairToRefKeyTransform;
+import com.google.allenday.genomics.core.processing.variantcall.VariantCallingTransform;
+import com.google.allenday.genomics.core.processing.vcf_to_bq.PrepareAndExecuteVcfToBqTransform;
 import com.google.allenday.genomics.core.utils.NameProvider;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.apache.beam.sdk.transforms.ParDo;
 
 /**
  * Main class of genomics-dataflow-core usage with GIAB example
@@ -37,10 +35,10 @@ public class GiabExampleApp {
         pipeline
                 .apply("Parse data", injector.getInstance(ParseSourceCsvTransform.class))
                 .apply("Split large FASTQ into chunks", injector.getInstance(SplitFastqIntoBatches.class))
-                .apply("Align reads and prepare for DV", injector.getInstance(AlignAndPostProcessTransform.class))
-                .apply("Variant Calling", ParDo.of(injector.getInstance(DeepVariantFn.class)))
-                .apply("Prepare to VcfToBq transform", new SampleIdRefPairToRefKeyTransform<String>())
-                .apply("Export to BigQuery", ParDo.of(injector.getInstance(VcfToBqFn.class)));
+                .apply("Align reads and prepare for DV", injector.getInstance(AlignAndSamProcessingTransform.class))
+                .apply("Variant Calling", injector.getInstance(VariantCallingTransform.class))
+                .apply("Prepare and execute export to BigQuery", injector.getInstance(PrepareAndExecuteVcfToBqTransform.class))
+        ;
 
         pipeline.run();
     }

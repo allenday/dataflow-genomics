@@ -14,8 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class CreateBamIndexFn extends DoFn<KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, FileWrapper>>,
-        KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, FileWrapper>>> {
+public class CreateBamIndexFn extends DoFn<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, FileWrapper>>,
+        KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, FileWrapper>>> {
 
     private Logger LOG = LoggerFactory.getLogger(CreateBamIndexFn.class);
     private GCSService gcsService;
@@ -39,7 +39,7 @@ public class CreateBamIndexFn extends DoFn<KV<SraSampleIdReferencePair, KV<Refer
     public void processElement(ProcessContext c) {
         LOG.info(String.format("Start of sort with input: %s", c.element().toString()));
 
-        KV<SraSampleIdReferencePair, KV<ReferenceDatabaseSource, FileWrapper>> input = c.element();
+        KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, FileWrapper>> input = c.element();
         SraSampleId sraSampleId = input.getKey().getSraSampleId();
         KV<ReferenceDatabaseSource, FileWrapper> dbAndFileWrapper = input.getValue();
 

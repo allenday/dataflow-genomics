@@ -10,11 +10,15 @@ with [Google Cloud Dataflow](https://cloud.google.com/dataflow). Current package
 - Building Batch and Streaming processing transformation graphs of genomics data   
 - Working with [SRA](https://www.ncbi.nlm.nih.gov/sra/) metadata annotations
 - Manipulations with [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format) files
+- Working with [FASTA](https://en.wikipedia.org/wiki/FASTA_format) genome references
 - [Sequence alignment](https://en.wikipedia.org/wiki/Sequence_alignment)
 - Different [SAM/BAM](https://samtools.github.io/hts-specs/SAMv1.pdf) data manipulations (Sorting, Merging, etc.) 
 - [Variant Calling](https://www.ebi.ac.uk/training/online/course/human-genetic-variation-i-introduction-2019/variant-identification-and-analysis)
 - Variant Calling results (VCF) export
-- Wotking with [FASTA](https://en.wikipedia.org/wiki/FASTA_format) genome references
+
+### Efficiency
+The usage of components from current library allows you to build highly scalable, parallel and efficient genomics data processing pipelines. Here is a principle schema of the pipeline that identifies genetic variations from sequence data that was built on library components:
+![Pipeline principle schema](docs/pipeline_pinciple_schema.png)
 
 ### Prerequisites
 - [Java Development Kit](https://www.oracle.com/technetwork/java/javase/downloads/index.html) (JDK) __version 8__
@@ -26,21 +30,25 @@ The repository contains two Maven modules:
 - [giab-example](giab-example) - module with demo project, that shows an example of usage of [genomics-dataflow-core](genomics-dataflow-core)
 
 ### High-level components
-
 There are several high-level classes, that could be used as the main building blocks for your pipeline. Here are some of them:
 
 - [ParseSourceCsvTransform](genomics-dataflow-core/src/main/java/com/google/allenday/genomics/core/csv/ParseSourceCsvTransform.java) - provides queue of input data transformation. 
 It includes reading input CSV file ([example](docs/sra_reads_annotations_example.csv)), parsing, filtering, check for anomalies in metadata. Return ready to use key-value pair of [SampleMetaData](genomics-dataflow-core/src/main/java/com/google/allenday/genomics/core/model/SampleMetaData.java) and list of [FileWrapper](genomics-dataflow-core/src/main/java/com/google/allenday/genomics/core/model/FileWrapper.java)
 - [SplitFastqIntoBatches](genomics-dataflow-core/src/main/java/com/google/allenday/genomics/core/processing/SplitFastqIntoBatches.java) - provides FASTQ splitting mechanism to increase parallelism and balance load between workers
-- [AlignAndPostProcessTransform](genomics-dataflow-core/src/main/java/com/google/allenday/genomics/core/processing/AlignAndPostProcessTransform.java) - contains queue of genomics transformation namely [Sequence alignment](https://en.wikipedia.org/wiki/Sequence_alignment) (FASTQ->SAM), converting to binary format (SAM->BAM), sorting FASTQ and merging FASTQ in scope of single sample
-- [DeepVariantFn](genomics-dataflow-core/src/main/java/com/google/allenday/genomics/core/processing/dv/DeepVariantFn.java) - Apache Beam DoFn function, that provides [Variant Calling](https://www.ebi.ac.uk/training/online/course/human-genetic-variation-i-introduction-2019/variant-identification-and-analysis) logic. Currently supported [Deep Variant](https://github.com/google/deepvariant) variant caller pipeline from Google.
-- [VcfToBqFn](genomics-dataflow-core/src/main/java/com/google/allenday/genomics/core/processing/vcf_to_bq/VcfToBqFn.java) - Apache Beam DoFn function, that exports Variant Calling results (VCF) into the [BigQuery](https://cloud.google.com/bigquery) table. Uses vcf-to-bigquery transform from [GCP Variant Transforms
-](https://github.com/googlegenomics/gcp-variant-transforms)
+- [AlignAndSamProcessingTransform](genomics-dataflow-core/src/main/java/com/google/allenday/genomics/core/processing/AlignAndSamProcessingTransform.java) - contains queue of genomics transformation namely [Sequence alignment](https://en.wikipedia.org/wiki/Sequence_alignment) (FASTQ->SAM), converting to binary format (SAM->BAM), sorting BAM and merging BAM in scope of specific [contig](https://en.wikipedia.org/wiki/Contig) region 
+- [VariantCallingTransform](genomics-dataflow-core/src/main/java/com/google/allenday/genomics/core/processing/variantcall/VariantCallingTransform.java) - Apache Beam PTransform that provides [Variant Calling](https://www.ebi.ac.uk/training/online/course/human-genetic-variation-i-introduction-2019/variant-identification-and-analysis) logic. Currently supported [GATK Haplotaype Caller](https://gatk.broadinstitute.org/hc/en-us/articles/360037225632-HaplotypeCaller) and  [Deep Variant](https://github.com/google/deepvariant) pipeline from Google.
+- [PrepareAndExecuteVcfToBqTransform](genomics-dataflow-core/src/main/java/com/google/allenday/genomics/core/processing/vcf_to_bq/PrepareAndExecuteVcfToBqTransform.java) - Apache Beam PTransform that groups Variant Calling results (VCF) of contig regions and exports them into the [BigQuery](https://cloud.google.com/bigquery) table. Uses vcf-to-bigquery transform from [GCP Variant Transforms](https://github.com/googlegenomics/gcp-variant-transforms)
 
 ### Sequence aligning
-By default, [minimap2](https://github.com/lh3/minimap2) aligner is used for Sequence aligning stage. Optionally you can use [BWA] aligner by setting `--aligner=bwa` option.
+By default, [minimap2](https://github.com/lh3/minimap2) aligner is used for Sequence aligning stage. Optionally you can use [BWA](https://github.com/lh3/bwa) aligner by passsing `--aligner=BWA` to the Apache Beam PipelineOptions.
 
 Also, you can add a custom aligner by extending [AlignService](genomics-dataflow-core/src/main/java/com/google/allenday/genomics/core/processing/align/AlignService.java) class
+
+### Variant Calling
+By default, pipeline uses [GATK Haplotaype Caller](https://gatk.broadinstitute.org/hc/en-us/articles/360037225632-HaplotypeCaller).
+Optionally there is a possibility to run the pipeline with a [Deep Variant](https://github.com/google/deepvariant) variant caller. To do this you should pass `--variantCaller=DEEP_VARIANT` to the Apache Beam PipelineOptions.
+
+Also, you can add a custom variant caller by extending [VariantCallingService](genomics-dataflow-core/src/main/java/com/google/allenday/genomics/core/processing/variantcall/VariantCallingService.java) class
 
 ## Usage
 This repository contains an [example](giab-example) of usage of Dataflow Genomics Core Components library, that provides a demo pipeline with batch processing of the [NA12878](https://www.coriell.org/0/Sections/Search/Sample_Detail.aspx?Ref=NA12878&product=DNA) sample from [Genome in a Bottle](https://www.nist.gov/programs-projects/genome-bottle).

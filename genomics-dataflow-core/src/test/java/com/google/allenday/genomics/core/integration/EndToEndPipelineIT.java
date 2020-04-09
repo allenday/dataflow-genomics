@@ -1,29 +1,27 @@
 package com.google.allenday.genomics.core.integration;
 
-import com.google.allenday.genomics.core.cmd.CmdExecutor;
-import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
-import com.google.allenday.genomics.core.io.*;
-import com.google.allenday.genomics.core.lifesciences.LifeSciencesService;
-import com.google.allenday.genomics.core.model.Instrument;
-import com.google.allenday.genomics.core.model.SampleMetaData;
-import com.google.allenday.genomics.core.model.SraSampleId;
-import com.google.allenday.genomics.core.pipeline.DeepVariantOptions;
+import com.google.allenday.genomics.core.io.FileUtils;
+import com.google.allenday.genomics.core.io.GCSService;
+import com.google.allenday.genomics.core.io.UriProvider;
+import com.google.allenday.genomics.core.model.*;
+import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.processing.AlignAndSamProcessingTransform;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
-import com.google.allenday.genomics.core.processing.align.AddReferenceDataSourceFn;
-import com.google.allenday.genomics.core.processing.align.AlignFn;
-import com.google.allenday.genomics.core.processing.align.AlignTransform;
 import com.google.allenday.genomics.core.processing.align.Minimap2AlignService;
-import com.google.allenday.genomics.core.processing.sam.*;
-import com.google.allenday.genomics.core.processing.variantcall.DeepVariantService;
-import com.google.allenday.genomics.core.reference.ReferenceProvider;
+import com.google.allenday.genomics.core.processing.sam.SamBamManipulationService;
+import com.google.allenday.genomics.core.processing.sam.SamRecordsMetadaKey;
+import com.google.allenday.genomics.core.utils.NameProvider;
+import com.google.allenday.genomics.core.utils.ResourceProvider;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 import org.apache.beam.runners.direct.DirectOptions;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
+import org.apache.beam.sdk.options.ValueProvider;
 import org.javatuples.Pair;
 import org.junit.After;
 import org.junit.Assert;
@@ -54,14 +52,6 @@ public class EndToEndPipelineIT implements Serializable {
 
     private final static String MAIN_TESTING_GCS_DIR = "testing/";
 
-    private final static String FASTQ_SIZE_CHUNK_RESULT_GCS_DIR_PATH_PATTERN = MAIN_TESTING_GCS_DIR + "processing_output/%s/result_fastq_size_chunk/";
-    private final static String FASTQ_COUNT_CHUNK_RESULT_GCS_DIR_PATH_PATTERN = MAIN_TESTING_GCS_DIR + "processing_output/%s/result_fastq_count_chunk/";
-    private final static String ALIGN_RESULT_GCS_DIR_PATH_PATTERN = MAIN_TESTING_GCS_DIR + "processing_output/%s/result_aligned_bam/";
-    private final static String SORT_RESULT_GCS_DIR_PATH_PATTERN = MAIN_TESTING_GCS_DIR + "processing_output/%s/result_sorted_bam/";
-    private final static String MERGE_RESULT_GCS_DIR_PATH_PATTERN = MAIN_TESTING_GCS_DIR + "processing_output/%s/result_merged_bam/";
-    private final static String FINAL_MERGE_RESULT_GCS_DIR_PATH_PATTERN = MAIN_TESTING_GCS_DIR + "processing_output/%s/result_final_merged_bam/";
-    private final static String DV_RESULT_GCS_DIR_PATH_PATTERN = MAIN_TESTING_GCS_DIR + "processing_output/%s/result_dv/";
-
     private final static String TEST_GCS_INPUT_DATA_DIR = MAIN_TESTING_GCS_DIR + "input/";
     private final static String TEST_GCS_REFERENCE_DIR = MAIN_TESTING_GCS_DIR + "reference/";
 
@@ -78,6 +68,8 @@ public class EndToEndPipelineIT implements Serializable {
 
     private final static String TEST_CSV_FILE = "source.csv";
     private final static String EXPECTED_SINGLE_END_RESULT_CONTENT_FILE = "expected_result_5k.merged.sorted.bam";
+
+    private final static String CSV_LINE_TEMPLATE = "\t\t\t\t\t\t%1$s\t\t\t\t%2$s\t%3$s\t\t\t\t\t\t\t\t\t\t\t\t%4$s\t\t ";
 
     public class TestSraParser extends SampleMetaData.Parser {
 
@@ -100,77 +92,48 @@ public class EndToEndPipelineIT implements Serializable {
 
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd--HH-mm-ss-z");
         simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-        String jobTime = simpleDateFormat.format(new Date());
 
-        FileUtils fileUtils = new FileUtils();
-        IoUtils ioUtils = new IoUtils();
-        FastqReader fastqReader = new FastqReader();
         String testBucket = Optional
                 .ofNullable(System.getenv("TEST_BUCKET"))
                 .orElse(DEFAULT_TEST_BUCKET);
 
+        FileUtils fileUtils = new FileUtils();
         GCSService gcsService = GCSService.initialize(fileUtils);
+        ResourceProvider resourceProvider = ResourceProvider.initialize();
         Pair<String, UriProvider> inputCsvUriAndProvider = prepareInputData(gcsService, fileUtils, testBucket, TEST_INPUT_FILES, TEST_CSV_FILE);
         String allReferencesDirGcsUri = prepareReference(gcsService, fileUtils, testBucket);
 
-        CmdExecutor cmdExecutor = new CmdExecutor();
-        SamBamManipulationService samBamManipulationService = new SamBamManipulationService(fileUtils);
-        BatchSamParser batchSamParser = new BatchSamParser(samBamManipulationService, fileUtils);
-
-        String mergeResultGcsPath = String.format(MERGE_RESULT_GCS_DIR_PATH_PATTERN, jobTime);
-        String mergeFinalResultGcsPath = String.format(FINAL_MERGE_RESULT_GCS_DIR_PATH_PATTERN, jobTime);
-
-        String dvResultGcsPath = gcsService.getUriFromBlob(BlobId.of(testBucket, String.format(DV_RESULT_GCS_DIR_PATH_PATTERN, jobTime)));
-
-        ReferenceProvider referencesProvider = new ReferenceProvider(fileUtils);
-        DeepVariantService deepVariantService = new DeepVariantService(new LifeSciencesService(), new DeepVariantOptions());
-
-        TransformIoHandler splitFastqIntoBatchesIoHandler = new TransformIoHandler(
-                testBucket, fileUtils, jobTime).withTimestampedDestGcsDir(FASTQ_COUNT_CHUNK_RESULT_GCS_DIR_PATH_PATTERN);
-        TransformIoHandler buildFastqContentIoHandler = new TransformIoHandler(
-                testBucket, fileUtils, jobTime).withTimestampedDestGcsDir(FASTQ_SIZE_CHUNK_RESULT_GCS_DIR_PATH_PATTERN);
-        TransformIoHandler alignTransformIoHandler =
-                new TransformIoHandler(testBucket, fileUtils, jobTime).withTimestampedDestGcsDir(ALIGN_RESULT_GCS_DIR_PATH_PATTERN);
-        TransformIoHandler sortTransformIoHandler =
-                new TransformIoHandler(testBucket, fileUtils, jobTime).withTimestampedDestGcsDir(SORT_RESULT_GCS_DIR_PATH_PATTERN);
-        TransformIoHandler mergeTransformIoHandler =
-                new TransformIoHandler(testBucket, fileUtils).withDestGcsDir(mergeResultGcsPath);
-        TransformIoHandler finalMergeTransformIoHandler =
-                new TransformIoHandler(testBucket, fileUtils).withDestGcsDir(mergeFinalResultGcsPath);
-
-        SplitFastqIntoBatches.ReadFastqPartFn readFastqPartFn =
-                new SplitFastqIntoBatches.ReadFastqPartFn(fileUtils, fastqReader, splitFastqIntoBatchesIoHandler,
-                        TEST_MAX_FASTQ_CHUNK_SIZE, TEST_MAX_FASTQ_CONTENT_SIZE_MB);
-        SplitFastqIntoBatches.BuildFastqContentFn buildFastqContentFn =
-                new SplitFastqIntoBatches.BuildFastqContentFn(buildFastqContentIoHandler, fileUtils, ioUtils, TEST_MAX_FASTQ_CONTENT_SIZE_MB);
-
-        AlignFn alignFn = new AlignFn(new Minimap2AlignService(new WorkerSetupService(cmdExecutor), cmdExecutor, fileUtils),
-                referencesProvider,
-                alignTransformIoHandler, fileUtils);
-
-        AddReferenceDataSourceFn.FromNameAndDirPath addReferenceDataSourceFn = new AddReferenceDataSourceFn.FromNameAndDirPath(
-                allReferencesDirGcsUri, Collections.singletonList(TEST_REFERENCE_NAME));
-
-        AlignTransform alignTransform = new AlignTransform("Align reads transform", alignFn, addReferenceDataSourceFn);
-        SamIntoRegionBatchesFn samIntoRegionBatchesFn = new SamIntoRegionBatchesFn(sortTransformIoHandler, samBamManipulationService,
-                batchSamParser, fileUtils, ioUtils, TEST_MAX_SAM_RECORDS_BATCH_SIZE);
-        MergeFn mergeFn = new MergeFn(mergeTransformIoHandler, samBamManipulationService, fileUtils);
-        AlignAndSamProcessingTransform.FinalMergeTransform finalMergeTransform = new AlignAndSamProcessingTransform.FinalMergeTransform(
-                new MergeFn(finalMergeTransformIoHandler, samBamManipulationService, fileUtils)
+        GenomicsOptions genomicsOptions = new GenomicsOptions(
+                Aligner.MINIMAP2,
+                testBucket,
+                Collections.singletonList(TEST_REFERENCE_NAME),
+                allReferencesDirGcsUri,
+                ValueProvider.StaticValueProvider.of(null),
+                VariantCaller.GATK,
+                MAIN_TESTING_GCS_DIR,
+                0
         );
-        CreateBamIndexFn createBamIndexFn = new CreateBamIndexFn(mergeTransformIoHandler, samBamManipulationService, fileUtils);
+        EndToEndPipelineITModule endToEndPipelineITModule = new EndToEndPipelineITModule(
+                testBucket,
+                inputCsvUriAndProvider.getValue0(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                resourceProvider.getProjectId(),
+                "us-central",
+                genomicsOptions,
+                TEST_MAX_FASTQ_CONTENT_SIZE_MB,
+                TEST_MAX_FASTQ_CHUNK_SIZE,
+                UriProvider.FastqExt.defaultExt(),
+                TEST_MAX_SAM_RECORDS_BATCH_SIZE,
+                inputCsvUriAndProvider.getValue1(),
+                true);
+
+        Injector injector = Guice.createInjector(endToEndPipelineITModule);
 
         pipeline
-                .apply(new ParseSourceCsvTransform(inputCsvUriAndProvider.getValue0(),
-                        new TestSraParser(SampleMetaData.Parser.Separation.COMMA),
-                        inputCsvUriAndProvider.getValue1(), fileUtils))
-                .apply(new SplitFastqIntoBatches(readFastqPartFn, buildFastqContentFn, TEST_MAX_FASTQ_CONTENT_SIZE_MB))
-                .apply(new AlignAndSamProcessingTransform(
-                        alignTransform,
-                        samIntoRegionBatchesFn,
-                        mergeFn,
-                        finalMergeTransform,
-                        createBamIndexFn))
+                .apply("Parse data", injector.getInstance(ParseSourceCsvTransform.class))
+                .apply("Split large FASTQ into chunks", injector.getInstance(SplitFastqIntoBatches.class))
+                .apply("Align reads and prepare for DV", injector.getInstance(AlignAndSamProcessingTransform.class));
 
 //        TODO DeepVeariant temporary excluded from end-to-end tests
 //                .apply(ParDo.of(new VariantCallingFn(deepVariantService, dvResultGcsPath)))
@@ -179,15 +142,22 @@ public class EndToEndPipelineIT implements Serializable {
         PipelineResult pipelineResult = pipeline.run();
         pipelineResult.waitUntilFinish();
 
-        List<BlobId> mergeResults = getBlobIdsWithDirAndEnding(gcsService, testBucket, mergeResultGcsPath, ".merged.sorted.bam");
-        List<BlobId> indexResults = getBlobIdsWithDirAndEnding(gcsService, testBucket, mergeResultGcsPath, ".merged.sorted.bam.bai");
+        NameProvider nameProvider = injector.getInstance(NameProvider.class);
+        List<BlobId> mergeResults = getBlobIdsWithDirAndEnding(gcsService, testBucket,
+                MAIN_TESTING_GCS_DIR + String.format(GenomicsOptions.MERGED_REGIONS_PATH_PATTERN, nameProvider.getCurrentTimeInDefaultFormat()),
+                ".merged.sorted.bam");
+        List<BlobId> indexResults = getBlobIdsWithDirAndEnding(gcsService, testBucket,
+                MAIN_TESTING_GCS_DIR + String.format(GenomicsOptions.MERGED_REGIONS_PATH_PATTERN, nameProvider.getCurrentTimeInDefaultFormat())
+                , ".merged.sorted.bam.bai");
 
-        BlobId finalMergeBlobId = BlobId.of(testBucket, mergeFinalResultGcsPath +
-                new SamRecordsMetadaKey(SraSampleId.create(TEST_EXAMPLE_SRA), TEST_REFERENCE_NAME, SamRecordsMetadaKey.Region.UNDEFINED).generateSlug() + ".merged.sorted.bam");
+        BlobId finalMergeBlobId = BlobId.of(testBucket,
+                MAIN_TESTING_GCS_DIR + String.format(GenomicsOptions.FINAL_MERGED_PATH_PATTERN, nameProvider.getCurrentTimeInDefaultFormat()) +
+                        new SamRecordsMetadaKey(SraSampleId.create(TEST_EXAMPLE_SRA), TEST_REFERENCE_NAME, SamRecordsMetadaKey.Region.UNDEFINED).generateSlug() + ".merged.sorted.bam");
 
         Assert.assertEquals(mergeResults.size(), indexResults.size());
         checkResultContent(gcsService, fileUtils, finalMergeBlobId);
     }
+
 
     private Pair<String, UriProvider> prepareInputData(GCSService gcsService, FileUtils fileUtils, String bucketName,
                                                        List<List<String>> testInputDataFiles, String testInputCsvFileName) throws IOException {
@@ -210,26 +180,23 @@ public class EndToEndPipelineIT implements Serializable {
             }
             String libraryLayout = list.size() == 2 ? "PAIRED" : "SINGLE";
 
-            String csvLine = String.join(",", new String[]{
-                    TEST_EXAMPLE_SRA, fileNameBase, libraryLayout, Instrument.ILLUMINA.name()});
+            String csvLine = String.format(CSV_LINE_TEMPLATE,
+                    libraryLayout, fileNameBase, TEST_EXAMPLE_SRA, Instrument.ILLUMINA.name());
             csvLines.append(csvLine).append("\n");
 
         });
         Blob blob = gcsService.writeToGcs(bucketName, TEST_GCS_INPUT_DATA_DIR + testInputCsvFileName,
                 Channels.newChannel(new ByteArrayInputStream(csvLines.toString().getBytes())));
-        UriProvider uriProvider = new UriProvider(bucketName, new UriProvider.ProviderRule() {
-            @Override
-            public List<String> provideAccordinglyRule(SampleMetaData geneSampleMetaData, String srcBucket) {
-                if (geneSampleMetaData.isPaired()) {
-                    String uri1 = String.format("gs://%s/%s", srcBucket,
-                            TEST_GCS_INPUT_DATA_DIR + geneSampleMetaData.getRunId() + "_1" + ".fastq");
-                    String uri2 = String.format("gs://%s/%s", srcBucket,
-                            TEST_GCS_INPUT_DATA_DIR + geneSampleMetaData.getRunId() + "_2" + ".fastq");
-                    return Arrays.asList(uri1, uri2);
-                } else {
-                    return Collections.singletonList(String.format("gs://%s/%s", srcBucket,
-                            TEST_GCS_INPUT_DATA_DIR + geneSampleMetaData.getRunId() + ".fastq"));
-                }
+        UriProvider uriProvider = new UriProvider(bucketName, (UriProvider.ProviderRule) (geneSampleMetaData, srcBucket) -> {
+            if (geneSampleMetaData.isPaired()) {
+                String uri1 = String.format("gs://%s/%s", srcBucket,
+                        TEST_GCS_INPUT_DATA_DIR + geneSampleMetaData.getRunId() + "_1" + ".fastq");
+                String uri2 = String.format("gs://%s/%s", srcBucket,
+                        TEST_GCS_INPUT_DATA_DIR + geneSampleMetaData.getRunId() + "_2" + ".fastq");
+                return Arrays.asList(uri1, uri2);
+            } else {
+                return Collections.singletonList(String.format("gs://%s/%s", srcBucket,
+                        TEST_GCS_INPUT_DATA_DIR + geneSampleMetaData.getRunId() + ".fastq"));
             }
         });
         return Pair.with(gcsService.getUriFromBlob(blob.getBlobId()), uriProvider);
@@ -272,6 +239,7 @@ public class EndToEndPipelineIT implements Serializable {
         return StreamSupport.stream(gcsService.getListOfBlobsInDir(bucket, dir).iterateAll().spliterator(), false)
                 .map(Blob::getBlobId).filter(blobId -> blobId.getName().endsWith(ending)).collect(Collectors.toList());
     }
+
 
     @After
     public void finalizeTests() {

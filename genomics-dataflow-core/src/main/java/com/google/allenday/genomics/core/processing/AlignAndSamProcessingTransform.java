@@ -32,17 +32,20 @@ public class AlignAndSamProcessingTransform extends PTransform<PCollection<KV<Sa
     public MergeFn regionsMergeFn;
     public FinalMergeTransform finalMergeTransform;
     public CreateBamIndexFn createBamIndexFn;
+    private boolean withFinalMerge;
 
     public AlignAndSamProcessingTransform(AlignTransform alignTransform,
                                           SamIntoRegionBatchesFn samIntoRegionBatchesFn,
                                           MergeFn regionsMergeFn,
                                           FinalMergeTransform finalMergeTransform,
-                                          CreateBamIndexFn createBamIndexFn) {
+                                          CreateBamIndexFn createBamIndexFn,
+                                          boolean withFinalMerge) {
         this.alignTransform = alignTransform;
         this.samIntoRegionBatchesFn = samIntoRegionBatchesFn;
         this.regionsMergeFn = regionsMergeFn;
         this.finalMergeTransform = finalMergeTransform;
         this.createBamIndexFn = createBamIndexFn;
+        this.withFinalMerge = withFinalMerge;
     }
 
     @Override
@@ -56,11 +59,13 @@ public class AlignAndSamProcessingTransform extends PTransform<PCollection<KV<Sa
                 .apply("Prepare for Merge", ParDo.of(new PrepareForMergeFn<>()))
                 .apply("Merge aligned results", ParDo.of(regionsMergeFn));
 
-        mergedAlignedSequences.apply("Output final merge results", finalMergeTransform);
-
+        if (withFinalMerge) {
+            mergedAlignedSequences.apply("Output final merge results", finalMergeTransform);
+        }
         PCollection<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, FileWrapper>>> bamIndexes =
                 mergedAlignedSequences
                         .apply("Create BAM index", ParDo.of(createBamIndexFn));
+
 
         final TupleTag<KV<ReferenceDatabaseSource, FileWrapper>> mergedAlignedSequencesTag = new TupleTag<>();
         final TupleTag<KV<ReferenceDatabaseSource, FileWrapper>> bamIndexesTag = new TupleTag<>();
@@ -95,9 +100,8 @@ public class AlignAndSamProcessingTransform extends PTransform<PCollection<KV<Sa
             T key = c.element().getKey();
             List<KV<ReferenceDatabaseSource, FileWrapper>> groppedList = c.element().getValue();
 
-            groppedList.stream().findFirst().ifPresent(kv -> {
-                c.output(KV.of(key, KV.of(kv.getKey(), groppedList.stream().map(KV::getValue).collect(Collectors.toList()))));
-            });
+            groppedList.stream().findFirst().ifPresent(kv ->
+                    c.output(KV.of(key, KV.of(kv.getKey(), groppedList.stream().map(KV::getValue).collect(Collectors.toList())))));
 
         }
     }

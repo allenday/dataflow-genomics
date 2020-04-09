@@ -53,5 +53,11 @@ public interface BatchProcessingPipelineOptions extends GenomicsPipelineOptions 
     Integer getBamRegionSize();
 
     void setBamRegionSize(Integer value);
+
+    @Description("Specifies if there need to merge chunks BAM files into final sample BAM")
+    @Default.Boolean(true)
+    Boolean getWithFinalMerge();
+
+    void setWithFinalMerge(Boolean value);
 }
 

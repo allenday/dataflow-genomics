@@ -44,12 +44,13 @@ public abstract class BatchProcessingModule extends AbstractModule {
     protected Integer maxFastqChunkSize;
     protected UriProvider.FastqExt fastqExt;
     protected Integer bamRegionSize;
+    protected boolean withFinalMerge;
 
     public BatchProcessingModule(String srcBucket, String inputCsvUri, List<String> sraSamplesToFilter,
                                  List<String> sraSamplesToSkip, String project, String region,
                                  GenomicsOptions genomicsOptions, Integer maxFastqSizeMB,
                                  Integer maxFastqChunkSize, UriProvider.FastqExt fastqExt,
-                                 Integer bamRegionSize) {
+                                 Integer bamRegionSize, boolean withFinalMerge) {
         this.srcBucket = srcBucket;
         this.inputCsvUri = inputCsvUri;
         this.sraSamplesToFilter = sraSamplesToFilter;
@@ -61,6 +62,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
         this.maxFastqChunkSize = maxFastqChunkSize;
         this.bamRegionSize = bamRegionSize;
         this.fastqExt = fastqExt;
+        this.withFinalMerge = withFinalMerge;
     }
 
     @Provides
@@ -334,7 +336,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
                                                                               @MergeRegions MergeFn mergeFn,
                                                                               AlignAndSamProcessingTransform.FinalMergeTransform finalMergeTransform,
                                                                               CreateBamIndexFn createBamIndexFn) {
-        return new AlignAndSamProcessingTransform(alignTransform, samIntoRegionBatchesFn, mergeFn, finalMergeTransform, createBamIndexFn);
+        return new AlignAndSamProcessingTransform(alignTransform, samIntoRegionBatchesFn, mergeFn, finalMergeTransform, createBamIndexFn, withFinalMerge);
     }
 
     @Provides
@@ -351,12 +353,12 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Retention(RUNTIME)
     @BindingAnnotation
-    @interface MergeRegions {
+    public @interface MergeRegions {
     }
 
 
     @Retention(RUNTIME)
     @BindingAnnotation
-    @interface MergeFinal {
+    public @interface MergeFinal {
     }
 }

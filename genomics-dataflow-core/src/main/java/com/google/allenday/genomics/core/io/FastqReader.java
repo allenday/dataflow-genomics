@@ -18,7 +18,7 @@ import java.util.stream.Stream;
 public class FastqReader implements Serializable {
     private Logger LOG = LoggerFactory.getLogger(FastqReader.class);
 
-    private final static int BUFFER_SIZE = 16 * 1024;
+    private final static int BUFFER_SIZE = 64 * 1024;
     private final static String NEW_LINE_INDICATION = "\n";
     private final static int FASTQ_READ_LINE_COUNT = 4;
 
@@ -60,13 +60,13 @@ public class FastqReader implements Serializable {
         long currentReadSize = 0;
         long timeCount = 0;
         while (readChannel.read(bytes) > 0) {
+            long start = System.currentTimeMillis();
             bytes.flip();
             StringBuilder newLines = removeEmptyLines(StandardCharsets.UTF_8.decode(bytes).toString());
             currentReadSize += newLines.toString().getBytes().length;
             StringBuilder readString = newLines.insert(0, fastqTail);
             bytes.clear();
 
-            long start = System.currentTimeMillis();
             List<String> lines = Arrays.asList(readString.toString().split(NEW_LINE_INDICATION));
 
             int startOfLastFastq = ((lines.size() - 1) / FASTQ_READ_LINE_COUNT) * FASTQ_READ_LINE_COUNT;

@@ -2,7 +2,7 @@ package com.google.allenday.genomics.core.parts_processing;
 
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.processing.align.AlignService;
-import com.google.allenday.genomics.core.processing.sam.SamBamManipulationService;
+import com.google.allenday.genomics.core.processing.SamToolsService;
 import com.google.allenday.genomics.core.processing.variantcall.DeepVariantService;
 import com.google.cloud.storage.BlobId;
 
@@ -42,19 +42,19 @@ public class StagingPathsBulder implements Serializable {
 
     BlobId buildSortedBlobId(String runId, String reference) {
         String pathPattern = String.format(GenomicsOptions.SORTED_OUTPUT_PATH_PATTERN, stagingDir) + FILE_NAME_PATTERN
-                + SamBamManipulationService.SORTED_BAM_FILE_SUFFIX;
+                + SamToolsService.SORTED_BAM_FILE_SUFFIX;
         return BlobId.of(stagingBucket, String.format(pathPattern, runId, reference));
     }
 
     BlobId buildMergedBlobId(String sraSample, String reference) {
         String pathPattern = String.format(GenomicsOptions.FINAL_MERGED_PATH_PATTERN, stagingDir) + FILE_NAME_PATTERN
-                + SamBamManipulationService.MERGE_SORTED_FILE_SUFFIX;
+                + SamToolsService.MERGE_SORTED_FILE_SUFFIX;
         return BlobId.of(stagingBucket, String.format(pathPattern, sraSample, reference));
     }
 
     BlobId buildIndexBlobId(String sraSample, String reference) {
         String pathPattern = String.format(GenomicsOptions.FINAL_MERGED_PATH_PATTERN, stagingDir) + FILE_NAME_PATTERN
-                + SamBamManipulationService.MERGE_SORTED_FILE_SUFFIX + SamBamManipulationService.BAM_INDEX_SUFFIX;
+                + SamToolsService.MERGE_SORTED_FILE_SUFFIX + SamToolsService.BAM_INDEX_SUFFIX;
         return BlobId.of(stagingBucket, String.format(pathPattern, sraSample, reference));
 
     }

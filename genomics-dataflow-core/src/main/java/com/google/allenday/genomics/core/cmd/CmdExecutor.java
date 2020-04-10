@@ -53,13 +53,17 @@ public class CmdExecutor implements Serializable {
                     TimeUtils.formatDeltaTime(System.currentTimeMillis() - startTime), exitCode, cmdCommand));
 
             boolean success = exitCode == 0;
-            if (!success && retryCount > 0) {
-                int sleepMs = (int) (new Random().nextFloat() * 10000);
-                LOG.info(String.format("Sleep for %d ms", sleepMs));
-                Thread.sleep(sleepMs);
-                int retryLeft = retryCount - 1;
-                LOG.info(String.format("Retrying command: %s. Retry left: %d", cmdCommand, retryLeft));
-                return executeCommand(cmdCommand, inheritIO, retryLeft);
+            if (!success) {
+                if (retryCount > 0) {
+                    int sleepMs = (int) (new Random().nextFloat() * 10000);
+                    LOG.info(String.format("Sleep for %d ms", sleepMs));
+                    Thread.sleep(sleepMs);
+                    int retryLeft = retryCount - 1;
+                    LOG.info(String.format("Retrying command: %s. Retry left: %d", cmdCommand, retryLeft));
+                    return executeCommand(cmdCommand, inheritIO, retryLeft);
+                } else {
+                    throw new RuntimeException(String.format("Exited with error code: %d. Command: %s", exitCode, cmdCommand));
+                }
             }
             return Triplet.with(success, exitCode, response.toString());
         } catch (IOException | InterruptedException e) {

@@ -1,6 +1,6 @@
 package com.google.allenday.genomics.core.processing.vcf_to_bq;
 
-import com.google.allenday.genomics.core.processing.sam.SamRecordsMetadaKey;
+import com.google.allenday.genomics.core.model.SamRecordsMetadaKey;
 import org.apache.beam.sdk.transforms.FlatMapElements;
 import org.apache.beam.sdk.transforms.GroupByKey;
 import org.apache.beam.sdk.transforms.MapElements;

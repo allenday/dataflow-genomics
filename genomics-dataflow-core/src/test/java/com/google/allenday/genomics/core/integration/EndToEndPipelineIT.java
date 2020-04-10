@@ -7,10 +7,9 @@ import com.google.allenday.genomics.core.io.UriProvider;
 import com.google.allenday.genomics.core.model.*;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.processing.AlignAndSamProcessingTransform;
+import com.google.allenday.genomics.core.processing.SamToolsService;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
 import com.google.allenday.genomics.core.processing.align.Minimap2AlignService;
-import com.google.allenday.genomics.core.processing.sam.SamBamManipulationService;
-import com.google.allenday.genomics.core.processing.sam.SamRecordsMetadaKey;
 import com.google.allenday.genomics.core.utils.NameProvider;
 import com.google.allenday.genomics.core.utils.ResourceProvider;
 import com.google.cloud.storage.Blob;
@@ -158,7 +157,6 @@ public class EndToEndPipelineIT implements Serializable {
         checkResultContent(gcsService, fileUtils, finalMergeBlobId);
     }
 
-
     private Pair<String, UriProvider> prepareInputData(GCSService gcsService, FileUtils fileUtils, String bucketName,
                                                        List<List<String>> testInputDataFiles, String testInputCsvFileName) throws IOException {
 
@@ -225,13 +223,13 @@ public class EndToEndPipelineIT implements Serializable {
 
         gcsService.downloadBlobTo(gcsService.getBlob(expectedResultBlob), destFileName);
 
-        SamBamManipulationService samBamManipulationService = new SamBamManipulationService(fileUtils);
+        SamToolsService samToolsService = new SamToolsService(fileUtils);
 
         File expectedResultsFile = new File(getClass().getClassLoader().getResource(EXPECTED_SINGLE_END_RESULT_CONTENT_FILE).getFile());
         File actualResultsFile = new File(fileUtils.getCurrentPath() + destFileName);
 
 
-        boolean isTwoEqual = samBamManipulationService.isRecordsInBamEquals(expectedResultsFile, actualResultsFile);
+        boolean isTwoEqual = samToolsService.isRecordsInBamEquals(expectedResultsFile, actualResultsFile);
         Assert.assertTrue("Result content is not equals with expected", isTwoEqual);
     }
 

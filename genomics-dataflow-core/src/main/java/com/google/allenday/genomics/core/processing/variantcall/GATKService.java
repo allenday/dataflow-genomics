@@ -22,7 +22,7 @@ public class GATKService extends VariantCallingService {
     private final static String CMD_INSTALL_WGET = "apt-get install wget -y";
     private final static String CMD_INSTALL_PYTHON_2_7 = "apt-get install python -y";
     private final static String CMD_DOWNLOAD_GATK = String.format("wget %s", GATK_URI);
-    private final static String CMD_UNZIP_GATK = String.format("unzip %s", GATK_ZIP_NAME);
+    private final static String CMD_UNZIP_GATK = String.format("unzip -o %s", GATK_ZIP_NAME);
 
     private final static String HAPLOTYPE_CALLER_COMMAND_PATTERN = "./%1$s/gatk HaplotypeCaller -R %2$s -I %3$s -L %4$s -O %5$s";
 

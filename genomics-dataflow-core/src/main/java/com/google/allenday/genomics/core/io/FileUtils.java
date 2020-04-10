@@ -30,13 +30,13 @@ public class FileUtils implements Serializable {
         return currentPath;
     }
 
-    public String makeDirByCurrentTimestampAndSuffix(String suffix) throws RuntimeException {
+    public String makeDirByCurrentTimestampAndSuffix(String suffix) {
         String workingDir = getCurrentPath() + System.currentTimeMillis() + "_" + suffix + "/";
         mkdirFromUri(workingDir);
         return workingDir;
     }
 
-    public void mkdirFromUri(String path) throws RuntimeException {
+    public void mkdirFromUri(String path) {
         Path dir;
         if (path.charAt(path.length() - 1) != '/') {
             dir = Paths.get(path).getParent();
@@ -47,7 +47,7 @@ public class FileUtils implements Serializable {
             try {
                 Files.createDirectories(dir);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException(e.getMessage());
             }
             LOG.info(String.format("Dir %s created", dir.toString()));
         }

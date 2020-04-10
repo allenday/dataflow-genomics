@@ -11,9 +11,14 @@ import com.google.allenday.genomics.core.model.SraParser;
 import com.google.allenday.genomics.core.model.VariantCaller;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.processing.AlignAndSamProcessingTransform;
+import com.google.allenday.genomics.core.processing.SamToolsService;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
 import com.google.allenday.genomics.core.processing.align.*;
-import com.google.allenday.genomics.core.processing.sam.*;
+import com.google.allenday.genomics.core.processing.index.CreateBamIndexFn;
+import com.google.allenday.genomics.core.processing.merge.MergeFn;
+import com.google.allenday.genomics.core.processing.split.BatchSamParser;
+import com.google.allenday.genomics.core.processing.sort.SortFn;
+import com.google.allenday.genomics.core.processing.split.SamIntoRegionBatchesFn;
 import com.google.allenday.genomics.core.processing.variantcall.*;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.PrepareAndExecuteVcfToBqTransform;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.VcfToBqFn;
@@ -122,8 +127,8 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public SamBamManipulationService provideSamBamManipulationService(FileUtils fileUtils) {
-        return new SamBamManipulationService(fileUtils);
+    public SamToolsService provideSamBamManipulationService(FileUtils fileUtils) {
+        return new SamToolsService(fileUtils);
     }
 
     @Provides
@@ -134,27 +139,27 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Provides
     @Singleton
     @MergeRegions
-    public MergeFn provideRegionsMergeFn(SamBamManipulationService samBamManipulationService, FileUtils fileUtils,
+    public MergeFn provideRegionsMergeFn(SamToolsService samToolsService, FileUtils fileUtils,
                                          TransformIoHandler transformIoHandler) {
         transformIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getMergedRegionsDirPattern());
-        return new MergeFn(transformIoHandler, samBamManipulationService, fileUtils);
+        return new MergeFn(transformIoHandler, samToolsService, fileUtils);
     }
 
     @Provides
     @Singleton
     @MergeFinal
-    public MergeFn provideFinalMergeFn(SamBamManipulationService samBamManipulationService, FileUtils fileUtils,
+    public MergeFn provideFinalMergeFn(SamToolsService samToolsService, FileUtils fileUtils,
                                        TransformIoHandler transformIoHandler) {
         transformIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getFinalMergedDirPattern());
-        return new MergeFn(transformIoHandler, samBamManipulationService, fileUtils);
+        return new MergeFn(transformIoHandler, samToolsService, fileUtils);
     }
 
     @Provides
     @Singleton
-    public SortFn provideSortFn(SamBamManipulationService samBamManipulationService, FileUtils fileUtils,
+    public SortFn provideSortFn(SamToolsService samToolsService, FileUtils fileUtils,
                                 TransformIoHandler sortIoHandler) {
         sortIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getSortedOutputDirPattern());
-        return new SortFn(sortIoHandler, samBamManipulationService, fileUtils);
+        return new SortFn(sortIoHandler, samToolsService, fileUtils);
     }
 
     @Provides
@@ -186,10 +191,10 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public CreateBamIndexFn provideCreateBamIndexFn(SamBamManipulationService samBamManipulationService, FileUtils fileUtils,
+    public CreateBamIndexFn provideCreateBamIndexFn(SamToolsService samToolsService, FileUtils fileUtils,
                                                     TransformIoHandler indexIoHandler) {
         indexIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getMergedRegionsDirPattern());
-        return new CreateBamIndexFn(indexIoHandler, samBamManipulationService, fileUtils);
+        return new CreateBamIndexFn(indexIoHandler, samToolsService, fileUtils);
     }
 
     @Provides
@@ -298,8 +303,8 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public BatchSamParser provideBatchSamParser(SamBamManipulationService samBamManipulationService, FileUtils fileUtils) {
-        return new BatchSamParser(samBamManipulationService, fileUtils);
+    public BatchSamParser provideBatchSamParser(SamToolsService samToolsService, FileUtils fileUtils) {
+        return new BatchSamParser(samToolsService, fileUtils);
     }
 
     @Provides
@@ -307,10 +312,10 @@ public abstract class BatchProcessingModule extends AbstractModule {
     public SamIntoRegionBatchesFn provideParseSamRecordsFn(FileUtils fileUtils,
                                                            IoUtils ioUtils,
                                                            BatchSamParser batchSamParser,
-                                                           SamBamManipulationService samBamManipulationService,
+                                                           SamToolsService samToolsService,
                                                            TransformIoHandler sortAndSplitIoHandler) {
         sortAndSplitIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getSortedAndSplittedOutputDirPattern());
-        return new SamIntoRegionBatchesFn(sortAndSplitIoHandler, samBamManipulationService, batchSamParser, fileUtils,
+        return new SamIntoRegionBatchesFn(sortAndSplitIoHandler, samToolsService, batchSamParser, fileUtils,
                 ioUtils, bamRegionSize);
     }
 

@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.processing.sam;
+package com.google.allenday.genomics.core.processing;
 
 import com.google.allenday.genomics.core.io.FileUtils;
 import htsjdk.samtools.*;
@@ -19,9 +19,9 @@ import java.util.stream.StreamSupport;
 
 import static htsjdk.samtools.ValidationStringency.LENIENT;
 
-public class SamBamManipulationService implements Serializable {
-    private static final Logger LOG = LoggerFactory.getLogger(SamBamManipulationService.class);
-    private static final Log LOG_HTS = Log.getInstance(SamBamManipulationService.class);
+public class SamToolsService implements Serializable {
+    private static final Logger LOG = LoggerFactory.getLogger(SamToolsService.class);
+    private static final Log LOG_HTS = Log.getInstance(SamToolsService.class);
 
     public final static String SORTED_BAM_FILE_SUFFIX = ".sorted.bam";
     public final static String BAM_INDEX_SUFFIX = ".bai";
@@ -37,7 +37,7 @@ public class SamBamManipulationService implements Serializable {
     private static final int PROGRESS_INTERVAL = 1000000;
     private FileUtils fileUtils;
 
-    public SamBamManipulationService(FileUtils fileUtils) {
+    public SamToolsService(FileUtils fileUtils) {
         this.fileUtils = fileUtils;
     }
 

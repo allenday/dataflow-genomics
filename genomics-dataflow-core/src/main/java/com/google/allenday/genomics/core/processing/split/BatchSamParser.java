@@ -1,6 +1,7 @@
-package com.google.allenday.genomics.core.processing.sam;
+package com.google.allenday.genomics.core.processing.split;
 
 import com.google.allenday.genomics.core.io.FileUtils;
+import com.google.allenday.genomics.core.processing.SamToolsService;
 import com.google.allenday.genomics.core.utils.StringUtils;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
@@ -16,11 +17,11 @@ import java.util.stream.Stream;
 
 public class BatchSamParser implements Serializable {
 
-    private SamBamManipulationService samBamManipulationService;
+    private SamToolsService samToolsService;
     private FileUtils fileUtils;
 
-    public BatchSamParser(SamBamManipulationService samBamManipulationService, FileUtils fileUtils) {
-        this.samBamManipulationService = samBamManipulationService;
+    public BatchSamParser(SamToolsService samToolsService, FileUtils fileUtils) {
+        this.samToolsService = samToolsService;
         this.fileUtils = fileUtils;
     }
 
@@ -31,7 +32,7 @@ public class BatchSamParser implements Serializable {
 
         SortedMap<Integer, List<SAMRecord>> batches = new TreeMap<>();
         MutableObject<String> lastConting = new MutableObject<>();
-        Pair<SAMFileHeader, Stream<SAMRecord>> headerAndStream = samBamManipulationService.samRecordsStreamFromBamFile(inputFilePath);
+        Pair<SAMFileHeader, Stream<SAMRecord>> headerAndStream = samToolsService.samRecordsStreamFromBamFile(inputFilePath);
         SAMFileHeader samFileHeader = headerAndStream.getValue0();
         headerAndStream.getValue1().forEach(samRecord -> {
             int start = samRecord.getStart();
@@ -79,9 +80,9 @@ public class BatchSamParser implements Serializable {
 
             String fileName = workDir + fileNameBase + "_"
                     + StringUtils.generateSlug(contig.equals("*") ? "not_mapped" : contig)
-                    + "_" + start + "_" + end + SamBamManipulationService.SORTED_BAM_FILE_SUFFIX;
+                    + "_" + start + "_" + end + SamToolsService.SORTED_BAM_FILE_SUFFIX;
             try {
-                samBamManipulationService.samRecordsToBam(samFileHeader, fileName, batches.get(index));
+                samToolsService.samRecordsToBam(samFileHeader, fileName, batches.get(index));
                 batchResultEmmiter.onBatchResult(contig, start, end, fileName);
             } catch (IOException e) {
                 e.printStackTrace();

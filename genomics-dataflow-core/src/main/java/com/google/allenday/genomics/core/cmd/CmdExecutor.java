@@ -17,15 +17,19 @@ public class CmdExecutor implements Serializable {
 
     private Logger LOG = LoggerFactory.getLogger(CmdExecutor.class);
 
+    public Triplet<Boolean, Integer, String> executeCommand(String cmdCommand, boolean throwError) {
+        return executeCommand(cmdCommand, true, DEFAULT_RETRY_COUNT, throwError);
+    }
+
     public Triplet<Boolean, Integer, String> executeCommand(String cmdCommand) {
-        return executeCommand(cmdCommand, true, DEFAULT_RETRY_COUNT);
+        return executeCommand(cmdCommand, true, DEFAULT_RETRY_COUNT, true);
     }
 
     public Triplet<Boolean, Integer, String> executeCommand(String cmdCommand, int retryCount) {
-        return executeCommand(cmdCommand, true, retryCount);
+        return executeCommand(cmdCommand, true, retryCount, true);
     }
 
-    public Triplet<Boolean, Integer, String> executeCommand(String cmdCommand, boolean inheritIO, int retryCount) {
+    public Triplet<Boolean, Integer, String> executeCommand(String cmdCommand, boolean inheritIO, int retryCount, boolean throwError) {
         long startTime = System.currentTimeMillis();
 
         LOG.info(String.format("Executing command: %s", cmdCommand));
@@ -60,8 +64,8 @@ public class CmdExecutor implements Serializable {
                     Thread.sleep(sleepMs);
                     int retryLeft = retryCount - 1;
                     LOG.info(String.format("Retrying command: %s. Retry left: %d", cmdCommand, retryLeft));
-                    return executeCommand(cmdCommand, inheritIO, retryLeft);
-                } else {
+                    return executeCommand(cmdCommand, inheritIO, retryLeft, throwError);
+                } else if (throwError) {
                     throw new RuntimeException(String.format("Exited with error code: %d. Command: %s", exitCode, cmdCommand));
                 }
             }

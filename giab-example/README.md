@@ -98,9 +98,9 @@ If you are going to use [GATK Haplotaype Caller](https://gatk.broadinstitute.org
 1. Here are suggested GCP settings (check your GCP quota for availability):
     ```
     REGION=us-central1
-    MACHINE_TYPE=n1-standart-8    
+    MACHINE_TYPE=n1-highmem-4    
     MAX_WORKERS=100
-    DISK_SIZE=150
+    DISK_SIZE=100
     ```
 
 2. Set temp and staging location for Dataflow files:

@@ -5,7 +5,7 @@ import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraSampleId;
-import com.google.allenday.genomics.core.processing.sam.SamRecordsMetadaKey;
+import com.google.allenday.genomics.core.model.SamRecordsMetadaKey;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.cloud.storage.BlobId;
 import org.apache.beam.sdk.transforms.DoFn;

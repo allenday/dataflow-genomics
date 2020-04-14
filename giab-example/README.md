@@ -98,9 +98,9 @@ If you are going to use [GATK Haplotaype Caller](https://gatk.broadinstitute.org
 1. Here are suggested GCP settings (check your GCP quota for availability):
     ```
     REGION=us-central1
-    MACHINE_TYPE=n1-highmem-8    
+    MACHINE_TYPE=n1-highmem-4    
     MAX_WORKERS=100
-    DISK_SIZE=1000
+    DISK_SIZE=100
     ```
 
 2. Set temp and staging location for Dataflow files:
@@ -108,12 +108,16 @@ If you are going to use [GATK Haplotaype Caller](https://gatk.broadinstitute.org
     TEMP_LOC=gs://${WORKING_BUCKET_NAME}/dataflow/temp/
     STAGING_LOC=gs://${WORKING_BUCKET_NAME}/dataflow/staging/
     ```
-    
+3. Use [Dataflow Shuffle](https://cloud.google.com/dataflow/docs/guides/deploying-a-pipeline#cloud-dataflow-shuffle) for faster execution time, better autoscaling and reduction of used resources
+    ```
+    EXPERIMENTS=shuffle_mode=service
+    ```
+
 ### BigQuery settings
 To add export of VCF files into BigQuery following parameter should be added:
-```bash
-VCF_BQ_TABLE_PATH_PATTERN=${BQ_DATASET}.GENOMICS_VARIATIONS_%s
-```
+    ```bash
+    VCF_BQ_TABLE_PATH_PATTERN=${BQ_DATASET}.GENOMICS_VARIATIONS_%s
+    ```
 
 ### (Optional) Deep Variant settings
 By default, pipeline uses [GATK Haplotaype Caller](https://gatk.broadinstitute.org/hc/en-us/articles/360037225632-HaplotypeCaller).
@@ -150,13 +154,17 @@ java -cp target/giab-example-1.0.0.jar \
         --maxNumWorkers=$MAX_WORKERS \
         --numWorkers=$MAX_WORKERS \
         --diskSizeGb=$DISK_SIZE \
+        --experiments=$EXPERIMENTS \
         --stagingLocation=$STAGING_LOC \
         --tempLocation=$TEMP_LOC \
         --srcBucket=$SRC_BUCKET_NAME \
         --refDataJsonString=$REFERENCE_DATA_JSON_STRING \
         --outputGcsUri=$OUTPUT_GCS_URI \
-        --vcfBqDatasetAndTablePattern=$VCF_BQ_TABLE_PATH_PATTERN
+        --vcfBqDatasetAndTablePattern=$VCF_BQ_TABLE_PATH_PATTERN \
+        --withFinalMerge=false
 ```
+Last parameter `--withFinalMerge=false` means there no need to merge chunks BAM files into final sample BAM.
+
 ### (Optional) Running pipeline with DeepVariant 
 Here is an example of the command for running pipeline with DeepVariant caller:
 
@@ -172,6 +180,7 @@ java -cp target/giab-example-1.0.0.jar \
         --maxNumWorkers=$MAX_WORKERS \
         --numWorkers=$MAX_WORKERS \
         --diskSizeGb=$DISK_SIZE \
+        --experiments=$EXPERIMENTS \
         --stagingLocation=$STAGING_LOC \
         --tempLocation=$TEMP_LOC \
         --srcBucket=$SRC_BUCKET_NAME \
@@ -192,7 +201,8 @@ java -cp target/giab-example-1.0.0.jar \
         --makeExamplesWorkers=$M_E_WORKERS \
         --callVariantsWorkers=$C_V_WORKERS \
         --deepVariantShards=$M_E_SHARDS \
-        --vcfBqDatasetAndTablePattern=$VCF_BQ_TABLE_PATH_PATTERN
+        --vcfBqDatasetAndTablePattern=$VCF_BQ_TABLE_PATH_PATTERN \
+        --withFinalMerge=false
 ```
 
 ### Results

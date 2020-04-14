@@ -3,7 +3,7 @@ package com.google.allenday.genomics.core.processing.variantcall;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.model.BamWithIndexUris;
-import com.google.allenday.genomics.core.processing.sam.SamRecordsMetadaKey;
+import com.google.allenday.genomics.core.model.SamRecordsMetadaKey;
 import com.google.allenday.genomics.core.reference.ReferenceDatabase;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.allenday.genomics.core.reference.ReferenceProvider;

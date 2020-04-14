@@ -1,5 +1,6 @@
 package com.google.allenday.genomics.core.io;
 
+import com.google.allenday.genomics.core.utils.TimeUtils;
 import com.google.cloud.ReadChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,16 +10,14 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class FastqReader implements Serializable {
     private Logger LOG = LoggerFactory.getLogger(FastqReader.class);
 
-    private final static int BUFFER_SIZE = 16 * 1024;
+    private final static int BUFFER_SIZE = 64 * 1024;
     private final static String NEW_LINE_INDICATION = "\n";
     private final static int FASTQ_READ_LINE_COUNT = 4;
 
@@ -60,13 +59,13 @@ public class FastqReader implements Serializable {
         long currentReadSize = 0;
         long timeCount = 0;
         while (readChannel.read(bytes) > 0) {
+            long start = System.currentTimeMillis();
             bytes.flip();
             StringBuilder newLines = removeEmptyLines(StandardCharsets.UTF_8.decode(bytes).toString());
             currentReadSize += newLines.toString().getBytes().length;
             StringBuilder readString = newLines.insert(0, fastqTail);
             bytes.clear();
 
-            long start = System.currentTimeMillis();
             List<String> lines = Arrays.asList(readString.toString().split(NEW_LINE_INDICATION));
 
             int startOfLastFastq = ((lines.size() - 1) / FASTQ_READ_LINE_COUNT) * FASTQ_READ_LINE_COUNT;
@@ -102,22 +101,36 @@ public class FastqReader implements Serializable {
         LOG.info(String.format("Spent time ms: %d", timeCount));
     }
 
-
     public void readFastqBlobWithReadCountLimit(ReadableByteChannel readChannel, int batchSize, Callback callback) throws IOException {
+        readFastqBlobWithReadCountLimit(readChannel, batchSize, callback, false);
+    }
+
+    public void readFastqBlobWithReadCountLimit(ReadableByteChannel readChannel, int batchSize, Callback callback, boolean fixLines) throws IOException {
         ByteBuffer bytes = ByteBuffer.allocate(BUFFER_SIZE);
         StringBuilder fastqDataToProcess = new StringBuilder();
         StringBuilder linesBuilder = new StringBuilder();
         int linesBuilderLineConter = 0;
 
         int indexCounter = 0;
-        long timeCount = 0;
 
+        Map<String, Long> timeCounters = new HashMap<>();
+        timeCounters.put("total", 0l);
+        timeCounters.put("downloading", 0l);
+        timeCounters.put("textPreProcessing", 0l);
+        timeCounters.put("textProcessing", 0l);
+        timeCounters.put("output", 0l);
+
+        long startDownloading = System.currentTimeMillis();
         while (readChannel.read(bytes) > 0) {
-            bytes.flip();
-            fastqDataToProcess.append(removeEmptyLines(StandardCharsets.UTF_8.decode(bytes).toString()));
-            bytes.clear();
+            timeCounters.put("downloading", timeCounters.get("downloading") + (System.currentTimeMillis() - startDownloading));
+            long startTextProcessing = System.currentTimeMillis();
 
-            long start = System.currentTimeMillis();
+            bytes.flip();
+            String readString = StandardCharsets.UTF_8.decode(bytes).toString();
+            fastqDataToProcess.append(fixLines ? removeEmptyLines(readString) : readString);
+            bytes.clear();
+            timeCounters.put("textPreProcessing", timeCounters.get("textPreProcessing") + (System.currentTimeMillis() - startTextProcessing));
+
             boolean endsWithNewLine = fastqDataToProcess.charAt(fastqDataToProcess.length() - 1) == '\n';
             List<String> lines = Stream.of(fastqDataToProcess.toString().split(NEW_LINE_INDICATION)).collect(Collectors.toList());
             fastqDataToProcess.setLength(0);
@@ -146,30 +159,42 @@ public class FastqReader implements Serializable {
                 }
                 linesBuilderLineConter++;
                 if (linesBuilderLineConter == batchSize) {
+
+                    long finishTextProcessing = System.currentTimeMillis();
+                    timeCounters.put("textProcessing", timeCounters.get("textProcessing") + (finishTextProcessing - startTextProcessing));
                     callback.onFindFastqPart(linesBuilder.toString(), indexCounter);
+                    startTextProcessing = System.currentTimeMillis();
+                    timeCounters.put("output", timeCounters.get("output") + (startTextProcessing - finishTextProcessing));
+
                     indexCounter++;
 
                     linesBuilder.setLength(0);
                     linesBuilderLineConter = 0;
+
+                    LOG.info(String.format("Memory status: Total: %d, Free: %d, Diff: %d", Runtime.getRuntime().totalMemory() / (1024 * 1024),
+                            Runtime.getRuntime().freeMemory() / (1024 * 1024), (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024)));
+
+                    LOG.info(String.format("Counter: %d, TimeCounters: %s", indexCounter,
+                            timeCounters.entrySet().stream()
+                                    .map(stringLongEntry -> stringLongEntry.getKey() + " - " + TimeUtils.formatDeltaTime(stringLongEntry.getValue()))
+                                    .collect(Collectors.joining(", "))));
                 }
             }
             currentLines.clear();
+            timeCounters.put("textProcessing", timeCounters.get("textProcessing") + (System.currentTimeMillis() - startTextProcessing));
 
-            if (linesBuilderLineConter % 1000 == 0) {
-                LOG.info(String.format("%d Total: %d, Free: %d, Diff: %d", linesBuilderLineConter, Runtime.getRuntime().totalMemory() / (1024 * 1024),
-                        Runtime.getRuntime().freeMemory() / (1024 * 1024), (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024)));
-            }
-            timeCount += System.currentTimeMillis() - start;
+            timeCounters.put("total", timeCounters.get("total") + (System.currentTimeMillis() - startDownloading));
+            startDownloading = System.currentTimeMillis();
         }
         if (linesBuilderLineConter > 0) {
             callback.onFindFastqPart(linesBuilder.append(fastqDataToProcess).toString(), indexCounter);
         }
-        LOG.info(String.format("Spent time ms: %d", timeCount));
+        LOG.info(String.format("Spent time ms: %d", timeCounters.get("total")));
     }
-
 
     public static interface Callback {
 
         void onFindFastqPart(String fastqPart, int index);
     }
+
 }

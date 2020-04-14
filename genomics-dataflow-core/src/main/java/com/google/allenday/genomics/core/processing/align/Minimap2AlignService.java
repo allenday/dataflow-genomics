@@ -4,8 +4,10 @@ import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.model.Instrument;
+import org.javatuples.Pair;
 import org.javatuples.Triplet;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Minimap2AlignService extends AlignService {
@@ -42,15 +44,19 @@ public class Minimap2AlignService extends AlignService {
 
     @Override
     public void setup() {
-        workerSetupService.setupByCommands(new String[]{
-                CMD_APT_UPDATE,
-                CMD_INSTALL_WGET,
-                CMD_INSTALL_BZIP2,
-                CMD_DOWNLOAD_MONIMAP,
-                String.format(CMD_UNTAR_MINIMAP_PATTERN, MINIMAP_ARCHIVE_FILE_NAME, fileUtils.getCurrentPath()),
-                CMD_RM_MINIMAP_ARCHIVE
-        });
+        ArrayList<Pair<String, Boolean>> commands = new ArrayList<Pair<String, Boolean>>() {
+            {
+                add(Pair.with(CMD_APT_UPDATE, false));
+                add(Pair.with(CMD_INSTALL_WGET, false));
+                add(Pair.with(CMD_INSTALL_BZIP2, false));
+                add(Pair.with(CMD_DOWNLOAD_MONIMAP, true));
+                add(Pair.with(String.format(CMD_UNTAR_MINIMAP_PATTERN, MINIMAP_ARCHIVE_FILE_NAME, fileUtils.getCurrentPath()), true));
+                add(Pair.with(CMD_RM_MINIMAP_ARCHIVE, true));
+            }
+        };
+        workerSetupService.setupByCommands(commands);
     }
+
 
     @Override
     public String alignFastq(String referencePath, List<String> localFastqPaths, String workDir,
@@ -76,12 +82,12 @@ public class Minimap2AlignService extends AlignService {
         return alignedSamPath;
     }
 
-    private String getInstrumentMinimapFlag(Instrument instrument){
-        if (instrument == Instrument.ILLUMINA || instrument == Instrument.LS454 || instrument == Instrument.MGISEQ){
+    private String getInstrumentMinimapFlag(Instrument instrument) {
+        if (instrument == Instrument.ILLUMINA || instrument == Instrument.LS454 || instrument == Instrument.MGISEQ) {
             return MINIMAP_SHORT_READ_FLAG;
-        } else if (instrument == Instrument.OXFORD_NANOPORE){
+        } else if (instrument == Instrument.OXFORD_NANOPORE) {
             return MINIMAP_OXFORD_NANOPORE_FLAG;
-        } else if (instrument == Instrument.PACBIO_SMRT){
+        } else if (instrument == Instrument.PACBIO_SMRT) {
             return MINIMAP_PAC_BIO_FLAG;
         } else {
             throw new AlignService.AlignException(String.format("Not supported instrument: %s", instrument.name()));

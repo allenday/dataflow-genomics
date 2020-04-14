@@ -1,6 +1,5 @@
-package com.google.allenday.genomics.core.processing.sam;
+package com.google.allenday.genomics.core.model;
 
-import com.google.allenday.genomics.core.model.SraSampleId;
 import com.google.allenday.genomics.core.utils.StringUtils;
 import org.apache.beam.sdk.coders.AvroCoder;
 import org.apache.beam.sdk.coders.DefaultCoder;

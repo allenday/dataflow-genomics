@@ -1,7 +1,7 @@
 package com.google.allenday.genomics.core.processing.variantcall;
 
 import com.google.allenday.genomics.core.model.BamWithIndexUris;
-import com.google.allenday.genomics.core.processing.sam.SamRecordsMetadaKey;
+import com.google.allenday.genomics.core.model.SamRecordsMetadaKey;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import org.apache.beam.sdk.transforms.Filter;
 import org.apache.beam.sdk.transforms.PTransform;

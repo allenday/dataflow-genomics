@@ -5,13 +5,14 @@ import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.Instrument;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.cloud.ReadChannel;
-import htsjdk.samtools.util.Log;
 import org.apache.beam.sdk.transforms.*;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.TypeDescriptor;
 import org.apache.beam.sdk.values.TypeDescriptors;
 import org.javatuples.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -92,7 +93,7 @@ public class SplitFastqIntoBatches extends PTransform<PCollection<KV<SampleMetaD
 
     public static class ReadFastqPartFn extends DoFn<KV<KV<SampleMetaData, String>, Iterable<KV<FileWrapper, Integer>>>,
             KV<SampleMetaData, KV<FileWrapper, Integer>>> {
-        private static final Log LOG = Log.getInstance(ReadFastqPartFn.class);
+        private final static Logger LOG = LoggerFactory.getLogger(ReadFastqPartFn.class);
 
         private FileUtils fileUtils;
         private FastqReader fastqReader;
@@ -132,12 +133,12 @@ public class SplitFastqIntoBatches extends PTransform<PCollection<KV<SampleMetaD
                 Instrument instrument;
                 try {
                     instrument = Instrument.valueOf(sampleMetaData.getPlatform());
-                } catch (IllegalArgumentException e){
+                } catch (IllegalArgumentException e) {
                     LOG.error(e.getMessage());
                     return;
                 }
                 chunkSizeCount = chunkSizeCount / instrument.sizeMultiplier;
-                if (chunkSizeCount < 1){
+                if (chunkSizeCount < 1) {
                     chunkSizeCount = 1;
                 }
                 fileWrapper.ifPresent(fileWrapperIntegerKV -> {
@@ -159,8 +160,6 @@ public class SplitFastqIntoBatches extends PTransform<PCollection<KV<SampleMetaD
                                 try {
                                     FileWrapper indexedFileWrapper =
                                             splitFastqIntoBatchesIoHandler.handleContentOutput(gcsService, fastqPart.getBytes(), filename);
-                                    LOG.info(String.format("Total: %d, Free: %d, Diff: %d", Runtime.getRuntime().totalMemory(),
-                                            Runtime.getRuntime().freeMemory(), Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()));
                                     c.output(KV.of(indexedSampleMetaData, KV.of(indexedFileWrapper, pairIndex)));
                                 } catch (IOException e) {
                                     e.printStackTrace();
@@ -168,7 +167,7 @@ public class SplitFastqIntoBatches extends PTransform<PCollection<KV<SampleMetaD
                             };
                             fastqReader.readFastqBlobWithReadCountLimit(blobReader, chunkSizeCount, callback);
                         } catch (IOException e) {
-                            LOG.error(e);
+                            LOG.error(e.getMessage());
                         }
                     }
                 });
@@ -178,7 +177,7 @@ public class SplitFastqIntoBatches extends PTransform<PCollection<KV<SampleMetaD
 
     public static class BuildFastqContentFn extends DoFn<KV<SampleMetaData, Iterable<Iterable<KV<FileWrapper, Integer>>>>,
             KV<SampleMetaData, List<FileWrapper>>> {
-        private static final Log LOG = Log.getInstance(BuildFastqContentFn.class);
+        private static final Logger LOG = LoggerFactory.getLogger(BuildFastqContentFn.class);
 
         private TransformIoHandler buildFastqContentIoHandler;
         private FileUtils fileUtils;

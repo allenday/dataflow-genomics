@@ -1,12 +1,16 @@
-package com.google.allenday.genomics.core.processing.sam;
+package com.google.allenday.genomics.core.processing.index;
 
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SraSampleId;
-import com.google.allenday.genomics.core.model.SraSampleIdReferencePair;
+import com.google.allenday.genomics.core.processing.SamToolsService;
+import com.google.allenday.genomics.core.model.SamRecordsMetadaKey;
+import com.google.allenday.genomics.core.processing.merge.MergeFn;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
+import org.apache.beam.sdk.metrics.Counter;
+import org.apache.beam.sdk.metrics.Metrics;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
@@ -18,16 +22,20 @@ public class CreateBamIndexFn extends DoFn<KV<SamRecordsMetadaKey, KV<ReferenceD
         KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, FileWrapper>>> {
 
     private Logger LOG = LoggerFactory.getLogger(CreateBamIndexFn.class);
+
+    private Counter errorCounter = Metrics.counter(MergeFn.class, "index-error-counter");
+    private Counter successCounter = Metrics.counter(MergeFn.class, "index-success-counter");
+
     private GCSService gcsService;
 
     private TransformIoHandler transformIoHandler;
     private FileUtils fileUtils;
-    private SamBamManipulationService samBamManipulationService;
+    private SamToolsService samToolsService;
 
-    public CreateBamIndexFn(TransformIoHandler transformIoHandler, SamBamManipulationService samBamManipulationService, FileUtils fileUtils) {
+    public CreateBamIndexFn(TransformIoHandler transformIoHandler, SamToolsService samToolsService, FileUtils fileUtils) {
         this.transformIoHandler = transformIoHandler;
         this.fileUtils = fileUtils;
-        this.samBamManipulationService = samBamManipulationService;
+        this.samToolsService = samToolsService;
     }
 
     @Setup
@@ -47,7 +55,7 @@ public class CreateBamIndexFn extends DoFn<KV<SamRecordsMetadaKey, KV<ReferenceD
             LOG.error("Data error");
             LOG.error("sraSample: " + sraSampleId);
             LOG.error("dbAndfileWrapper: " + dbAndFileWrapper);
-            return;
+            throw new RuntimeException("Broken data");
         }
         ReferenceDatabaseSource referenceDatabaseSource = dbAndFileWrapper.getKey();
         FileWrapper fileWrapper = dbAndFileWrapper.getValue();
@@ -56,14 +64,16 @@ public class CreateBamIndexFn extends DoFn<KV<SamRecordsMetadaKey, KV<ReferenceD
         String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(sraSampleId.getValue());
         try {
             String inputFilePath = transformIoHandler.handleInputAsLocalFile(gcsService, fileWrapper, workingDir);
-            String indexBamPath = samBamManipulationService.createIndex(inputFilePath);
+            String indexBamPath = samToolsService.createIndex(inputFilePath);
             FileWrapper fileWrapperToOutput = transformIoHandler.saveFileToGcsOutput(gcsService, indexBamPath);
             fileUtils.deleteDir(workingDir);
             c.output(KV.of(input.getKey(), KV.of(referenceDatabaseSource, fileWrapperToOutput)));
+            successCounter.inc();
         } catch (IOException e) {
             LOG.error(e.getMessage());
             e.printStackTrace();
             fileUtils.deleteDir(workingDir);
+            errorCounter.inc();
         }
     }
 }

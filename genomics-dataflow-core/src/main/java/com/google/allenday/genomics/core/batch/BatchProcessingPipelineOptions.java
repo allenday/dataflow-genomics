@@ -37,7 +37,7 @@ public interface BatchProcessingPipelineOptions extends GenomicsPipelineOptions 
     void setMaxFastqSizeMB(Integer value);
 
     @Description("Size of chunk (in reads count) in which will be splited large FASTQ")
-    @Default.Integer(1000000)
+    @Default.Integer(2000000)
     Integer getMaxFastqChunkSize();
 
     void setMaxFastqChunkSize(Integer value);
@@ -49,9 +49,15 @@ public interface BatchProcessingPipelineOptions extends GenomicsPipelineOptions 
     void setFastqExt(UriProvider.FastqExt value);
 
     @Description("Num of bases that will contain region splitted BAM file")
-    @Default.Integer(10000000)
+    @Default.Integer(5000000)
     Integer getBamRegionSize();
 
     void setBamRegionSize(Integer value);
+
+    @Description("Specifies if there need to merge chunks BAM files into final sample BAM")
+    @Default.Boolean(true)
+    Boolean getWithFinalMerge();
+
+    void setWithFinalMerge(Boolean value);
 }
 

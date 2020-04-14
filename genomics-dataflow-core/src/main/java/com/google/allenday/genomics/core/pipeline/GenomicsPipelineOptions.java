@@ -51,7 +51,7 @@ public interface GenomicsPipelineOptions extends DataflowPipelineOptions {
     void setSraSamplesToSkip(List<String> value);
 
     @Description("Threshold to decide how to pass data between transforms")
-    @Default.Long(500)
+    @Default.Long(800)
     long getMemoryOutputLimit();
 
     void setMemoryOutputLimit(long value);

@@ -1,9 +1,11 @@
-package com.google.allenday.genomics.core.processing.sam;
+package com.google.allenday.genomics.core.processing;
 
 import com.google.allenday.genomics.core.io.FileUtils;
 import htsjdk.samtools.*;
 import htsjdk.samtools.util.*;
 import org.javatuples.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,8 +19,9 @@ import java.util.stream.StreamSupport;
 
 import static htsjdk.samtools.ValidationStringency.LENIENT;
 
-public class SamBamManipulationService implements Serializable {
-    private static final Log LOG = Log.getInstance(SamBamManipulationService.class);
+public class SamToolsService implements Serializable {
+    private static final Logger LOG = LoggerFactory.getLogger(SamToolsService.class);
+    private static final Log LOG_HTS = Log.getInstance(SamToolsService.class);
 
     public final static String SORTED_BAM_FILE_SUFFIX = ".sorted.bam";
     public final static String BAM_INDEX_SUFFIX = ".bai";
@@ -34,7 +37,7 @@ public class SamBamManipulationService implements Serializable {
     private static final int PROGRESS_INTERVAL = 1000000;
     private FileUtils fileUtils;
 
-    public SamBamManipulationService(FileUtils fileUtils) {
+    public SamToolsService(FileUtils fileUtils) {
         this.fileUtils = fileUtils;
     }
 
@@ -224,7 +227,7 @@ public class SamBamManipulationService implements Serializable {
         final SAMFileWriter out = samFileWriterFactory.makeSAMOrBAMWriter(header, presorted, outputFile);
 
         // Lastly loop through and write out the records
-        final ProgressLogger progress = new ProgressLogger(LOG, PROGRESS_INTERVAL);
+        final ProgressLogger progress = new ProgressLogger(LOG_HTS, PROGRESS_INTERVAL);
         while (iterator.hasNext()) {
             final SAMRecord record = iterator.next();
             out.addAlignment(record);

@@ -8,6 +8,8 @@ import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.reference.ReferenceDatabase;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.allenday.genomics.core.reference.ReferenceProvider;
+import org.apache.beam.sdk.metrics.Counter;
+import org.apache.beam.sdk.metrics.Metrics;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
@@ -19,6 +21,10 @@ import java.util.stream.Collectors;
 
 public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSource>, List<FileWrapper>>>,
         KV<SampleMetaData, KV<ReferenceDatabaseSource, FileWrapper>>> {
+
+
+    private Counter errorCounter = Metrics.counter(AlignFn.class, "align-error-counter");
+    private Counter successCounter = Metrics.counter(AlignFn.class, "align-success-counter");
 
     private Logger LOG = LoggerFactory.getLogger(AlignFn.class);
     private GCSService gcsService;
@@ -46,6 +52,7 @@ public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSo
 
     @ProcessElement
     public void processElement(ProcessContext c) {
+
         LOG.info(String.format("Start of processing with input: %s", c.element().toString()));
 
         SampleMetaData geneSampleMetaData = c.element().getKey();
@@ -60,54 +67,50 @@ public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSo
             LOG.error("geneSampleMetaData: " + geneSampleMetaData);
             LOG.error("fileWrapperList.size(): " + fileWrapperList.size());
             LOG.error("referenceDBSource: " + referenceDBSources);
-            return;
+            throw new RuntimeException("Broken data");
         }
+
+        String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneSampleMetaData.getRunId());
+
         try {
-            String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneSampleMetaData.getRunId());
-            try {
-                List<String> srcFilesPaths = fileWrapperList.stream()
-                        .map(geneData -> transformIoHandler.handleInputAsLocalFile(gcsService, geneData, workingDir))
-                        .collect(Collectors.toList());
-                for (ReferenceDatabaseSource referenceDBSource : referenceDBSources) {
-                    ReferenceDatabase referenceDatabase =
-                            referencesProvider.getReferenceDbWithDownload(gcsService, referenceDBSource);
-                    String alignedSamPath = null;
-                    try {
-                        String outPrefix = geneSampleMetaData.getRunId()
-                                + "_" + geneSampleMetaData.getPartIndex()
-                                + "_" + geneSampleMetaData.getSubPartIndex();
-                        alignedSamPath = alignService.alignFastq(
-                                referenceDatabase.getFastaLocalPath(),
-                                srcFilesPaths,
-                                workingDir, outPrefix,
-                                referenceDatabase.getDbName(),
-                                geneSampleMetaData.getSraSample().getValue(),
-                                geneSampleMetaData.getPlatform());
-                        FileWrapper fileWrapper = transformIoHandler.handleFileOutput(gcsService, alignedSamPath);
+            List<String> srcFilesPaths = fileWrapperList.stream()
+                    .map(geneData -> transformIoHandler.handleInputAsLocalFile(gcsService, geneData, workingDir))
+                    .collect(Collectors.toList());
+            for (ReferenceDatabaseSource referenceDBSource : referenceDBSources) {
+                ReferenceDatabase referenceDatabase =
+                        referencesProvider.getReferenceDbWithDownload(gcsService, referenceDBSource);
+                String alignedSamPath = null;
+                try {
+                    String outPrefix = geneSampleMetaData.getRunId()
+                            + "_" + geneSampleMetaData.getPartIndex()
+                            + "_" + geneSampleMetaData.getSubPartIndex();
+                    alignedSamPath = alignService.alignFastq(
+                            referenceDatabase.getFastaLocalPath(),
+                            srcFilesPaths,
+                            workingDir, outPrefix,
+                            referenceDatabase.getDbName(),
+                            geneSampleMetaData.getSraSample().getValue(),
+                            geneSampleMetaData.getPlatform());
+                    FileWrapper fileWrapper = transformIoHandler.handleFileOutput(gcsService, alignedSamPath);
+                    fileUtils.deleteFile(alignedSamPath);
+
+                    successCounter.inc();
+                    c.output(KV.of(geneSampleMetaData, KV.of(referenceDBSource, fileWrapper)));
+                } catch (IOException e) {
+                    LOG.error(e.getMessage());
+                    e.printStackTrace();
+                    if (alignedSamPath != null) {
                         fileUtils.deleteFile(alignedSamPath);
-
-                        c.output(KV.of(geneSampleMetaData, KV.of(referenceDBSource, fileWrapper)));
-                    } catch (IOException e) {
-                        LOG.error(e.getMessage());
-                        e.printStackTrace();
-                        if (alignedSamPath != null) {
-                            fileUtils.deleteFile(alignedSamPath);
-                        }
-
-                        c.output(KV.of(geneSampleMetaData, KV.of(referenceDBSource, FileWrapper.empty())));
                     }
+                    errorCounter.inc();
                 }
-                fileUtils.deleteDir(workingDir);
-            } catch (Exception e) {
-                LOG.error(e.getMessage());
-                e.printStackTrace();
-                fileUtils.deleteDir(workingDir);
             }
+            fileUtils.deleteDir(workingDir);
         } catch (RuntimeException e) {
             LOG.error(e.getMessage());
             e.printStackTrace();
+            fileUtils.deleteDir(workingDir);
+            errorCounter.inc(fileWrapperList.size());
         }
     }
-
-
 }

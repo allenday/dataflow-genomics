@@ -1,8 +1,8 @@
-package com.google.allenday.genomics.core.main.processing.sam;
+package com.google.allenday.genomics.core.main.processing.split;
 
 import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.processing.sam.BatchSamParser;
-import com.google.allenday.genomics.core.processing.sam.SamBamManipulationService;
+import com.google.allenday.genomics.core.processing.split.BatchSamParser;
+import com.google.allenday.genomics.core.processing.SamToolsService;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -18,11 +18,11 @@ public class BatchSamParserTest {
         File file = new File(getClass().getClassLoader().getResource("test_sam_file.sam").getFile());
 
         FileUtils fileUtils = new FileUtils();
-        SamBamManipulationService samBamManipulationService = new SamBamManipulationService(fileUtils);
-        BatchSamParser batchSamParser = new BatchSamParser(samBamManipulationService, fileUtils);
+        SamToolsService samToolsService = new SamToolsService(fileUtils);
+        BatchSamParser batchSamParser = new BatchSamParser(samToolsService, fileUtils);
 
         try {
-            String destPath = samBamManipulationService.sortSam(file.getAbsolutePath(), "", "result", "sorted");
+            String destPath = samToolsService.sortSam(file.getAbsolutePath(), "", "result", "sorted");
             List<String> fileNames = new ArrayList<>();
             batchSamParser.samRecordsBatchesStreamFromBamFile(destPath, "", new BatchSamParser.BatchResultEmmiter() {
                 @Override

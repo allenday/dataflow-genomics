@@ -1,6 +1,6 @@
 package com.google.allenday.genomics.core.main.processing;
 
-import com.google.allenday.genomics.core.processing.sam.SamBamManipulationService;
+import com.google.allenday.genomics.core.processing.SamToolsService;
 import com.google.allenday.genomics.core.io.FileUtils;
 import htsjdk.samtools.SAMRecord;
 import org.junit.Assert;
@@ -11,16 +11,16 @@ import java.io.Serializable;
 import java.util.List;
 
 
-public class SamBamManipulationTests implements Serializable {
+public class SamToolsServiceTests implements Serializable {
 
     private final static String BAM_FILE = "expected_result_5k.merged.sorted.bam";
     private final static int BAM_FILE_LINES_SIZE = 20000;
 
     @Test
     public void testSamRecordsFromBamFile() throws IOException {
-        SamBamManipulationService samBamManipulationService = new SamBamManipulationService(new FileUtils());
+        SamToolsService samToolsService = new SamToolsService(new FileUtils());
 
-        List<SAMRecord> samRecords = samBamManipulationService.samRecordsFromBamFile(getClass().getClassLoader().getResource(BAM_FILE).getFile());
+        List<SAMRecord> samRecords = samToolsService.samRecordsFromBamFile(getClass().getClassLoader().getResource(BAM_FILE).getFile());
         Assert.assertEquals(samRecords.size(), BAM_FILE_LINES_SIZE);
     }
 }

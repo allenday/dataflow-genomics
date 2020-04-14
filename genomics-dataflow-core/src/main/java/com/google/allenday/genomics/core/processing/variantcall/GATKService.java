@@ -22,12 +22,16 @@ public class GATKService extends VariantCallingService {
     private final static String CMD_INSTALL_WGET = "apt-get install wget -y";
     private final static String CMD_INSTALL_PYTHON_2_7 = "apt-get install python -y";
     private final static String CMD_DOWNLOAD_GATK = String.format("wget %s", GATK_URI);
-    private final static String CMD_UNZIP_GATK = String.format("unzip %s", GATK_ZIP_NAME);
+    private final static String CMD_UNZIP_GATK = String.format("unzip -o %s", GATK_ZIP_NAME);
+
+    private final static String DISABLE_GENERATION_OF_VCF_INDEX_PARAMETER = "--create-output-variant-index=False";
 
     private final static String HAPLOTYPE_CALLER_COMMAND_PATTERN = "./%1$s/gatk HaplotypeCaller -R %2$s -I %3$s -L %4$s -O %5$s";
 
+
     private WorkerSetupService workerSetupService;
     private CmdExecutor cmdExecutor;
+    private boolean generateVcfIndex = false;
 
     public GATKService(WorkerSetupService workerSetupService, CmdExecutor cmdExecutor) {
         this.workerSetupService = workerSetupService;
@@ -54,8 +58,15 @@ public class GATKService extends VariantCallingService {
         String outFileUri = outDirGcsUri + outFileNameWithoutExt + DEEP_VARIANT_RESULT_EXTENSION;
         String command = String.format(HAPLOTYPE_CALLER_COMMAND_PATTERN,
                 GATK_NAME, referenceDatabase.getFastaGcsUri(), bamUri, region, outFileUri);
+        if (!generateVcfIndex) {
+            command = command + " " + DISABLE_GENERATION_OF_VCF_INDEX_PARAMETER;
+        }
         Triplet<Boolean, Integer, String> result = cmdExecutor.executeCommand(command);
 
         return Triplet.with(outFileUri, result.getValue0(), result.getValue2());
+    }
+
+    public void setGenerateVcfIndex(boolean generateVcfIndex) {
+        this.generateVcfIndex = generateVcfIndex;
     }
 }

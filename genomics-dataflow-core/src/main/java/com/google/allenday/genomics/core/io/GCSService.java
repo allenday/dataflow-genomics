@@ -1,6 +1,5 @@
 package com.google.allenday.genomics.core.io;
 
-import com.google.api.gax.paging.Page;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.*;
@@ -8,9 +7,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Paths;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import java.util.zip.GZIPInputStream;
 
 /**
  * Provides access to {@link Storage} instance with convenient interface
@@ -112,9 +114,14 @@ public class GCSService implements Serializable {
     }
 
 
-    public Page<Blob> getListOfBlobsInDir(String bucketName, String dirPrefix) throws StorageException {
-        return storage.list(bucketName, Storage.BlobListOption.prefix(dirPrefix),
-                Storage.BlobListOption.pageSize(DEFAULT_BLOB_MAX_PAGE_SIZE_TO_RETRIVE));
+    public Iterable<Blob> getBlobsWithPrefix(String bucketName, String prefix) throws StorageException {
+        return storage.list(bucketName, Storage.BlobListOption.prefix(prefix),
+                Storage.BlobListOption.pageSize(DEFAULT_BLOB_MAX_PAGE_SIZE_TO_RETRIVE)).iterateAll();
+    }
+
+    public List<BlobId> getBlobsIdsWithPrefixList(String bucketName, String prefix) throws StorageException {
+        return StreamSupport.stream(getBlobsWithPrefix(bucketName, prefix).spliterator(), false).map(BlobInfo::getBlobId)
+                .collect(Collectors.toList());
     }
 
     public Blob composeBlobs(Iterable<BlobId> blobIds, BlobId headers, BlobId destBlob) throws StorageException {
@@ -133,12 +140,6 @@ public class GCSService implements Serializable {
         return Optional.ofNullable(storage.get(blobId)).map(Blob::exists).orElse(false);
     }
 
-    public List<Blob> getAllBlobsIn(String bucketName, String prefix) {
-        Bucket bucket = storage.get(bucketName);
-        return StreamSupport.stream(bucket.list(Storage.BlobListOption.prefix(prefix)).iterateAll().spliterator(), false)
-                .collect(Collectors.toList());
-    }
-
 
     public void downloadBlobTo(Blob blob, String filePath) {
         LOG.info(String.format("Start downloading blob gs://%s/%s with size %d into %s", blob.getBucket(), blob.getName(), blob.getSize(), filePath));
@@ -148,8 +149,7 @@ public class GCSService implements Serializable {
     }
 
     public String readBlob(BlobId blobId, IoUtils ioUtils) throws IOException, NullPointerException {
-        Blob blob = getBlob(blobId);
-        ReadChannel reader = blob.reader();
+        ReadChannel reader = getBlobReader(blobId);
 
         ByteBuffer bytes = ByteBuffer.allocate(64 * 1024);
         StringBuilder builder = new StringBuilder();
@@ -168,5 +168,31 @@ public class GCSService implements Serializable {
 
     public boolean deleteBlobFromGcs(BlobId blobId) {
         return storage.delete(blobId);
+    }
+
+    public static void main(String[] args) {
+        GCSService gcsService = GCSService.initialize(new FileUtils());
+        IoUtils ioUtils = new IoUtils();
+        ReadChannel blobReader = gcsService.getBlobReader(BlobId.of("human1000", "test_gz.txt.gz"));
+
+        try {
+            InputStream inputStream = false ? Channels.newInputStream(blobReader) : new GZIPInputStream(Channels.newInputStream(blobReader));
+
+            byte[] bytes = new byte[64 * 1028];
+
+            StringBuilder builder = new StringBuilder();
+            int read = 0;
+            while ((read = inputStream.read(bytes, 0, bytes.length)) > 0) {
+
+                String str = new String(bytes, 0, read);
+                builder.append(str);
+            }
+            inputStream.close();
+            blobReader.close();
+            System.out.println(String.format("RESULT: %s", builder.toString()));
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -1,12 +1,14 @@
 package com.google.allenday.genomics.core.parts_processing;
 
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
-import com.google.allenday.genomics.core.processing.align.AlignService;
 import com.google.allenday.genomics.core.processing.SamToolsService;
+import com.google.allenday.genomics.core.processing.align.AlignService;
 import com.google.allenday.genomics.core.processing.variantcall.DeepVariantService;
 import com.google.cloud.storage.BlobId;
 
 import java.io.Serializable;
+
+import static com.google.allenday.genomics.core.pipeline.GenomicsOptions.*;
 
 public class StagingPathsBulder implements Serializable {
 
@@ -35,32 +37,32 @@ public class StagingPathsBulder implements Serializable {
     }
 
     BlobId buildAlignedBlobId(String runId, String reference) {
-        String pathPattern = String.format(GenomicsOptions.ALIGNED_OUTPUT_PATH_PATTERN, stagingDir) + FILE_NAME_PATTERN
+        String pathPattern = stagingDir + "/" + ALIGNED_OUTPUT_PATH_PATTERN + FILE_NAME_PATTERN
                 + AlignService.SAM_FILE_PREFIX;
         return BlobId.of(stagingBucket, String.format(pathPattern, runId, reference));
     }
 
     BlobId buildSortedBlobId(String runId, String reference) {
-        String pathPattern = String.format(GenomicsOptions.SORTED_OUTPUT_PATH_PATTERN, stagingDir) + FILE_NAME_PATTERN
+        String pathPattern = stagingDir + "/" + SORTED_OUTPUT_PATH_PATTERN + FILE_NAME_PATTERN
                 + SamToolsService.SORTED_BAM_FILE_SUFFIX;
         return BlobId.of(stagingBucket, String.format(pathPattern, runId, reference));
     }
 
     BlobId buildMergedBlobId(String sraSample, String reference) {
-        String pathPattern = String.format(GenomicsOptions.FINAL_MERGED_PATH_PATTERN, stagingDir) + FILE_NAME_PATTERN
+        String pathPattern = stagingDir + "/" + FINAL_MERGED_PATH_PATTERN + FILE_NAME_PATTERN
                 + SamToolsService.MERGE_SORTED_FILE_SUFFIX;
         return BlobId.of(stagingBucket, String.format(pathPattern, sraSample, reference));
     }
 
     BlobId buildIndexBlobId(String sraSample, String reference) {
-        String pathPattern = String.format(GenomicsOptions.FINAL_MERGED_PATH_PATTERN, stagingDir) + FILE_NAME_PATTERN
+        String pathPattern = stagingDir + "/" + FINAL_MERGED_PATH_PATTERN + FILE_NAME_PATTERN
                 + SamToolsService.MERGE_SORTED_FILE_SUFFIX + SamToolsService.BAM_INDEX_SUFFIX;
         return BlobId.of(stagingBucket, String.format(pathPattern, sraSample, reference));
 
     }
 
     public String buildVcfDirPath() {
-        return String.format(GenomicsOptions.VARIANT_CALLING_OUTPUT_PATH_PATTERN, stagingDir);
+        return stagingDir + "/" + VARIANT_CALLING_OUTPUT_PATH_PATTERN;
     }
 
     BlobId buildVcfFileBlobId(String sraSample, String reference) {
@@ -72,6 +74,10 @@ public class StagingPathsBulder implements Serializable {
         return BlobId.of(stagingBucket, stagingDir +
                 GenomicsOptions.VCF_TO_BQ_PATH.replace("%s", "") +
                 VCF_TO_BQ_PROCESSED_LIST_FILENAME);
+    }
+
+    public String buildVcfToBqDirPath() {
+        return stagingDir + "/" + VCF_TO_BQ_PATH;
     }
 
     public String getExistenceCsvUri() {

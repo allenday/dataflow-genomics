@@ -9,16 +9,19 @@ import java.util.List;
 
 public class GenomicsOptions {
 
-    public final static String CHUNKS_BY_COUNT_OUTPUT_PATH_PATTERN = "%s/intermediate/chunked_fastq_by_count/";
-    public final static String CHUNKS_BY_SIZE_OUTPUT_PATH_PATTERN = "%s/intermediate/chunked_fastq_by_size/";
-    public final static String ALIGNED_OUTPUT_PATH_PATTERN = "%s/intermediate/aligned_sam/";
-    public final static String SORTED_OUTPUT_PATH_PATTERN = "%s/intermediate/sorted_bam/";
-    public final static String SORTED_AND_SPLITTED_PATH_PATTERN = "%s/intermediate/sorted_and_splitted_bam/";
-    public final static String FINAL_MERGED_PATH_PATTERN = "%s/final/result_merged_bam/";
-    public final static String MERGED_REGIONS_PATH_PATTERN = "%s/intermediate/merged_regions_bam/";
-    public final static String VARIANT_CALLING_OUTPUT_PATH_PATTERN = "%s/final/result_variant_calling/";
-    public final static String VCF_TO_BQ_PATH = "%s/intermediate/vcf_to_bq/";
-    public final static String ANOMALY_PATH_PATTERN = "%s/final/anomaly_samples/";
+    public final static String INTERMEDIATE_PREFIX = "%s/intermediate/";
+    public final static String FINAL_PREFIX = "%s/final/";
+
+    public final static String CHUNKS_BY_COUNT_OUTPUT_PATH_PATTERN = "intermediate/chunked_fastq_by_count/";
+    public final static String CHUNKS_BY_SIZE_OUTPUT_PATH_PATTERN = "intermediate/chunked_fastq_by_size/";
+    public final static String ALIGNED_OUTPUT_PATH_PATTERN = "intermediate/aligned_sam/";
+    public final static String SORTED_OUTPUT_PATH_PATTERN = "intermediate/sorted_bam/";
+    public final static String SORTED_AND_SPLITTED_PATH_PATTERN = "intermediate/sorted_and_splitted_bam/";
+    public final static String FINAL_MERGED_PATH_PATTERN = "result_merged_bam/";
+    public final static String MERGED_REGIONS_PATH_PATTERN = "intermediate/merged_regions_bam/";
+    public final static String VARIANT_CALLING_OUTPUT_PATH_PATTERN = "result_variant_calling/";
+    public final static String VCF_TO_BQ_PATH = "vcf_to_bq/";
+    public final static String ANOMALY_PATH_PATTERN = "anomaly_samples/";
 
     private Aligner aligner;
     private String resultBucket;
@@ -116,43 +119,43 @@ public class GenomicsOptions {
     }
 
     public String getChuncksByCountOutputDirPattern() {
-        return outputDir + CHUNKS_BY_COUNT_OUTPUT_PATH_PATTERN;
+        return outputDir + INTERMEDIATE_PREFIX + CHUNKS_BY_COUNT_OUTPUT_PATH_PATTERN;
     }
 
     public String getChuncksBySizeOutputDirPattern() {
-        return outputDir + CHUNKS_BY_SIZE_OUTPUT_PATH_PATTERN;
+        return outputDir + INTERMEDIATE_PREFIX + CHUNKS_BY_SIZE_OUTPUT_PATH_PATTERN;
     }
 
     public String getAlignedOutputDirPattern() {
-        return outputDir + ALIGNED_OUTPUT_PATH_PATTERN;
+        return outputDir + INTERMEDIATE_PREFIX + ALIGNED_OUTPUT_PATH_PATTERN;
     }
 
     public String getSortedOutputDirPattern() {
-        return outputDir + SORTED_OUTPUT_PATH_PATTERN;
+        return outputDir + INTERMEDIATE_PREFIX + SORTED_OUTPUT_PATH_PATTERN;
     }
 
     public String getSortedAndSplittedOutputDirPattern() {
-        return outputDir + SORTED_AND_SPLITTED_PATH_PATTERN;
+        return outputDir + INTERMEDIATE_PREFIX + SORTED_AND_SPLITTED_PATH_PATTERN;
     }
 
     public String getMergedRegionsDirPattern() {
-        return outputDir + MERGED_REGIONS_PATH_PATTERN;
+        return outputDir + INTERMEDIATE_PREFIX + MERGED_REGIONS_PATH_PATTERN;
     }
 
     public String getFinalMergedDirPattern() {
-        return outputDir + FINAL_MERGED_PATH_PATTERN;
+        return outputDir + FINAL_PREFIX + FINAL_MERGED_PATH_PATTERN;
     }
 
     public String getAnomalyOutputDirPattern() {
-        return outputDir + ANOMALY_PATH_PATTERN;
+        return outputDir + FINAL_PREFIX + ANOMALY_PATH_PATTERN;
     }
 
     public String getVariantCallingOutputDirPattern() {
-        return outputDir + VARIANT_CALLING_OUTPUT_PATH_PATTERN;
+        return outputDir + FINAL_PREFIX + VARIANT_CALLING_OUTPUT_PATH_PATTERN;
     }
 
     public String getVcfToBqOutputDir() {
-        return outputDir + VCF_TO_BQ_PATH;
+        return outputDir + INTERMEDIATE_PREFIX + VCF_TO_BQ_PATH;
     }
 
     public String getCustomOutputDirPattern(String patternSuffix) {

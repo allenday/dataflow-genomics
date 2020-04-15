@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -165,7 +166,8 @@ public class SplitFastqIntoBatches extends PTransform<PCollection<KV<SampleMetaD
                                     e.printStackTrace();
                                 }
                             };
-                            fastqReader.readFastqBlobWithReadCountLimit(blobReader, chunkSizeCount, callback);
+                            InputStream inputStream = fileUtils.getInputStreamFromReadChannel(fastqFW.getBlobUri(), blobReader);
+                            fastqReader.readFastqBlobWithReadCountLimit(inputStream, chunkSizeCount, callback);
                         } catch (IOException e) {
                             LOG.error(e.getMessage());
                         }

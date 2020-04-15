@@ -1,15 +1,12 @@
 package com.google.allenday.genomics.core.io;
 
 import com.google.allenday.genomics.core.utils.TimeUtils;
-import com.google.cloud.ReadChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
-import java.nio.ByteBuffer;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -45,26 +42,27 @@ public class FastqReader implements Serializable {
     /**
      * Reads FastQ data line by line from GCS. Helps to eliminate Out Of Memory problems with large FastQ files
      */
-
-    public void readFastqBlobWithSizeLimit(ReadChannel readChannel, long batchSize, Callback callback) throws IOException {
+    public void readFastqBlobWithSizeLimit(InputStream readChannel, long batchSize, Callback callback) throws IOException {
         if (batchSize < BUFFER_SIZE) {
             batchSize = BUFFER_SIZE;
         }
 
-        ByteBuffer bytes = ByteBuffer.allocate(BUFFER_SIZE);
+        byte[] bytes = new byte[BUFFER_SIZE];
         String fastqTail = "";
         List<String> linesCollector = new ArrayList<>();
 
         int indexCounter = 0;
         long currentReadSize = 0;
         long timeCount = 0;
-        while (readChannel.read(bytes) > 0) {
+
+        int readCount;
+        while ((readCount = readChannel.read(bytes)) > 0) {
             long start = System.currentTimeMillis();
-            bytes.flip();
-            StringBuilder newLines = removeEmptyLines(StandardCharsets.UTF_8.decode(bytes).toString());
+
+            StringBuilder newLines = removeEmptyLines(new String(bytes, 0, readCount));
+
             currentReadSize += newLines.toString().getBytes().length;
             StringBuilder readString = newLines.insert(0, fastqTail);
-            bytes.clear();
 
             List<String> lines = Arrays.asList(readString.toString().split(NEW_LINE_INDICATION));
 
@@ -101,12 +99,12 @@ public class FastqReader implements Serializable {
         LOG.info(String.format("Spent time ms: %d", timeCount));
     }
 
-    public void readFastqBlobWithReadCountLimit(ReadableByteChannel readChannel, int batchSize, Callback callback) throws IOException {
+    public void readFastqBlobWithReadCountLimit(InputStream readChannel, int batchSize, Callback callback) throws IOException {
         readFastqBlobWithReadCountLimit(readChannel, batchSize, callback, false);
     }
 
-    public void readFastqBlobWithReadCountLimit(ReadableByteChannel readChannel, int batchSize, Callback callback, boolean fixLines) throws IOException {
-        ByteBuffer bytes = ByteBuffer.allocate(BUFFER_SIZE);
+    public void readFastqBlobWithReadCountLimit(InputStream readChannel, int batchSize, Callback callback, boolean fixLines) throws IOException {
+        byte[] bytes = new byte[BUFFER_SIZE];
         StringBuilder fastqDataToProcess = new StringBuilder();
         StringBuilder linesBuilder = new StringBuilder();
         int linesBuilderLineConter = 0;
@@ -121,14 +119,13 @@ public class FastqReader implements Serializable {
         timeCounters.put("output", 0l);
 
         long startDownloading = System.currentTimeMillis();
-        while (readChannel.read(bytes) > 0) {
+        int readCount;
+        while ((readCount = readChannel.read(bytes)) > 0) {
             timeCounters.put("downloading", timeCounters.get("downloading") + (System.currentTimeMillis() - startDownloading));
             long startTextProcessing = System.currentTimeMillis();
 
-            bytes.flip();
-            String readString = StandardCharsets.UTF_8.decode(bytes).toString();
+            String readString = new String(bytes, 0, readCount);
             fastqDataToProcess.append(fixLines ? removeEmptyLines(readString) : readString);
-            bytes.clear();
             timeCounters.put("textPreProcessing", timeCounters.get("textPreProcessing") + (System.currentTimeMillis() - startTextProcessing));
 
             boolean endsWithNewLine = fastqDataToProcess.charAt(fastqDataToProcess.length() - 1) == '\n';

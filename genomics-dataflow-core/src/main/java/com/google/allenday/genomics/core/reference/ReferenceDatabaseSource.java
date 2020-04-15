@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public interface ReferenceDatabaseSource extends Serializable {
 
@@ -45,8 +46,8 @@ public interface ReferenceDatabaseSource extends Serializable {
         private List<Blob> getBlobsInDir(GCSService gcsService, FileUtils fileUtils, String uri, String name) {
             BlobId blobIdFromUri = gcsService.getBlobIdFromUri(uri);
 
-            return gcsService.getAllBlobsIn(blobIdFromUri.getBucket(), blobIdFromUri.getName())
-                    .stream()
+            return StreamSupport.stream(gcsService.getBlobsWithPrefix(blobIdFromUri.getBucket(), blobIdFromUri.getName())
+                    .spliterator(), false)
                     .filter(blob -> fileUtils.getFilenameFromPath(blob.getName()).startsWith(name))
                     .collect(Collectors.toList());
         }

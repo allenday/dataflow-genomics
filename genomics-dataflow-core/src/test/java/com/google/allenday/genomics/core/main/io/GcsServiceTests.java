@@ -73,8 +73,9 @@ public class GcsServiceTests {
         Blob blobMock = Mockito.mock(Blob.class);
         ReadChannel readChannelMock = Mockito.mock(ReadChannel.class);
 
+        Mockito.when(blobMock.getBlobId()).thenReturn(BlobId.of(bucketName, blobName));
         Mockito.when(storageMock.get(Mockito.eq(BlobId.of(bucketName, blobName)))).thenReturn(blobMock);
-        Mockito.when(blobMock.reader()).thenReturn(readChannelMock);
+        Mockito.when(storageMock.reader(blobMock.getBlobId())).thenReturn(readChannelMock);
         Mockito.when(readChannelMock.read(Mockito.any())).thenReturn(firstCallContentLength).thenReturn(0);
         Mockito.when(ioUtilsMock.getStringContentFromByteBuffer(Mockito.any())).thenReturn(content);
         String result = gcsService.readBlob(BlobId.of(bucketName, blobName), ioUtilsMock);

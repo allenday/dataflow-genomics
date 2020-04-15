@@ -1,7 +1,7 @@
 package com.google.allenday.genomics.core.csv;
 
+import com.google.allenday.genomics.core.io.BaseUriProvider;
 import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.io.UriProvider;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import org.apache.beam.sdk.io.TextIO;
@@ -26,7 +26,7 @@ public class ParseSourceCsvTransform extends PTransform<PBegin,
 
     private String csvGcsUri;
     private SampleMetaData.Parser csvParser;
-    private UriProvider uriProvider;
+    private BaseUriProvider baseUriProvider;
     private FileUtils fileUtils;
 
     private List<String> sraSamplesToFilter;
@@ -48,18 +48,18 @@ public class ParseSourceCsvTransform extends PTransform<PBegin,
         this.preparingTransforms = preparingTransforms;
     }
 
-    public ParseSourceCsvTransform(String csvGcsUri, SampleMetaData.Parser csvParser, UriProvider uriProvider, FileUtils fileUtils) {
+    public ParseSourceCsvTransform(String csvGcsUri, SampleMetaData.Parser csvParser, BaseUriProvider baseUriProvider, FileUtils fileUtils) {
         this.csvGcsUri = csvGcsUri;
         this.csvParser = csvParser;
-        this.uriProvider = uriProvider;
+        this.baseUriProvider = baseUriProvider;
         this.fileUtils = fileUtils;
     }
 
-    public ParseSourceCsvTransform(@Nullable String name, String csvGcsUri, SampleMetaData.Parser csvParser, UriProvider uriProvider, FileUtils fileUtils) {
+    public ParseSourceCsvTransform(@Nullable String name, String csvGcsUri, SampleMetaData.Parser csvParser, BaseUriProvider baseUriProvider, FileUtils fileUtils) {
         super(name);
         this.csvGcsUri = csvGcsUri;
         this.csvParser = csvParser;
-        this.uriProvider = uriProvider;
+        this.baseUriProvider = baseUriProvider;
         this.fileUtils = fileUtils;
     }
 
@@ -77,7 +77,7 @@ public class ParseSourceCsvTransform extends PTransform<PBegin,
                     .apply("Filter lines", Filter.by(new FilterByList(FilterByList.Mode.SKIP, sraSamplesToSkip)));
         }
         PCollection<KV<SampleMetaData, List<FileWrapper>>> readyToAlign = metaDataPCollection
-                .apply("Sample data from metadata", ParDo.of(new SampleDataFromMetaDataFn(uriProvider, fileUtils)));
+                .apply("Sample data from metadata", ParDo.of(new FastqFilesFromMetaDataFn(baseUriProvider, fileUtils)));
         if (preparingTransforms != null) {
             readyToAlign = readyToAlign.apply(preparingTransforms);
         }

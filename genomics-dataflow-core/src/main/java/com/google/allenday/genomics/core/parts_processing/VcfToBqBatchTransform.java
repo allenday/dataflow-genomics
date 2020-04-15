@@ -17,9 +17,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
         PCollection<BlobId>> {
+    Logger LOG = LoggerFactory.getLogger(VcfToBqBatchTransform.class);
 
     private PrepareVcfToBqBatchFn prepareVcfToBqBatchFn;
     private SaveVcfToBqResults saveVcfToBqResults;
@@ -65,7 +67,7 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
 
         private void processCopyAndOutput(ProcessContext c, String reference, List<BlobId> blobs, int index) {
             BlobId destDir = BlobId.of(stagingPathsBulder.getStagingBucket(),
-                    String.format(stagingPathsBulder.buildVcfDirPath() + "temp/%s/%s_%d/", jobTime, reference, index));
+                    String.format(stagingPathsBulder.buildVcfToBqDirPath() + "temp/%s/%s_%d/", jobTime, reference, index));
             blobs.forEach(blobId -> gcsService.copy(blobId, BlobId.of(destDir.getBucket(), destDir.getName() + new FileUtils().getFilenameFromPath(blobId.getName()))));
             c.output(KV.of(reference, gcsService.getUriFromBlob(destDir) + "*"));
         }
@@ -86,20 +88,20 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
 
                 BlobId element = c.element();
 
-                List<BlobId> blobsToProcess = gcsService.getAllBlobsIn(element.getBucket(), element.getName())
-                        .stream()
-                        .map(BlobInfo::getBlobId)
-                        .filter(blobId -> {
-                            String filenameFromPath = new FileUtils().getFilenameFromPath(blobId.getName());
-                            return !processedFiles.contains(filenameFromPath);
-                        })
-                        .collect(Collectors.toList());
+                List<BlobId> blobsToProcess =
+                        StreamSupport.stream(gcsService.getBlobsWithPrefix(element.getBucket(), element.getName()).spliterator(), false)
+                                .map(BlobInfo::getBlobId)
+                                .filter(blobId -> {
+                                    String filenameFromPath = new FileUtils().getFilenameFromPath(blobId.getName());
+                                    return !processedFiles.contains(filenameFromPath);
+                                })
+                                .collect(Collectors.toList());
                 Map<String, List<BlobId>> processMap = new HashMap<>();
 
                 blobsToProcess.forEach(blobId -> {
                     String name = fileUtils.changeFileExtension(fileUtils.getFilenameFromPath(blobId.getName()), "");
                     int divider = name.indexOf("_");
-                    String reference = name.substring(divider+1);
+                    String reference = name.substring(divider + 1);
 
                     if (!processMap.containsKey(reference)) {
                         processMap.put(reference, new ArrayList<>());
@@ -150,7 +152,10 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
             String path = element.getValue().replace("*", "");
             BlobId gcsServiceBlobIdFromUri = gcsService.getBlobIdFromUri(path);
 
-            List<Blob> allBlobsIn = gcsService.getAllBlobsIn(gcsServiceBlobIdFromUri.getBucket(), gcsServiceBlobIdFromUri.getName());
+            List<Blob> allBlobsIn = StreamSupport.stream(
+                    gcsService.getBlobsWithPrefix(gcsServiceBlobIdFromUri.getBucket(), gcsServiceBlobIdFromUri.getName())
+                            .spliterator(), false)
+                    .collect(Collectors.toList());
 
             try {
                 String vcfToBqProcessedData = gcsService.readBlob(stagingPathsBulder.getVcfToBqProcessedListFileBlobId(), ioUtils);
@@ -161,7 +166,7 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
 
                     String name = fileUtils.changeFileExtension(fileUtils.getFilenameFromPath(blob.getBlobId().getName()), "");
                     int divider = name.indexOf("_");
-                    String reference = name.substring(divider+1);
+                    String reference = name.substring(divider + 1);
                     String sampleName = name.substring(0, divider);
 
                     stringBuilder.append(sampleName).append(",").append(reference).append("\n");

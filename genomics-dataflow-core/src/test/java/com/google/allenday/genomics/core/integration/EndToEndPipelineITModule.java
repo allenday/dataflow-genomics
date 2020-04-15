@@ -2,7 +2,7 @@ package com.google.allenday.genomics.core.integration;
 
 import com.google.allenday.genomics.core.batch.BatchProcessingModule;
 import com.google.allenday.genomics.core.batch.PreparingTransform;
-import com.google.allenday.genomics.core.io.UriProvider;
+import com.google.allenday.genomics.core.io.BaseUriProvider;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
@@ -17,8 +17,7 @@ import java.util.List;
 
 public class EndToEndPipelineITModule extends BatchProcessingModule {
 
-    private UriProvider uriProvider;
-    private SampleMetaData.Parser parser;
+    private BaseUriProvider baseUriProvider;
 
     public EndToEndPipelineITModule(String srcBucket,
                                     String inputCsvUri,
@@ -29,13 +28,12 @@ public class EndToEndPipelineITModule extends BatchProcessingModule {
                                     GenomicsOptions genomicsOptions,
                                     Integer maxFastqSizeMB,
                                     Integer maxFastqChunkSize,
-                                    UriProvider.FastqExt fastqExt,
                                     Integer bamRegionSize,
-                                    UriProvider uriProvider,
+                                    BaseUriProvider baseUriProvider,
                                     boolean withFinalBamFile) {
         super(srcBucket, inputCsvUri, sraSamplesToFilter, sraSamplesToSkip, project, region,
-                genomicsOptions, maxFastqSizeMB, maxFastqChunkSize, fastqExt, bamRegionSize, withFinalBamFile);
-        this.uriProvider = uriProvider;
+                genomicsOptions, maxFastqSizeMB, maxFastqChunkSize, bamRegionSize, withFinalBamFile);
+        this.baseUriProvider = baseUriProvider;
     }
 
     @Provides
@@ -51,8 +49,7 @@ public class EndToEndPipelineITModule extends BatchProcessingModule {
 
     @Provides
     @Singleton
-    public UriProvider provideUriProvider() {
-        return uriProvider;
+    public BaseUriProvider provideBaseUriProvider() {
+        return baseUriProvider;
     }
-
 }

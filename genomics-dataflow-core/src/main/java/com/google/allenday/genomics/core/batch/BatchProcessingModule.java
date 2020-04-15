@@ -47,14 +47,13 @@ public abstract class BatchProcessingModule extends AbstractModule {
     protected GenomicsOptions genomicsOptions;
     protected Integer maxFastqSizeMB;
     protected Integer maxFastqChunkSize;
-    protected UriProvider.FastqExt fastqExt;
     protected Integer bamRegionSize;
     protected boolean withFinalMerge;
 
     public BatchProcessingModule(String srcBucket, String inputCsvUri, List<String> sraSamplesToFilter,
                                  List<String> sraSamplesToSkip, String project, String region,
                                  GenomicsOptions genomicsOptions, Integer maxFastqSizeMB,
-                                 Integer maxFastqChunkSize, UriProvider.FastqExt fastqExt,
+                                 Integer maxFastqChunkSize,
                                  Integer bamRegionSize, boolean withFinalMerge) {
         this.srcBucket = srcBucket;
         this.inputCsvUri = inputCsvUri;
@@ -66,7 +65,6 @@ public abstract class BatchProcessingModule extends AbstractModule {
         this.maxFastqSizeMB = maxFastqSizeMB;
         this.maxFastqChunkSize = maxFastqChunkSize;
         this.bamRegionSize = bamRegionSize;
-        this.fastqExt = fastqExt;
         this.withFinalMerge = withFinalMerge;
     }
 
@@ -208,11 +206,11 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Singleton
     public ParseSourceCsvTransform provideParseSourceCsvTransform(FileUtils fileUtils,
                                                                   SampleMetaData.Parser geneSampleMetaDataParser,
-                                                                  UriProvider uriProvider,
+                                                                  BaseUriProvider baseUriProvider,
                                                                   PreparingTransform preparingTransform) {
 
         ParseSourceCsvTransform parseSourceCsvTransform = new ParseSourceCsvTransform("Parse CSV", inputCsvUri,
-                geneSampleMetaDataParser, uriProvider, fileUtils);
+                geneSampleMetaDataParser, baseUriProvider, fileUtils);
         parseSourceCsvTransform.setSraSamplesToFilter(sraSamplesToFilter);
         parseSourceCsvTransform.setSraSamplesToSkip(sraSamplesToSkip);
         parseSourceCsvTransform.setPreparingTransforms(preparingTransform);

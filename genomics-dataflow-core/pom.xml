@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>genomics-dataflow-core</artifactId>
-    <version>0.0.12</version>
+    <version>${genomics_dataflow_core.version}</version>
 
     <packaging>jar</packaging>
 

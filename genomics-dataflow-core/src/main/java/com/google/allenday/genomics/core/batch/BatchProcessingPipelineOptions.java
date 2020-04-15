@@ -1,6 +1,5 @@
 package com.google.allenday.genomics.core.batch;
 
-import com.google.allenday.genomics.core.io.UriProvider;
 import com.google.allenday.genomics.core.pipeline.GenomicsPipelineOptions;
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
@@ -41,12 +40,6 @@ public interface BatchProcessingPipelineOptions extends GenomicsPipelineOptions 
     Integer getMaxFastqChunkSize();
 
     void setMaxFastqChunkSize(Integer value);
-
-    @Description("Extension of source fastq run files")
-    @Default.Enum("FASTQ")
-    UriProvider.FastqExt getFastqExt();
-
-    void setFastqExt(UriProvider.FastqExt value);
 
     @Description("Num of bases that will contain region splitted BAM file")
     @Default.Integer(5000000)

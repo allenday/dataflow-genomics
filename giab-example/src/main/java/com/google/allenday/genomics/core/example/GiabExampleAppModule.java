@@ -3,8 +3,8 @@ package com.google.allenday.genomics.core.example;
 import com.google.allenday.genomics.core.batch.BatchProcessingModule;
 import com.google.allenday.genomics.core.batch.BatchProcessingPipelineOptions;
 import com.google.allenday.genomics.core.batch.PreparingTransform;
-import com.google.allenday.genomics.core.io.DefaultUriProvider;
-import com.google.allenday.genomics.core.io.UriProvider;
+import com.google.allenday.genomics.core.io.BaseUriProvider;
+import com.google.allenday.genomics.core.io.DefaultBaseUriProvider;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
@@ -28,11 +28,10 @@ public class GiabExampleAppModule extends BatchProcessingModule {
                                 GenomicsOptions genomicsOptions,
                                 Integer maxFastqSizeMB,
                                 Integer maxFastqChunkSize,
-                                UriProvider.FastqExt fastqExt,
                                 Integer bamRegionSize,
                                 boolean withFinalMerge) {
         super(srcBucket, inputCsvUri, sraSamplesToFilter, sraSamplesToSkip, project, region,
-                genomicsOptions, maxFastqSizeMB, maxFastqChunkSize, fastqExt, bamRegionSize,
+                genomicsOptions, maxFastqSizeMB, maxFastqChunkSize, bamRegionSize,
                 withFinalMerge);
     }
 
@@ -47,7 +46,6 @@ public class GiabExampleAppModule extends BatchProcessingModule {
                 GenomicsOptions.fromAlignerPipelineOptions(batchProcessingPipelineOptions),
                 batchProcessingPipelineOptions.getMaxFastqSizeMB(),
                 batchProcessingPipelineOptions.getMaxFastqChunkSize(),
-                batchProcessingPipelineOptions.getFastqExt(),
                 batchProcessingPipelineOptions.getBamRegionSize(),
                 batchProcessingPipelineOptions.getWithFinalMerge()
         );
@@ -67,7 +65,7 @@ public class GiabExampleAppModule extends BatchProcessingModule {
 
     @Provides
     @Singleton
-    public UriProvider provideUriProvider() {
-        return DefaultUriProvider.withDefaultProviderRule(srcBucket, fastqExt);
+    public BaseUriProvider provideBaseUriProvider() {
+        return DefaultBaseUriProvider.withDefaultProviderRule(srcBucket);
     }
 }

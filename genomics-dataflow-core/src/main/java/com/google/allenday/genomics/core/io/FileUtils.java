@@ -5,13 +5,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.zip.GZIPInputStream;
 
 public class FileUtils implements Serializable {
 
     private static Logger LOG = LoggerFactory.getLogger(FileUtils.class);
+
+    private final String GZIP_ENDING = ".gz";
 
     public void saveDataToFile(byte[] data, String filename) throws IOException {
         File destFile = new File(filename);
@@ -162,5 +167,14 @@ public class FileUtils implements Serializable {
         public NoFileNameException(String path) {
             super(String.format("There is no file in path: %s", path));
         }
+    }
+
+    public InputStream getInputStreamFromReadChannel(String fileName, ReadableByteChannel readChannel) throws IOException {
+        return isGzip(fileName)
+                ? new GZIPInputStream(Channels.newInputStream(readChannel)) : Channels.newInputStream(readChannel);
+    }
+
+    public boolean isGzip(String fileName) {
+        return fileName.endsWith(GZIP_ENDING);
     }
 }

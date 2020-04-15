@@ -1,9 +1,9 @@
 package com.google.allenday.genomics.core.integration;
 
 import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
+import com.google.allenday.genomics.core.io.BaseUriProvider;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
-import com.google.allenday.genomics.core.io.UriProvider;
 import com.google.allenday.genomics.core.model.*;
 import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
 import com.google.allenday.genomics.core.processing.AlignAndSamProcessingTransform;
@@ -45,6 +45,7 @@ public class EndToEndPipelineIT implements Serializable {
     private Logger LOG = LoggerFactory.getLogger(EndToEndPipelineIT.class);
 
     private final static String DEFAULT_TEST_BUCKET = "human1000-results";
+    private final static String DEFAULT_TEST_REGION = "us-central1";
     private final static String REFERENCE_LOCAL_DIR = "reference/";
 
     private final static String TEST_EXAMPLE_SRA = "SRS0000001";
@@ -62,7 +63,7 @@ public class EndToEndPipelineIT implements Serializable {
     private final static String TEST_REFERENCE_FILE = "PRJNA482748_10.fa";
     private final static String TEMP_DIR = "temp/";
 
-    private final static List<List<String>> TEST_INPUT_FILES = Arrays.asList(Collections.singletonList("test_single_end_read_5000.fastq"),
+    private final static List<List<String>> TEST_INPUT_FILES = Arrays.asList(Collections.singletonList("test_single_end_read_5000_1.fastq"),
             Arrays.asList("test_paired_read_5000_1.fastq", "test_paired_read_5000_2.fastq"));
 
     private final static String TEST_CSV_FILE = "source.csv";
@@ -70,17 +71,6 @@ public class EndToEndPipelineIT implements Serializable {
 
     private final static String CSV_LINE_TEMPLATE = "\t\t\t\t\t\t%1$s\t\t\t\t%2$s\t%3$s\t\t\t\t\t\t\t\t\t\t\t\t%4$s\t\t ";
 
-    public class TestSraParser extends SampleMetaData.Parser {
-
-        public TestSraParser(Separation separation) {
-            super(separation);
-        }
-
-        @Override
-        public SampleMetaData processParts(String[] csvLineParts, String csvLine) throws CsvParseException {
-            return new SampleMetaData(csvLineParts[0], csvLineParts[1], csvLineParts[2], csvLineParts[3], csvLine);
-        }
-    }
 
     @Test
     public void testEndToEndPipeline() throws IOException {
@@ -95,12 +85,16 @@ public class EndToEndPipelineIT implements Serializable {
         String testBucket = Optional
                 .ofNullable(System.getenv("TEST_BUCKET"))
                 .orElse(DEFAULT_TEST_BUCKET);
+        String testRegion = Optional
+                .ofNullable(System.getenv("TEST_REGION"))
+                .orElse(DEFAULT_TEST_REGION);
 
         FileUtils fileUtils = new FileUtils();
         GCSService gcsService = GCSService.initialize(fileUtils);
         ResourceProvider resourceProvider = ResourceProvider.initialize();
-        Pair<String, UriProvider> inputCsvUriAndProvider = prepareInputData(gcsService, fileUtils, testBucket, TEST_INPUT_FILES, TEST_CSV_FILE);
-        String allReferencesDirGcsUri = prepareReference(gcsService, fileUtils, testBucket);
+        Pair<String, BaseUriProvider> inputCsvUriAndProvider =
+                prepareInputData(gcsService, fileUtils, testBucket, TEST_INPUT_FILES, TEST_CSV_FILE);
+        String allReferencesDirGcsUri = prepareReference(gcsService, testBucket);
 
         GenomicsOptions genomicsOptions = new GenomicsOptions(
                 Aligner.MINIMAP2,
@@ -118,11 +112,10 @@ public class EndToEndPipelineIT implements Serializable {
                 Collections.emptyList(),
                 Collections.emptyList(),
                 resourceProvider.getProjectId(),
-                "us-central",
+                testRegion,
                 genomicsOptions,
                 TEST_MAX_FASTQ_CONTENT_SIZE_MB,
                 TEST_MAX_FASTQ_CHUNK_SIZE,
-                UriProvider.FastqExt.defaultExt(),
                 TEST_MAX_SAM_RECORDS_BATCH_SIZE,
                 inputCsvUriAndProvider.getValue1(),
                 true);
@@ -133,9 +126,8 @@ public class EndToEndPipelineIT implements Serializable {
                 .apply("Parse data", injector.getInstance(ParseSourceCsvTransform.class))
                 .apply("Split large FASTQ into chunks", injector.getInstance(SplitFastqIntoBatches.class))
                 .apply("Align reads and prepare for DV", injector.getInstance(AlignAndSamProcessingTransform.class));
-
-//        TODO DeepVeariant temporary excluded from end-to-end tests
-//                .apply(ParDo.of(new VariantCallingFn(deepVariantService, dvResultGcsPath)))
+        /*TODO DeepVeariant temporary excluded from end-to-end tests*/
+        /*.apply(ParDo.of(new VariantCallingFn(deepVariantService, dvResultGcsPath)))*/
         ;
 
         PipelineResult pipelineResult = pipeline.run();
@@ -143,29 +135,42 @@ public class EndToEndPipelineIT implements Serializable {
 
         NameProvider nameProvider = injector.getInstance(NameProvider.class);
         List<BlobId> mergeResults = getBlobIdsWithDirAndEnding(gcsService, testBucket,
-                MAIN_TESTING_GCS_DIR + String.format(GenomicsOptions.MERGED_REGIONS_PATH_PATTERN, nameProvider.getCurrentTimeInDefaultFormat()),
+                MAIN_TESTING_GCS_DIR + String.format(
+                        GenomicsOptions.INTERMEDIATE_PREFIX + GenomicsOptions.MERGED_REGIONS_PATH_PATTERN,
+                        nameProvider.getCurrentTimeInDefaultFormat()),
                 ".merged.sorted.bam");
         List<BlobId> indexResults = getBlobIdsWithDirAndEnding(gcsService, testBucket,
-                MAIN_TESTING_GCS_DIR + String.format(GenomicsOptions.MERGED_REGIONS_PATH_PATTERN, nameProvider.getCurrentTimeInDefaultFormat())
+                MAIN_TESTING_GCS_DIR + String.format(
+                        GenomicsOptions.INTERMEDIATE_PREFIX + GenomicsOptions.MERGED_REGIONS_PATH_PATTERN,
+                        nameProvider.getCurrentTimeInDefaultFormat())
                 , ".merged.sorted.bam.bai");
 
         BlobId finalMergeBlobId = BlobId.of(testBucket,
-                MAIN_TESTING_GCS_DIR + String.format(GenomicsOptions.FINAL_MERGED_PATH_PATTERN, nameProvider.getCurrentTimeInDefaultFormat()) +
-                        new SamRecordsMetadaKey(SraSampleId.create(TEST_EXAMPLE_SRA), TEST_REFERENCE_NAME, SamRecordsMetadaKey.Region.UNDEFINED).generateSlug() + ".merged.sorted.bam");
+                MAIN_TESTING_GCS_DIR + String.format(
+                        GenomicsOptions.FINAL_PREFIX + GenomicsOptions.FINAL_MERGED_PATH_PATTERN,
+                        nameProvider.getCurrentTimeInDefaultFormat()) +
+                        new SamRecordsMetadaKey(
+                                SraSampleId.create(TEST_EXAMPLE_SRA),
+                                TEST_REFERENCE_NAME,
+                                SamRecordsMetadaKey.Region.UNDEFINED
+                        ).generateSlug() + ".merged.sorted.bam");
 
         Assert.assertEquals(mergeResults.size(), indexResults.size());
         checkResultContent(gcsService, fileUtils, finalMergeBlobId);
     }
 
-    private Pair<String, UriProvider> prepareInputData(GCSService gcsService, FileUtils fileUtils, String bucketName,
-                                                       List<List<String>> testInputDataFiles, String testInputCsvFileName) throws IOException {
+    private Pair<String, BaseUriProvider> prepareInputData(GCSService gcsService,
+                                                           FileUtils fileUtils,
+                                                           String bucketName,
+                                                           List<List<String>> testInputDataFiles,
+                                                           String testInputCsvFileName) throws IOException {
 
         StringBuilder csvLines = new StringBuilder();
         testInputDataFiles.forEach(list -> {
             list.forEach(filename -> {
                 try {
                     gcsService.writeToGcs(bucketName, TEST_GCS_INPUT_DATA_DIR + filename,
-                            Channels.newChannel(getClass().getClassLoader().getResourceAsStream(filename)));
+                            Channels.newChannel(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream(filename))));
                 } catch (IOException e) {
                     LOG.error(e.getMessage());
                 }
@@ -185,29 +190,21 @@ public class EndToEndPipelineIT implements Serializable {
         });
         Blob blob = gcsService.writeToGcs(bucketName, TEST_GCS_INPUT_DATA_DIR + testInputCsvFileName,
                 Channels.newChannel(new ByteArrayInputStream(csvLines.toString().getBytes())));
-        UriProvider uriProvider = new UriProvider(bucketName, (UriProvider.ProviderRule) (geneSampleMetaData, srcBucket) -> {
-            if (geneSampleMetaData.isPaired()) {
-                String uri1 = String.format("gs://%s/%s", srcBucket,
-                        TEST_GCS_INPUT_DATA_DIR + geneSampleMetaData.getRunId() + "_1" + ".fastq");
-                String uri2 = String.format("gs://%s/%s", srcBucket,
-                        TEST_GCS_INPUT_DATA_DIR + geneSampleMetaData.getRunId() + "_2" + ".fastq");
-                return Arrays.asList(uri1, uri2);
-            } else {
-                return Collections.singletonList(String.format("gs://%s/%s", srcBucket,
-                        TEST_GCS_INPUT_DATA_DIR + geneSampleMetaData.getRunId() + ".fastq"));
-            }
-        });
-        return Pair.with(gcsService.getUriFromBlob(blob.getBlobId()), uriProvider);
+        BaseUriProvider baseUriProvider = new BaseUriProvider(bucketName,
+                (BaseUriProvider.ProviderRule) (geneSampleMetaData, srcBucket) ->
+                        String.format("gs://%s/%s", srcBucket,
+                                TEST_GCS_INPUT_DATA_DIR + geneSampleMetaData.getRunId() + "_"));
+        return Pair.with(gcsService.getUriFromBlob(blob.getBlobId()), baseUriProvider);
     }
 
-    private String prepareReference(GCSService gcsService, FileUtils fileUtils, String bucketName) throws IOException {
+    private String prepareReference(GCSService gcsService, String bucketName) throws IOException {
         String refName = TEST_REFERENCE_FILE;
         String refIndexName = TEST_REFERENCE_FILE + ".fai";
 
-        Blob blobRef = gcsService.writeToGcs(bucketName, TEST_GCS_REFERENCE_DIR + refName,
-                Channels.newChannel(getClass().getClassLoader().getResourceAsStream(refName)));
-        Blob blobIndexRef = gcsService.writeToGcs(bucketName, TEST_GCS_REFERENCE_DIR + refIndexName,
-                Channels.newChannel(getClass().getClassLoader().getResourceAsStream(refIndexName)));
+        gcsService.writeToGcs(bucketName, TEST_GCS_REFERENCE_DIR + refName,
+                Channels.newChannel(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream(refName))));
+        gcsService.writeToGcs(bucketName, TEST_GCS_REFERENCE_DIR + refIndexName,
+                Channels.newChannel(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream(refIndexName))));
         return gcsService.getUriFromBlob(BlobId.of(bucketName, TEST_GCS_REFERENCE_DIR));
     }
 
@@ -225,7 +222,7 @@ public class EndToEndPipelineIT implements Serializable {
 
         SamToolsService samToolsService = new SamToolsService(fileUtils);
 
-        File expectedResultsFile = new File(getClass().getClassLoader().getResource(EXPECTED_SINGLE_END_RESULT_CONTENT_FILE).getFile());
+        File expectedResultsFile = new File(Objects.requireNonNull(getClass().getClassLoader().getResource(EXPECTED_SINGLE_END_RESULT_CONTENT_FILE)).getFile());
         File actualResultsFile = new File(fileUtils.getCurrentPath() + destFileName);
 
 
@@ -234,7 +231,7 @@ public class EndToEndPipelineIT implements Serializable {
     }
 
     private List<BlobId> getBlobIdsWithDirAndEnding(GCSService gcsService, String bucket, String dir, String ending) {
-        return StreamSupport.stream(gcsService.getListOfBlobsInDir(bucket, dir).iterateAll().spliterator(), false)
+        return StreamSupport.stream(gcsService.getBlobsWithPrefix(bucket, dir).spliterator(), false)
                 .map(Blob::getBlobId).filter(blobId -> blobId.getName().endsWith(ending)).collect(Collectors.toList());
     }
 
@@ -250,10 +247,10 @@ public class EndToEndPipelineIT implements Serializable {
         String testBucket = Optional
                 .ofNullable(System.getenv("TEST_BUCKET"))
                 .orElse(DEFAULT_TEST_BUCKET);
-        gcsService.getListOfBlobsInDir(testBucket, MAIN_TESTING_GCS_DIR)
-                .iterateAll().forEach(blob -> {
-            LOG.info(String.format("Deleting: %s ...", blob.getBlobId().toString()));
-            blob.delete();
-        });
+        gcsService.getBlobsWithPrefix(testBucket, MAIN_TESTING_GCS_DIR)
+                .forEach(blob -> {
+                    LOG.info(String.format("Deleting: %s ...", blob.getBlobId().toString()));
+                    blob.delete();
+                });
     }
 }

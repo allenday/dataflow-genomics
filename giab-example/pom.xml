@@ -13,17 +13,12 @@
     <version>1.0.0</version>
 
     <name>GIAB Example App</name>
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-    </properties>
 
     <dependencies>
         <dependency>
             <groupId>com.google.allenday</groupId>
             <artifactId>genomics-dataflow-core</artifactId>
-            <version>0.0.12</version>
+            <version>${genomics_dataflow_core.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

@@ -14,22 +14,32 @@ import java.util.Random;
 public class CmdExecutor implements Serializable {
 
     private final static int DEFAULT_RETRY_COUNT = 3;
+    private int retryCount;
+
+    public CmdExecutor() {
+        this(DEFAULT_RETRY_COUNT);
+    }
+
+    public CmdExecutor(int retryCount) {
+        this.retryCount = retryCount;
+    }
 
     private Logger LOG = LoggerFactory.getLogger(CmdExecutor.class);
 
+
+    public Triplet<Boolean, Integer, String> executeCommand(String cmdCommand, boolean inheritIO, boolean throwError) {
+        return executeCommand(cmdCommand, inheritIO, retryCount, throwError);
+    }
+
     public Triplet<Boolean, Integer, String> executeCommand(String cmdCommand, boolean throwError) {
-        return executeCommand(cmdCommand, true, DEFAULT_RETRY_COUNT, throwError);
+        return executeCommand(cmdCommand, true, retryCount, throwError);
     }
 
     public Triplet<Boolean, Integer, String> executeCommand(String cmdCommand) {
-        return executeCommand(cmdCommand, true, DEFAULT_RETRY_COUNT, true);
-    }
-
-    public Triplet<Boolean, Integer, String> executeCommand(String cmdCommand, int retryCount) {
         return executeCommand(cmdCommand, true, retryCount, true);
     }
 
-    public Triplet<Boolean, Integer, String> executeCommand(String cmdCommand, boolean inheritIO, int retryCount, boolean throwError) {
+    private Triplet<Boolean, Integer, String> executeCommand(String cmdCommand, boolean inheritIO, int retryCount, boolean throwError) {
         long startTime = System.currentTimeMillis();
 
         LOG.info(String.format("Executing command: %s", cmdCommand));

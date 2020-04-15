@@ -16,7 +16,7 @@ public class CmdExecutorTest implements Serializable {
     public void testCmdExecutor() throws IOException {
         CmdExecutor cmdExecutor = new CmdExecutor();
 
-        Triplet<Boolean, Integer, String> pwd = cmdExecutor.executeCommand("pwd", false, 3, true);
+        Triplet<Boolean, Integer, String> pwd = cmdExecutor.executeCommand("pwd", false, true);
 
         Assert.assertTrue(pwd.getValue0());
         Assert.assertEquals(new Integer(0), pwd.getValue1());

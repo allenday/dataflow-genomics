@@ -52,5 +52,16 @@ public interface BatchProcessingPipelineOptions extends GenomicsPipelineOptions 
     Boolean getWithFinalMerge();
 
     void setWithFinalMerge(Boolean value);
+
+
+    /**
+     * Not used from 0.0.12 ver
+     **/
+    @Deprecated()
+    @Description("Extension of source fastq run files")
+    @Default.String("FASTQ")
+    String getFastqExt();
+
+    void setFastqExt(String value);
 }
 

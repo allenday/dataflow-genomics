@@ -32,14 +32,6 @@
         <developerConnection>scm:git:https://github.com/allenday/dataflow-genomics.git</developerConnection>
     </scm>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <beam.version>[2.4.0, 2.99)</beam.version>
-        <genomics_dataflow_core.version>0.0.16</genomics_dataflow_core.version>
-    </properties>
-
     <developers>
         <developer>
             <name>Allen Day</name>

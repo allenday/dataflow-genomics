@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>genomics-dataflow-core</artifactId>
-    <version>${genomics_dataflow_core.version}</version>
+    <version>0.0.15</version>
 
     <packaging>jar</packaging>
 
@@ -34,13 +34,6 @@
         <developerConnection>scm:git:https://github.com/allenday/dataflow-genomics.git</developerConnection>
     </scm>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <beam.version>[2.4.0, 2.99)</beam.version>
-    </properties>
-
     <developers>
         <developer>
             <name>Allen Day</name>
@@ -49,6 +42,13 @@
             <organizationUrl>https://cloud.google.com</organizationUrl>
         </developer>
     </developers>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <beam.version>2.20.0</beam.version>
+    </properties>
 
     <dependencies>
         <!--Apache Beam-->
@@ -82,7 +82,7 @@
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
-            <version>4.2.2</version>
+            <version>4.2.3</version>
         </dependency>
         <!--Google Auth-->
         <dependency>

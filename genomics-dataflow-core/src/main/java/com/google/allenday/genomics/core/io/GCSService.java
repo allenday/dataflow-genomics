@@ -169,30 +169,4 @@ public class GCSService implements Serializable {
     public boolean deleteBlobFromGcs(BlobId blobId) {
         return storage.delete(blobId);
     }
-
-    public static void main(String[] args) {
-        GCSService gcsService = GCSService.initialize(new FileUtils());
-        IoUtils ioUtils = new IoUtils();
-        ReadChannel blobReader = gcsService.getBlobReader(BlobId.of("human1000", "test_gz.txt.gz"));
-
-        try {
-            InputStream inputStream = false ? Channels.newInputStream(blobReader) : new GZIPInputStream(Channels.newInputStream(blobReader));
-
-            byte[] bytes = new byte[64 * 1028];
-
-            StringBuilder builder = new StringBuilder();
-            int read = 0;
-            while ((read = inputStream.read(bytes, 0, bytes.length)) > 0) {
-
-                String str = new String(bytes, 0, read);
-                builder.append(str);
-            }
-            inputStream.close();
-            blobReader.close();
-            System.out.println(String.format("RESULT: %s", builder.toString()));
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 }

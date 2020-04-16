@@ -16,8 +16,8 @@ import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
 import com.google.allenday.genomics.core.processing.align.*;
 import com.google.allenday.genomics.core.processing.index.CreateBamIndexFn;
 import com.google.allenday.genomics.core.processing.merge.MergeFn;
-import com.google.allenday.genomics.core.processing.split.BatchSamParser;
 import com.google.allenday.genomics.core.processing.sort.SortFn;
+import com.google.allenday.genomics.core.processing.split.BatchSamParser;
 import com.google.allenday.genomics.core.processing.split.SamIntoRegionBatchesFn;
 import com.google.allenday.genomics.core.processing.variantcall.*;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.PrepareAndExecuteVcfToBqTransform;
@@ -287,6 +287,12 @@ public abstract class BatchProcessingModule extends AbstractModule {
         return new SplitFastqIntoBatches(readFastqPartFn, buildFastqContentFn, maxFastqSizeMB);
     }
 
+
+    @Provides
+    @Singleton
+    public FastqReader provideFastqReader(SamToolsService samToolsService) {
+        return new FastqReader(samToolsService);
+    }
 
     @Provides
     @Singleton

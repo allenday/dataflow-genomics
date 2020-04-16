@@ -7,11 +7,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Paths;
@@ -19,7 +17,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import java.util.zip.GZIPInputStream;
 
 /**
  * Provides access to {@link Storage} instance with convenient interface
@@ -109,7 +106,7 @@ public class GCSService implements Serializable {
         }
     }
 
-    public ReadChannel getBlobReader(BlobId blobId) throws StorageException {
+    public ReadChannel getBlobReadChannel(BlobId blobId) throws StorageException {
         return storage.reader(blobId);
     }
 
@@ -149,7 +146,7 @@ public class GCSService implements Serializable {
     }
 
     public String readBlob(BlobId blobId, IoUtils ioUtils) throws IOException, NullPointerException {
-        ReadChannel reader = getBlobReader(blobId);
+        ReadChannel reader = getBlobReadChannel(blobId);
 
         ByteBuffer bytes = ByteBuffer.allocate(64 * 1024);
         StringBuilder builder = new StringBuilder();

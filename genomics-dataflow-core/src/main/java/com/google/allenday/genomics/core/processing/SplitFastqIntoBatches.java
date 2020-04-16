@@ -5,6 +5,7 @@ import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.Instrument;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.cloud.ReadChannel;
+import htsjdk.samtools.fastq.FastqConstants;
 import org.apache.beam.sdk.transforms.*;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
@@ -147,27 +148,48 @@ public class SplitFastqIntoBatches extends PTransform<PCollection<KV<SampleMetaD
                     int pairIndex = fileWrapperIntegerKV.getValue();
 
                     Pair<String, String> baseAndExtension = fileUtils.splitFilenameAndExtension(fastqFW.getFileName());
+                    String fileNameBase = baseAndExtension.getValue0();
+                    String srcExtension = baseAndExtension.getValue1();
 
                     if (fastqFW.getDataType() == FileWrapper.DataType.BLOB_URI) {
-                        ReadChannel blobReader = gcsService.getBlobReader(gcsService.getBlobIdFromUri(fastqFW.getBlobUri()));
+                        ReadChannel blobReader = gcsService.getBlobReadChannel(gcsService.getBlobIdFromUri(fastqFW.getBlobUri()));
                         LOG.info(String.format("Working with %s", fastqFW.getBlobUri()));
                         try {
-                            FastqReader.Callback callback = (fastqPart, index) -> {
-                                LOG.info(String.format("Receive new part of %s with index %d, size %s",
-                                        fastqFW.getBlobUri(), index, fastqPart.getBytes().length));
-
-                                SampleMetaData indexedSampleMetaData = sampleMetaData.cloneWithNewPartIndex(index);
-                                String filename = baseAndExtension.getValue0() + "_" + index + baseAndExtension.getValue1();
-                                try {
-                                    FileWrapper indexedFileWrapper =
-                                            splitFastqIntoBatchesIoHandler.handleContentOutput(gcsService, fastqPart.getBytes(), filename);
-                                    c.output(KV.of(indexedSampleMetaData, KV.of(indexedFileWrapper, pairIndex)));
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            };
                             InputStream inputStream = fileUtils.getInputStreamFromReadChannel(fastqFW.getBlobUri(), blobReader);
-                            fastqReader.readFastqBlobWithReadCountLimit(inputStream, chunkSizeCount, callback);
+                            if (srcExtension.endsWith(SamToolsService.BAM_FILE_EXTENSION)) {
+                                FastqReader.PairedFastqCallback pairedFastqCallback = (fastqParts, index) -> {
+                                    SampleMetaData indexedSampleMetaData = sampleMetaData.cloneWithNewPartIndex(index);
+                                    for (String fastqPart : fastqParts) {
+                                        String filename = fileNameBase + "_" + (fastqParts.indexOf(fastqPart) + 1) +
+                                                "_" + index + FastqConstants.FastqExtensions.FASTQ;
+                                        try {
+                                            FileWrapper indexedFileWrapper =
+                                                    splitFastqIntoBatchesIoHandler.handleContentOutput(gcsService, fastqPart.getBytes(), filename);
+                                            c.output(KV.of(indexedSampleMetaData, KV.of(indexedFileWrapper, pairIndex)));
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                };
+                                fastqReader.readFastqRecordsFromUBAM(inputStream, chunkSizeCount, pairedFastqCallback);
+                            } else {
+                                FastqReader.SingleFastqCallback singleFastqCallback = (fastqPart, index) -> {
+                                    LOG.info(String.format("Receive new part of %s with index %d, size %s",
+                                            fastqFW.getBlobUri(), index, fastqPart.getBytes().length));
+
+                                    SampleMetaData indexedSampleMetaData = sampleMetaData.cloneWithNewPartIndex(index);
+                                    String filename = fileNameBase + "_" + index + FastqConstants.FastqExtensions.FASTQ;
+                                    try {
+                                        FileWrapper indexedFileWrapper =
+                                                splitFastqIntoBatchesIoHandler.handleContentOutput(gcsService, fastqPart.getBytes(), filename);
+                                        c.output(KV.of(indexedSampleMetaData, KV.of(indexedFileWrapper, pairIndex)));
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
+                                };
+                                fastqReader.readFastqBlobWithReadCountLimit(inputStream, chunkSizeCount, singleFastqCallback);
+
+                            }
                         } catch (IOException e) {
                             LOG.error(e.getMessage());
                         }
@@ -203,7 +225,7 @@ public class SplitFastqIntoBatches extends PTransform<PCollection<KV<SampleMetaD
             for (int i = 0; i < contents.size(); i++) {
                 String filename = sampleMetaData.getRunId()
                         + String.format("_subpart_%d", currentSubPartIndex)
-                        + String.format("__%d.fastq", i + 1);
+                        + String.format("__%d", i + 1) + FastqConstants.FastqExtensions.FASTQ;
                 try {
                     FileWrapper fileWrapper = buildFastqContentIoHandler.handleContentOutput(gcsService, contents.get(i).toString().getBytes(), filename);
                     fileWrappersForOutput.add(fileWrapper);

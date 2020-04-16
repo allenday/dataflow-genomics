@@ -128,7 +128,7 @@ public class EndToEndPipelineIT implements Serializable {
                 .apply("Align reads and prepare for DV", injector.getInstance(AlignAndSamProcessingTransform.class));
         /*TODO DeepVeariant temporary excluded from end-to-end tests*/
         /*.apply(ParDo.of(new VariantCallingFn(deepVariantService, dvResultGcsPath)))*/
-        ;
+
 
         PipelineResult pipelineResult = pipeline.run();
         pipelineResult.waitUntilFinish();

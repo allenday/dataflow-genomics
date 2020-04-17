@@ -161,7 +161,7 @@ public class SplitFastqIntoBatches extends PTransform<PCollection<KV<SampleMetaD
                                     SampleMetaData indexedSampleMetaData = sampleMetaData.cloneWithNewPartIndex(index);
                                     for (String fastqPart : fastqParts) {
                                         String filename = fileNameBase + "_" + (fastqParts.indexOf(fastqPart) + 1) +
-                                                "_" + index + FastqConstants.FastqExtensions.FASTQ;
+                                                "_" + index + FastqConstants.FastqExtensions.FASTQ.getExtension();
                                         try {
                                             FileWrapper indexedFileWrapper =
                                                     splitFastqIntoBatchesIoHandler.handleContentOutput(gcsService, fastqPart.getBytes(), filename);
@@ -178,7 +178,7 @@ public class SplitFastqIntoBatches extends PTransform<PCollection<KV<SampleMetaD
                                             fastqFW.getBlobUri(), index, fastqPart.getBytes().length));
 
                                     SampleMetaData indexedSampleMetaData = sampleMetaData.cloneWithNewPartIndex(index);
-                                    String filename = fileNameBase + "_" + index + FastqConstants.FastqExtensions.FASTQ;
+                                    String filename = fileNameBase + "_" + index + FastqConstants.FastqExtensions.FASTQ.getExtension();
                                     try {
                                         FileWrapper indexedFileWrapper =
                                                 splitFastqIntoBatchesIoHandler.handleContentOutput(gcsService, fastqPart.getBytes(), filename);
@@ -225,7 +225,7 @@ public class SplitFastqIntoBatches extends PTransform<PCollection<KV<SampleMetaD
             for (int i = 0; i < contents.size(); i++) {
                 String filename = sampleMetaData.getRunId()
                         + String.format("_subpart_%d", currentSubPartIndex)
-                        + String.format("__%d", i + 1) + FastqConstants.FastqExtensions.FASTQ;
+                        + String.format("__%d", i + 1) + FastqConstants.FastqExtensions.FASTQ.getExtension();
                 try {
                     FileWrapper fileWrapper = buildFastqContentIoHandler.handleContentOutput(gcsService, contents.get(i).toString().getBytes(), filename);
                     fileWrappersForOutput.add(fileWrapper);

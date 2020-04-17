@@ -5,7 +5,7 @@ import com.google.allenday.genomics.core.io.BaseUriProvider;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.model.*;
-import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
+import com.google.allenday.genomics.core.pipeline.GenomicsProcessingParams;
 import com.google.allenday.genomics.core.processing.AlignAndSamProcessingTransform;
 import com.google.allenday.genomics.core.processing.SamToolsService;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
@@ -103,7 +103,7 @@ public class EndToEndPipelineIT implements Serializable {
                 prepareInputData(gcsService, fileUtils, testBucket, TEST_INPUT_FILES, TEST_CSV_FILE);
         String allReferencesDirGcsUri = prepareReference(gcsService, testBucket);
 
-        GenomicsOptions genomicsOptions = new GenomicsOptions(
+        GenomicsProcessingParams genomicsProcessingParams = new GenomicsProcessingParams(
                 Aligner.MINIMAP2,
                 testBucket,
                 Collections.singletonList(TEST_REFERENCE_NAME),
@@ -120,7 +120,7 @@ public class EndToEndPipelineIT implements Serializable {
                 Collections.emptyList(),
                 resourceProvider.getProjectId(),
                 testRegion,
-                genomicsOptions,
+                genomicsProcessingParams,
                 TEST_MAX_FASTQ_CONTENT_SIZE_MB,
                 TEST_MAX_FASTQ_CHUNK_SIZE,
                 TEST_MAX_SAM_RECORDS_BATCH_SIZE,
@@ -143,18 +143,18 @@ public class EndToEndPipelineIT implements Serializable {
         NameProvider nameProvider = injector.getInstance(NameProvider.class);
         List<BlobId> mergeResults = getBlobIdsWithDirAndEnding(gcsService, testBucket,
                 MAIN_TESTING_GCS_DIR + String.format(
-                        GenomicsOptions.INTERMEDIATE_PREFIX + GenomicsOptions.MERGED_REGIONS_PATH_PATTERN,
+                        GenomicsProcessingParams.INTERMEDIATE_PREFIX + GenomicsProcessingParams.MERGED_REGIONS_PATH_PATTERN,
                         nameProvider.getCurrentTimeInDefaultFormat()),
                 ".merged.sorted.bam");
         List<BlobId> indexResults = getBlobIdsWithDirAndEnding(gcsService, testBucket,
                 MAIN_TESTING_GCS_DIR + String.format(
-                        GenomicsOptions.INTERMEDIATE_PREFIX + GenomicsOptions.MERGED_REGIONS_PATH_PATTERN,
+                        GenomicsProcessingParams.INTERMEDIATE_PREFIX + GenomicsProcessingParams.MERGED_REGIONS_PATH_PATTERN,
                         nameProvider.getCurrentTimeInDefaultFormat())
                 , ".merged.sorted.bam.bai");
 
         BlobId finalMergeBlobId = BlobId.of(testBucket,
                 MAIN_TESTING_GCS_DIR + String.format(
-                        GenomicsOptions.FINAL_PREFIX + GenomicsOptions.FINAL_MERGED_PATH_PATTERN,
+                        GenomicsProcessingParams.FINAL_PREFIX + GenomicsProcessingParams.FINAL_MERGED_PATH_PATTERN,
                         nameProvider.getCurrentTimeInDefaultFormat()) +
                         new SamRecordsMetadaKey(
                                 SraSampleId.create(TEST_EXAMPLE_SRA),

@@ -7,7 +7,7 @@ import com.google.allenday.genomics.core.io.BaseUriProvider;
 import com.google.allenday.genomics.core.io.DefaultBaseUriProvider;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleMetaData;
-import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
+import com.google.allenday.genomics.core.pipeline.GenomicsProcessingParams;
 import com.google.allenday.genomics.core.utils.NameProvider;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
@@ -25,13 +25,13 @@ public class GiabExampleAppModule extends BatchProcessingModule {
                                 List<String> sraSamplesToSkip,
                                 String project,
                                 String region,
-                                GenomicsOptions genomicsOptions,
+                                GenomicsProcessingParams genomicsProcessingParams,
                                 Integer maxFastqSizeMB,
                                 Integer maxFastqChunkSize,
                                 Integer bamRegionSize,
                                 boolean withFinalMerge) {
         super(srcBucket, inputCsvUri, sraSamplesToFilter, sraSamplesToSkip, project, region,
-                genomicsOptions, maxFastqSizeMB, maxFastqChunkSize, bamRegionSize,
+                genomicsProcessingParams, maxFastqSizeMB, maxFastqChunkSize, bamRegionSize,
                 withFinalMerge);
     }
 
@@ -43,7 +43,7 @@ public class GiabExampleAppModule extends BatchProcessingModule {
                 batchProcessingPipelineOptions.getSraSamplesToSkip(),
                 batchProcessingPipelineOptions.getProject(),
                 batchProcessingPipelineOptions.getRegion(),
-                GenomicsOptions.fromAlignerPipelineOptions(batchProcessingPipelineOptions),
+                GenomicsProcessingParams.fromAlignerPipelineOptions(batchProcessingPipelineOptions),
                 batchProcessingPipelineOptions.getMaxFastqSizeMB(),
                 batchProcessingPipelineOptions.getMaxFastqChunkSize(),
                 batchProcessingPipelineOptions.getBamRegionSize(),

@@ -44,7 +44,7 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
 
     public static class PrepareVcfToBqBatchFn extends DoFn<BlobId, KV<String, String>> {
 
-        private final static int BATCH_SIZE = 50;
+        private final static int DEFAULT_BATCH_SIZE = 50;
 
         private GCSService gcsService;
 
@@ -52,12 +52,18 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
         private IoUtils ioUtils;
         private StagingPathsBulder stagingPathsBulder;
         private String jobTime;
+        private int batchSize;
 
         public PrepareVcfToBqBatchFn(FileUtils fileUtils, IoUtils ioUtils, StagingPathsBulder stagingPathsBulder, String jobTime) {
+            this(fileUtils, ioUtils, stagingPathsBulder, jobTime, DEFAULT_BATCH_SIZE);
+        }
+
+        public PrepareVcfToBqBatchFn(FileUtils fileUtils, IoUtils ioUtils, StagingPathsBulder stagingPathsBulder, String jobTime, int batchSize) {
             this.fileUtils = fileUtils;
             this.ioUtils = ioUtils;
             this.stagingPathsBulder = stagingPathsBulder;
             this.jobTime = jobTime;
+            this.batchSize = batchSize;
         }
 
         @Setup
@@ -108,14 +114,14 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
                     }
                     processMap.get(reference).add(blobId);
                     int currentSize = processMap.get(reference).size();
-                    if (processMap.get(reference).size() % BATCH_SIZE == 0) {
-                        processCopyAndOutput(c, reference, new ArrayList<>(processMap.get(reference).subList(currentSize - BATCH_SIZE, currentSize)), currentSize);
+                    if (processMap.get(reference).size() % batchSize == 0) {
+                        processCopyAndOutput(c, reference, new ArrayList<>(processMap.get(reference).subList(currentSize - batchSize, currentSize)), currentSize);
                     }
                 });
 
                 processMap.forEach((key, value) -> {
                     int currentSize = value.size();
-                    int lastBatchSize = currentSize % BATCH_SIZE;
+                    int lastBatchSize = currentSize % batchSize;
                     processCopyAndOutput(c, key, new ArrayList<>(value.subList(currentSize - lastBatchSize, currentSize)), currentSize);
 
                 });

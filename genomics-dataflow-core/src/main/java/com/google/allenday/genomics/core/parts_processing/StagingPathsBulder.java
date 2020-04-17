@@ -1,6 +1,6 @@
 package com.google.allenday.genomics.core.parts_processing;
 
-import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
+import com.google.allenday.genomics.core.pipeline.GenomicsProcessingParams;
 import com.google.allenday.genomics.core.processing.SamToolsService;
 import com.google.allenday.genomics.core.processing.align.AlignService;
 import com.google.allenday.genomics.core.processing.variantcall.DeepVariantService;
@@ -8,7 +8,7 @@ import com.google.cloud.storage.BlobId;
 
 import java.io.Serializable;
 
-import static com.google.allenday.genomics.core.pipeline.GenomicsOptions.*;
+import static com.google.allenday.genomics.core.pipeline.GenomicsProcessingParams.*;
 
 public class StagingPathsBulder implements Serializable {
 
@@ -72,7 +72,7 @@ public class StagingPathsBulder implements Serializable {
 
     public BlobId getVcfToBqProcessedListFileBlobId() {
         return BlobId.of(stagingBucket, stagingDir +
-                GenomicsOptions.VCF_TO_BQ_PATH.replace("%s", "") +
+                GenomicsProcessingParams.VCF_TO_BQ_PATH.replace("%s", "") +
                 VCF_TO_BQ_PROCESSED_LIST_FILENAME);
     }
 

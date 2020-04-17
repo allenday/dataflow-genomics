@@ -40,7 +40,7 @@ public class FastqFilesFromMetaDataFnTest implements Serializable {
         String sample = "sample";
         String study = "study";
 
-        String testBase = "fastq/study/sample/runId_";
+        String testBase = "fastq/study/sample/runId";
         String testBaseUri = "gs://testBucket/" + testBase;
 
         String testFileName1 = testBase + "R1.fastq";

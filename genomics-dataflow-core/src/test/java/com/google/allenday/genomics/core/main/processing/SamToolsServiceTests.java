@@ -13,14 +13,14 @@ import java.util.List;
 
 public class SamToolsServiceTests implements Serializable {
 
-    private final static String BAM_FILE = "expected_result_5k.merged.sorted.bam";
-    private final static int BAM_FILE_LINES_SIZE = 20000;
+    private final static String BAM_FILE = "expected_result_15k.merged.sorted.bam";
+    private final static int BAM_FILE_LINES_SIZE = 15000;
 
     @Test
     public void testSamRecordsFromBamFile() throws IOException {
         SamToolsService samToolsService = new SamToolsService(new FileUtils());
 
         List<SAMRecord> samRecords = samToolsService.samRecordsFromBamFile(getClass().getClassLoader().getResource(BAM_FILE).getFile());
-        Assert.assertEquals(samRecords.size(), BAM_FILE_LINES_SIZE);
+        Assert.assertEquals(BAM_FILE_LINES_SIZE, samRecords.size());
     }
 }

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,21 +18,19 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static htsjdk.samtools.ValidationStringency.DEFAULT_STRINGENCY;
 import static htsjdk.samtools.ValidationStringency.LENIENT;
 
 public class SamToolsService implements Serializable {
     private static final Logger LOG = LoggerFactory.getLogger(SamToolsService.class);
     private static final Log LOG_HTS = Log.getInstance(SamToolsService.class);
 
-    public final static String SORTED_BAM_FILE_SUFFIX = ".sorted.bam";
+    public final static String BAM_FILE_EXTENSION = ".bam";
+    public final static String SORTED_BAM_FILE_SUFFIX = ".sorted" + BAM_FILE_EXTENSION;
     public final static String BAM_INDEX_SUFFIX = ".bai";
-    public final static String MERGE_SORTED_FILE_SUFFIX = ".merged.sorted.bam";
+    public final static String MERGE_SORTED_FILE_SUFFIX = ".merged.sorted" + BAM_FILE_EXTENSION;
 
     private SAMFileHeader.SortOrder SORT_ORDER = SAMFileHeader.SortOrder.coordinate;
-    private boolean ASSUME_SORTED = false;
-    private boolean MERGE_SEQUENCE_DICTIONARIES = false;
-    private boolean USE_THREADING = false;
-    private List<String> COMMENT = new ArrayList<>();
     private File INTERVALS = null;
 
     private static final int PROGRESS_INTERVAL = 1000000;
@@ -139,6 +138,14 @@ public class SamToolsService implements Serializable {
         return SamReaderFactory.makeDefault().validationStringency(validationStringency).open(new File(inputFilePath));
     }
 
+    public SamReader samReaderFromInputStream(InputStream inputStream) throws IOException {
+        return samReaderFromInputStream(inputStream, DEFAULT_STRINGENCY);
+    }
+
+    public SamReader samReaderFromInputStream(InputStream inputStream, ValidationStringency validationStringency) throws IOException {
+        return SamReaderFactory.makeDefault().validationStringency(validationStringency).open(SamInputResource.of(inputStream));
+    }
+
     public String mergeBamFiles(List<String> localBamPaths, String workDir,
                                 String outPrefix, String outSuffix) {
         String outputFileName = workDir + generateMergedFileName(outPrefix, outSuffix);
@@ -194,6 +201,7 @@ public class SamToolsService implements Serializable {
         final SAMFileHeader.SortOrder headerMergerSortOrder;
         final boolean mergingSamRecordIteratorAssumeSorted;
 
+        boolean ASSUME_SORTED = false;
         if (matchedSortOrders || SORT_ORDER == SAMFileHeader.SortOrder.unsorted || ASSUME_SORTED || INTERVALS != null) {
             LOG.info("Input files are in same order as output so sorting to temp directory is not needed.");
             headerMergerSortOrder = SORT_ORDER;
@@ -205,6 +213,7 @@ public class SamToolsService implements Serializable {
             mergingSamRecordIteratorAssumeSorted = false;
             presorted = false;
         }
+        boolean MERGE_SEQUENCE_DICTIONARIES = false;
         final SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(headerMergerSortOrder, headers, MERGE_SEQUENCE_DICTIONARIES);
         final MergingSamRecordIterator iterator;
         // no interval defined, get an iterator for the whole bam
@@ -216,11 +225,10 @@ public class SamToolsService implements Serializable {
             iterator = new MergingSamRecordIterator(headerMerger, samReaderToIterator, true);
         }
         final SAMFileHeader header = headerMerger.getMergedHeader();
-        for (final String comment : COMMENT) {
-            header.addComment(comment);
-        }
+
         header.setSortOrder(SORT_ORDER);
         final SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory();
+        boolean USE_THREADING = false;
         if (USE_THREADING) {
             samFileWriterFactory.setUseAsyncIo(true);
         }

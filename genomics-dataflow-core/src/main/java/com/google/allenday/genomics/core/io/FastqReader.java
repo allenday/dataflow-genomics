@@ -1,6 +1,9 @@
 package com.google.allenday.genomics.core.io;
 
+import com.google.allenday.genomics.core.processing.SamToolsService;
 import com.google.allenday.genomics.core.utils.TimeUtils;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.fastq.FastqEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +20,12 @@ public class FastqReader implements Serializable {
     private final static int BUFFER_SIZE = 64 * 1024;
     private final static String NEW_LINE_INDICATION = "\n";
     private final static int FASTQ_READ_LINE_COUNT = 4;
+
+    private SamToolsService samToolsService;
+
+    public FastqReader(SamToolsService samToolsService) {
+        this.samToolsService = samToolsService;
+    }
 
     private StringBuilder removeEmptyLines(String src) {
         List<String> fileteredList = Stream.of(src.trim().split(NEW_LINE_INDICATION))
@@ -42,7 +51,7 @@ public class FastqReader implements Serializable {
     /**
      * Reads FastQ data line by line from GCS. Helps to eliminate Out Of Memory problems with large FastQ files
      */
-    public void readFastqBlobWithSizeLimit(InputStream readChannel, long batchSize, Callback callback) throws IOException {
+    public void readFastqBlobWithSizeLimit(InputStream readChannel, long batchSize, SingleFastqCallback singleFastqCallback) throws IOException {
         if (batchSize < BUFFER_SIZE) {
             batchSize = BUFFER_SIZE;
         }
@@ -85,7 +94,7 @@ public class FastqReader implements Serializable {
 
             if (currentReadSize + BUFFER_SIZE > batchSize) {
                 String output = String.join("", linesCollector);
-                callback.onFindFastqPart(output, indexCounter);
+                singleFastqCallback.onFindFastqPart(output, indexCounter);
                 indexCounter++;
 
                 linesCollector.clear();
@@ -94,16 +103,16 @@ public class FastqReader implements Serializable {
             timeCount += System.currentTimeMillis() - start;
         }
         if (linesCollector.size() > 0) {
-            callback.onFindFastqPart(String.join("", linesCollector) + fastqTail, indexCounter);
+            singleFastqCallback.onFindFastqPart(String.join("", linesCollector) + fastqTail, indexCounter);
         }
         LOG.info(String.format("Spent time ms: %d", timeCount));
     }
 
-    public void readFastqBlobWithReadCountLimit(InputStream readChannel, int batchSize, Callback callback) throws IOException {
-        readFastqBlobWithReadCountLimit(readChannel, batchSize, callback, false);
+    public void readFastqBlobWithReadCountLimit(InputStream readChannel, int batchSize, SingleFastqCallback singleFastqCallback) throws IOException {
+        readFastqBlobWithReadCountLimit(readChannel, batchSize, singleFastqCallback, false);
     }
 
-    public void readFastqBlobWithReadCountLimit(InputStream readChannel, int batchSize, Callback callback, boolean fixLines) throws IOException {
+    public void readFastqBlobWithReadCountLimit(InputStream readChannel, int batchSize, SingleFastqCallback singleFastqCallback, boolean repairLines) throws IOException {
         byte[] bytes = new byte[BUFFER_SIZE];
         StringBuilder fastqDataToProcess = new StringBuilder();
         StringBuilder linesBuilder = new StringBuilder();
@@ -125,7 +134,7 @@ public class FastqReader implements Serializable {
             long startTextProcessing = System.currentTimeMillis();
 
             String readString = new String(bytes, 0, readCount);
-            fastqDataToProcess.append(fixLines ? removeEmptyLines(readString) : readString);
+            fastqDataToProcess.append(repairLines ? removeEmptyLines(readString) : readString);
             timeCounters.put("textPreProcessing", timeCounters.get("textPreProcessing") + (System.currentTimeMillis() - startTextProcessing));
 
             boolean endsWithNewLine = fastqDataToProcess.charAt(fastqDataToProcess.length() - 1) == '\n';
@@ -159,7 +168,7 @@ public class FastqReader implements Serializable {
 
                     long finishTextProcessing = System.currentTimeMillis();
                     timeCounters.put("textProcessing", timeCounters.get("textProcessing") + (finishTextProcessing - startTextProcessing));
-                    callback.onFindFastqPart(linesBuilder.toString(), indexCounter);
+                    singleFastqCallback.onFindFastqPart(linesBuilder.toString(), indexCounter);
                     startTextProcessing = System.currentTimeMillis();
                     timeCounters.put("output", timeCounters.get("output") + (startTextProcessing - finishTextProcessing));
 
@@ -184,14 +193,56 @@ public class FastqReader implements Serializable {
             startDownloading = System.currentTimeMillis();
         }
         if (linesBuilderLineConter > 0) {
-            callback.onFindFastqPart(linesBuilder.append(fastqDataToProcess).toString(), indexCounter);
+            singleFastqCallback.onFindFastqPart(linesBuilder.append(fastqDataToProcess).toString(), indexCounter);
         }
         LOG.info(String.format("Spent time ms: %d", timeCounters.get("total")));
     }
 
-    public static interface Callback {
+    public void readFastqRecordsFromUBAM(InputStream readChannel, int batchSize, PairedFastqCallback pairedFastqCallback) throws IOException {
+        int counter = 0;
+        int indexCounter = 0;
+        StringBuilder stringBuilderForward = new StringBuilder();
+        StringBuilder stringBuilderBack = new StringBuilder();
+
+        for (SAMRecord samRecord : samToolsService.samReaderFromInputStream(readChannel)) {
+            if (!samRecord.getReadPairedFlag() || samRecord.getFirstOfPairFlag()) {
+                if (counter == batchSize) {
+                    List<String> fastqParts = new ArrayList<>();
+
+                    fastqParts.add(stringBuilderForward.toString());
+                    stringBuilderForward.setLength(0);
+
+                    if (stringBuilderBack.length() > 0) {
+                        fastqParts.add(stringBuilderBack.toString());
+                        stringBuilderBack.setLength(0);
+                    }
+                    pairedFastqCallback.onFindFastqPart(new ArrayList<>(fastqParts), indexCounter);
+                    fastqParts.clear();
+                    counter = 0;
+                    indexCounter++;
+                }
+                stringBuilderForward.append(FastqEncoder.asFastqRecord(samRecord).toFastQString()).append(NEW_LINE_INDICATION);
+                counter++;
+            } else {
+                stringBuilderBack.append(FastqEncoder.asFastqRecord(samRecord).toFastQString()).append(NEW_LINE_INDICATION);
+            }
+        }
+        List<String> fastqParts = new ArrayList<>();
+        fastqParts.add(stringBuilderForward.toString());
+
+        if (stringBuilderBack.length() > 0) {
+            fastqParts.add(stringBuilderBack.toString());
+        }
+        pairedFastqCallback.onFindFastqPart(fastqParts, indexCounter);
+    }
+
+    public static interface SingleFastqCallback {
 
         void onFindFastqPart(String fastqPart, int index);
     }
 
+    public static interface PairedFastqCallback {
+
+        void onFindFastqPart(List<String> fastqContents, int index);
+    }
 }

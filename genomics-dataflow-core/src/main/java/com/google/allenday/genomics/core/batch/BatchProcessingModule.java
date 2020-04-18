@@ -9,15 +9,15 @@ import com.google.allenday.genomics.core.model.Aligner;
 import com.google.allenday.genomics.core.model.SampleMetaData;
 import com.google.allenday.genomics.core.model.SraParser;
 import com.google.allenday.genomics.core.model.VariantCaller;
-import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
+import com.google.allenday.genomics.core.pipeline.GenomicsProcessingParams;
 import com.google.allenday.genomics.core.processing.AlignAndSamProcessingTransform;
 import com.google.allenday.genomics.core.processing.SamToolsService;
 import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
 import com.google.allenday.genomics.core.processing.align.*;
 import com.google.allenday.genomics.core.processing.index.CreateBamIndexFn;
 import com.google.allenday.genomics.core.processing.merge.MergeFn;
-import com.google.allenday.genomics.core.processing.split.BatchSamParser;
 import com.google.allenday.genomics.core.processing.sort.SortFn;
+import com.google.allenday.genomics.core.processing.split.BatchSamParser;
 import com.google.allenday.genomics.core.processing.split.SamIntoRegionBatchesFn;
 import com.google.allenday.genomics.core.processing.variantcall.*;
 import com.google.allenday.genomics.core.processing.vcf_to_bq.PrepareAndExecuteVcfToBqTransform;
@@ -44,7 +44,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
     protected List<String> sraSamplesToSkip;
     protected String project;
     protected String region;
-    protected GenomicsOptions genomicsOptions;
+    protected GenomicsProcessingParams genomicsParams;
     protected Integer maxFastqSizeMB;
     protected Integer maxFastqChunkSize;
     protected Integer bamRegionSize;
@@ -52,7 +52,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     public BatchProcessingModule(String srcBucket, String inputCsvUri, List<String> sraSamplesToFilter,
                                  List<String> sraSamplesToSkip, String project, String region,
-                                 GenomicsOptions genomicsOptions, Integer maxFastqSizeMB,
+                                 GenomicsProcessingParams genomicsParams, Integer maxFastqSizeMB,
                                  Integer maxFastqChunkSize,
                                  Integer bamRegionSize, boolean withFinalMerge) {
         this.srcBucket = srcBucket;
@@ -61,7 +61,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
         this.sraSamplesToSkip = sraSamplesToSkip;
         this.project = project;
         this.region = region;
-        this.genomicsOptions = genomicsOptions;
+        this.genomicsParams = genomicsParams;
         this.maxFastqSizeMB = maxFastqSizeMB;
         this.maxFastqChunkSize = maxFastqChunkSize;
         this.bamRegionSize = bamRegionSize;
@@ -114,12 +114,12 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Provides
     @Singleton
     public AlignService provideAlignService(Minimap2AlignService minimap2AlignService, BwaAlignService bwaAlignService) {
-        if (genomicsOptions.getAligner().equals(Aligner.MINIMAP2)) {
+        if (genomicsParams.getAligner().equals(Aligner.MINIMAP2)) {
             return minimap2AlignService;
-        } else if (genomicsOptions.getAligner().equals(Aligner.BWA)) {
+        } else if (genomicsParams.getAligner().equals(Aligner.BWA)) {
             return bwaAlignService;
         } else {
-            throw new IllegalArgumentException(String.format("Aligner %s is not supported", genomicsOptions.getAligner()));
+            throw new IllegalArgumentException(String.format("Aligner %s is not supported", genomicsParams.getAligner()));
         }
     }
 
@@ -131,7 +131,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     public TransformIoHandler provideTransformIoHandler(FileUtils fileUtils, NameProvider nameProvider) {
-        return new TransformIoHandler(genomicsOptions.getResultBucket(), fileUtils, nameProvider.getCurrentTimeInDefaultFormat());
+        return new TransformIoHandler(genomicsParams.getResultBucket(), fileUtils, nameProvider.getCurrentTimeInDefaultFormat());
     }
 
     @Provides
@@ -139,7 +139,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @MergeRegions
     public MergeFn provideRegionsMergeFn(SamToolsService samToolsService, FileUtils fileUtils,
                                          TransformIoHandler transformIoHandler) {
-        transformIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getMergedRegionsDirPattern());
+        transformIoHandler.overwriteWithTimestampedDestGcsDir(genomicsParams.getMergedRegionsDirPattern());
         return new MergeFn(transformIoHandler, samToolsService, fileUtils);
     }
 
@@ -148,7 +148,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @MergeFinal
     public MergeFn provideFinalMergeFn(SamToolsService samToolsService, FileUtils fileUtils,
                                        TransformIoHandler transformIoHandler) {
-        transformIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getFinalMergedDirPattern());
+        transformIoHandler.overwriteWithTimestampedDestGcsDir(genomicsParams.getFinalMergedDirPattern());
         return new MergeFn(transformIoHandler, samToolsService, fileUtils);
     }
 
@@ -156,7 +156,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Singleton
     public SortFn provideSortFn(SamToolsService samToolsService, FileUtils fileUtils,
                                 TransformIoHandler sortIoHandler) {
-        sortIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getSortedOutputDirPattern());
+        sortIoHandler.overwriteWithTimestampedDestGcsDir(genomicsParams.getSortedOutputDirPattern());
         return new SortFn(sortIoHandler, samToolsService, fileUtils);
     }
 
@@ -164,8 +164,8 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Singleton
     public AlignFn provideAlignFn(AlignService alignService, ReferenceProvider referencesProvider, FileUtils fileUtils,
                                   TransformIoHandler alignIoHandler) {
-        alignIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getAlignedOutputDirPattern());
-        alignIoHandler.setMemoryOutputLimitMb(genomicsOptions.getMemoryOutputLimit());
+        alignIoHandler.overwriteWithTimestampedDestGcsDir(genomicsParams.getAlignedOutputDirPattern());
+        alignIoHandler.setMemoryOutputLimitMb(genomicsParams.getMemoryOutputLimit());
         return new AlignFn(alignService, referencesProvider, alignIoHandler, fileUtils);
     }
 
@@ -173,11 +173,11 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Provides
     @Singleton
     public AddReferenceDataSourceFn provideAddReferenceDataSourceFn() {
-        if (genomicsOptions.getGeneReferences() != null && genomicsOptions.getAllReferencesDirGcsUri() != null) {
-            return new AddReferenceDataSourceFn.FromNameAndDirPath(genomicsOptions.getAllReferencesDirGcsUri(),
-                    genomicsOptions.getGeneReferences());
+        if (genomicsParams.getGeneReferences() != null && genomicsParams.getAllReferencesDirGcsUri() != null) {
+            return new AddReferenceDataSourceFn.FromNameAndDirPath(genomicsParams.getAllReferencesDirGcsUri(),
+                    genomicsParams.getGeneReferences());
         } else {
-            return new AddReferenceDataSourceFn.Explicitly(genomicsOptions.getRefDataJsonString());
+            return new AddReferenceDataSourceFn.Explicitly(genomicsParams.getRefDataJsonString());
         }
     }
 
@@ -191,7 +191,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Singleton
     public CreateBamIndexFn provideCreateBamIndexFn(SamToolsService samToolsService, FileUtils fileUtils,
                                                     TransformIoHandler indexIoHandler) {
-        indexIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getMergedRegionsDirPattern());
+        indexIoHandler.overwriteWithTimestampedDestGcsDir(genomicsParams.getMergedRegionsDirPattern());
         return new CreateBamIndexFn(indexIoHandler, samToolsService, fileUtils);
     }
 
@@ -226,7 +226,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Provides
     @Singleton
     public DeepVariantService provideDeepVariantService(LifeSciencesService lifeSciencesService) {
-        return new DeepVariantService(lifeSciencesService, genomicsOptions.getDeepVariantOptions());
+        return new DeepVariantService(lifeSciencesService, genomicsParams.getDeepVariantOptions());
     }
 
     @Provides
@@ -238,12 +238,12 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Provides
     @Singleton
     public VariantCallingService provideVariantCallingService(DeepVariantService deepVariantService, GATKService gatkService) {
-        if (genomicsOptions.getVariantCaller().equals(VariantCaller.GATK)) {
+        if (genomicsParams.getVariantCaller().equals(VariantCaller.GATK)) {
             return gatkService;
-        } else if (genomicsOptions.getVariantCaller().equals(VariantCaller.DEEP_VARIANT)) {
+        } else if (genomicsParams.getVariantCaller().equals(VariantCaller.DEEP_VARIANT)) {
             return deepVariantService;
         } else {
-            throw new IllegalArgumentException(String.format("Variant Caller %s is not supported", genomicsOptions.getVariantCaller()));
+            throw new IllegalArgumentException(String.format("Variant Caller %s is not supported", genomicsParams.getVariantCaller()));
         }
     }
 
@@ -255,8 +255,8 @@ public abstract class BatchProcessingModule extends AbstractModule {
                 variantCallingService,
                 fileUtils,
                 referencesProvider,
-                genomicsOptions.getResultBucket(),
-                String.format(genomicsOptions.getVariantCallingOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()));
+                genomicsParams.getResultBucket(),
+                String.format(genomicsParams.getVariantCallingOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()));
     }
 
     @Provides
@@ -264,9 +264,9 @@ public abstract class BatchProcessingModule extends AbstractModule {
     public VcfToBqService provideVcfToBqService(LifeSciencesService lifeSciencesService, NameProvider nameProvider) {
         VcfToBqService vcfToBqService = new VcfToBqService(
                 lifeSciencesService,
-                String.format("%s:%s", project, genomicsOptions.getVcfBqDatasetAndTablePattern()),
-                genomicsOptions.getResultBucket(),
-                String.format(genomicsOptions.getVcfToBqOutputDir(), nameProvider.getCurrentTimeInDefaultFormat()),
+                String.format("%s:%s", project, genomicsParams.getVcfBqDatasetAndTablePattern()),
+                genomicsParams.getResultBucket(),
+                String.format(genomicsParams.getVcfToBqOutputDir(), nameProvider.getCurrentTimeInDefaultFormat()),
                 nameProvider.getCurrentTimeInDefaultFormat());
         vcfToBqService.setRegion(region);
         return vcfToBqService;
@@ -290,11 +290,17 @@ public abstract class BatchProcessingModule extends AbstractModule {
 
     @Provides
     @Singleton
+    public FastqReader provideFastqReader(SamToolsService samToolsService) {
+        return new FastqReader(samToolsService);
+    }
+
+    @Provides
+    @Singleton
     public SplitFastqIntoBatches.ReadFastqPartFn provideSplitFastqIntoBatches(FileUtils fileUtils,
                                                                               FastqReader fastqReader,
                                                                               TransformIoHandler splitFastqIntoBatchesIoHandler) {
-        splitFastqIntoBatchesIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getChuncksByCountOutputDirPattern());
-        splitFastqIntoBatchesIoHandler.setMemoryOutputLimitMb(genomicsOptions.getMemoryOutputLimit());
+        splitFastqIntoBatchesIoHandler.overwriteWithTimestampedDestGcsDir(genomicsParams.getChuncksByCountOutputDirPattern());
+        splitFastqIntoBatchesIoHandler.setMemoryOutputLimitMb(genomicsParams.getMemoryOutputLimit());
         return new SplitFastqIntoBatches.ReadFastqPartFn(fileUtils, fastqReader, splitFastqIntoBatchesIoHandler, maxFastqChunkSize, maxFastqSizeMB);
     }
 
@@ -312,7 +318,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
                                                            BatchSamParser batchSamParser,
                                                            SamToolsService samToolsService,
                                                            TransformIoHandler sortAndSplitIoHandler) {
-        sortAndSplitIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getSortedAndSplittedOutputDirPattern());
+        sortAndSplitIoHandler.overwriteWithTimestampedDestGcsDir(genomicsParams.getSortedAndSplittedOutputDirPattern());
         return new SamIntoRegionBatchesFn(sortAndSplitIoHandler, samToolsService, batchSamParser, fileUtils,
                 ioUtils, bamRegionSize);
     }
@@ -321,8 +327,8 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Singleton
     public SplitFastqIntoBatches.BuildFastqContentFn provideBuildFastqContentFn(FileUtils fileUtils, IoUtils ioUtils,
                                                                                 TransformIoHandler buildFastqContentIoHandler) {
-        buildFastqContentIoHandler.overwriteWithTimestampedDestGcsDir(genomicsOptions.getChuncksBySizeOutputDirPattern());
-        buildFastqContentIoHandler.setMemoryOutputLimitMb(genomicsOptions.getMemoryOutputLimit());
+        buildFastqContentIoHandler.overwriteWithTimestampedDestGcsDir(genomicsParams.getChuncksBySizeOutputDirPattern());
+        buildFastqContentIoHandler.setMemoryOutputLimitMb(genomicsParams.getMemoryOutputLimit());
         return new SplitFastqIntoBatches.BuildFastqContentFn(buildFastqContentIoHandler, fileUtils, ioUtils, maxFastqSizeMB);
     }
 

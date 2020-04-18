@@ -7,18 +7,18 @@ import org.javatuples.Pair;
 
 import java.util.List;
 
-public class GenomicsOptions {
+public class GenomicsProcessingParams {
 
     public final static String INTERMEDIATE_PREFIX = "%s/intermediate/";
     public final static String FINAL_PREFIX = "%s/final/";
 
-    public final static String CHUNKS_BY_COUNT_OUTPUT_PATH_PATTERN = "intermediate/chunked_fastq_by_count/";
-    public final static String CHUNKS_BY_SIZE_OUTPUT_PATH_PATTERN = "intermediate/chunked_fastq_by_size/";
-    public final static String ALIGNED_OUTPUT_PATH_PATTERN = "intermediate/aligned_sam/";
-    public final static String SORTED_OUTPUT_PATH_PATTERN = "intermediate/sorted_bam/";
-    public final static String SORTED_AND_SPLITTED_PATH_PATTERN = "intermediate/sorted_and_splitted_bam/";
+    public final static String CHUNKS_BY_COUNT_OUTPUT_PATH_PATTERN = "chunked_fastq_by_count/";
+    public final static String CHUNKS_BY_SIZE_OUTPUT_PATH_PATTERN = "chunked_fastq_by_size/";
+    public final static String ALIGNED_OUTPUT_PATH_PATTERN = "aligned_sam/";
+    public final static String SORTED_OUTPUT_PATH_PATTERN = "sorted_bam/";
+    public final static String SORTED_AND_SPLITTED_PATH_PATTERN = "sorted_and_splitted_bam/";
     public final static String FINAL_MERGED_PATH_PATTERN = "result_merged_bam/";
-    public final static String MERGED_REGIONS_PATH_PATTERN = "intermediate/merged_regions_bam/";
+    public final static String MERGED_REGIONS_PATH_PATTERN = "merged_regions_bam/";
     public final static String VARIANT_CALLING_OUTPUT_PATH_PATTERN = "result_variant_calling/";
     public final static String VCF_TO_BQ_PATH = "vcf_to_bq/";
     public final static String ANOMALY_PATH_PATTERN = "anomaly_samples/";
@@ -35,11 +35,11 @@ public class GenomicsOptions {
     private String vcfBqDatasetAndTablePattern;
     private String outputDir;
 
-    public GenomicsOptions(Aligner aligner, String resultBucket, List<String> geneReferences,
-                           String allReferencesDirGcsUri, ValueProvider<String> refDataJsonString,
-                           VariantCaller variantCaller,
-                           String outputDir,
-                           long memoryOutputLimit) {
+    public GenomicsProcessingParams(Aligner aligner, String resultBucket, List<String> geneReferences,
+                                    String allReferencesDirGcsUri, ValueProvider<String> refDataJsonString,
+                                    VariantCaller variantCaller,
+                                    String outputDir,
+                                    long memoryOutputLimit) {
         this.aligner = aligner;
         this.resultBucket = resultBucket;
         this.geneReferences = geneReferences;
@@ -54,10 +54,10 @@ public class GenomicsOptions {
         }
     }
 
-    public static GenomicsOptions fromAlignerPipelineOptions(GenomicsPipelineOptions alignerPipelineOptions) {
+    public static GenomicsProcessingParams fromAlignerPipelineOptions(GenomicsPipelineOptions alignerPipelineOptions) {
 
         Pair<String, String> bucketDirPair = splitGcsPath(alignerPipelineOptions.getOutputGcsUri());
-        GenomicsOptions genomicsOptions = new GenomicsOptions(
+        GenomicsProcessingParams genomicsProcessingParams = new GenomicsProcessingParams(
                 alignerPipelineOptions.getAligner(),
                 bucketDirPair.getValue0(),
                 alignerPipelineOptions.getReferenceNamesList(),
@@ -89,9 +89,9 @@ public class GenomicsOptions {
         deepVariantOptions.setMaxPremptibleTries(alignerPipelineOptions.getMaxNonPremptibleTries());
         deepVariantOptions.setMaxNonPremptibleTries(alignerPipelineOptions.getMaxNonPremptibleTries());
         deepVariantOptions.setDeepVariantShards(alignerPipelineOptions.getDeepVariantShards());
-        genomicsOptions.setDeepVariantOptions(deepVariantOptions);
-        genomicsOptions.setVcfBqDatasetAndTablePattern(alignerPipelineOptions.getVcfBqDatasetAndTablePattern());
-        return genomicsOptions;
+        genomicsProcessingParams.setDeepVariantOptions(deepVariantOptions);
+        genomicsProcessingParams.setVcfBqDatasetAndTablePattern(alignerPipelineOptions.getVcfBqDatasetAndTablePattern());
+        return genomicsProcessingParams;
     }
 
     private static Pair<String, String> splitGcsPath(String uri) {

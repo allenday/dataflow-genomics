@@ -5,7 +5,7 @@ import com.google.allenday.genomics.core.batch.PreparingTransform;
 import com.google.allenday.genomics.core.io.BaseUriProvider;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleMetaData;
-import com.google.allenday.genomics.core.pipeline.GenomicsOptions;
+import com.google.allenday.genomics.core.pipeline.GenomicsProcessingParams;
 import com.google.allenday.genomics.core.utils.NameProvider;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
@@ -25,14 +25,14 @@ public class EndToEndPipelineITModule extends BatchProcessingModule {
                                     List<String> sraSamplesToSkip,
                                     String project,
                                     String region,
-                                    GenomicsOptions genomicsOptions,
+                                    GenomicsProcessingParams genomicsProcessingParams,
                                     Integer maxFastqSizeMB,
                                     Integer maxFastqChunkSize,
                                     Integer bamRegionSize,
                                     BaseUriProvider baseUriProvider,
                                     boolean withFinalBamFile) {
         super(srcBucket, inputCsvUri, sraSamplesToFilter, sraSamplesToSkip, project, region,
-                genomicsOptions, maxFastqSizeMB, maxFastqChunkSize, bamRegionSize, withFinalBamFile);
+                genomicsProcessingParams, maxFastqSizeMB, maxFastqChunkSize, bamRegionSize, withFinalBamFile);
         this.baseUriProvider = baseUriProvider;
     }
 

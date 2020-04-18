@@ -12,7 +12,7 @@ public class DefaultBaseUriProvider extends BaseUriProvider {
         return new DefaultBaseUriProvider(srcBucket, (ProviderRule) (geneSampleMetaData, bucket) -> {
             String uriPrefix = String.format(DEFAULT_SRC_DIR_URI_PATTERN, bucket, geneSampleMetaData.getSraStudy(),
                     geneSampleMetaData.getSraSample());
-            return uriPrefix + geneSampleMetaData.getRunId() + "_";
+            return uriPrefix + geneSampleMetaData.getRunId();
         });
     }
 }

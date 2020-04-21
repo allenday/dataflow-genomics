@@ -38,7 +38,8 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
     public PCollection<BlobId> expand(PCollection<BlobId> input) {
         return input.apply("Prepare for export", ParDo.of(prepareVcfToBqBatchFn))
                 .apply("Export VCF files to BQ", ParDo.of(vcfToBqFn))
-                .apply("Save VCF to BQ processed samples", ParDo.of(saveVcfToBqResults));
+                .apply("Save VCF to BQ processed samples", ParDo.of(saveVcfToBqResults))
+                ;
     }
 
 
@@ -46,23 +47,32 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
 
         private final static int DEFAULT_BATCH_SIZE = 50;
 
+        private final String BATCH_VCF_TO_BQ_TEMP_FILES_PATTERN = "temp/%s_%d/";
+
         private GCSService gcsService;
 
         private FileUtils fileUtils;
         private IoUtils ioUtils;
         private StagingPathsBulder stagingPathsBulder;
         private String jobTime;
+        private String vcfToBqOutputDir;
         private int batchSize;
 
-        public PrepareVcfToBqBatchFn(FileUtils fileUtils, IoUtils ioUtils, StagingPathsBulder stagingPathsBulder, String jobTime) {
-            this(fileUtils, ioUtils, stagingPathsBulder, jobTime, DEFAULT_BATCH_SIZE);
+        public PrepareVcfToBqBatchFn(FileUtils fileUtils,
+                                     IoUtils ioUtils,
+                                     StagingPathsBulder stagingPathsBulder,
+                                     String vcfToBqOutputDir,
+                                     String jobTime) {
+            this(fileUtils, ioUtils, stagingPathsBulder, jobTime, vcfToBqOutputDir, DEFAULT_BATCH_SIZE);
         }
 
-        public PrepareVcfToBqBatchFn(FileUtils fileUtils, IoUtils ioUtils, StagingPathsBulder stagingPathsBulder, String jobTime, int batchSize) {
+        public PrepareVcfToBqBatchFn(FileUtils fileUtils, IoUtils ioUtils, StagingPathsBulder stagingPathsBulder, String jobTime,
+                                     String vcfToBqOutputDir, int batchSize) {
             this.fileUtils = fileUtils;
             this.ioUtils = ioUtils;
             this.stagingPathsBulder = stagingPathsBulder;
             this.jobTime = jobTime;
+            this.vcfToBqOutputDir = vcfToBqOutputDir;
             this.batchSize = batchSize;
         }
 
@@ -73,8 +83,9 @@ public class VcfToBqBatchTransform extends PTransform<PCollection<BlobId>,
 
         private void processCopyAndOutput(ProcessContext c, String reference, List<BlobId> blobs, int index) {
             BlobId destDir = BlobId.of(stagingPathsBulder.getStagingBucket(),
-                    String.format(stagingPathsBulder.buildVcfToBqDirPath() + "temp/%s/%s_%d/", jobTime, reference, index));
-            blobs.forEach(blobId -> gcsService.copy(blobId, BlobId.of(destDir.getBucket(), destDir.getName() + new FileUtils().getFilenameFromPath(blobId.getName()))));
+                    vcfToBqOutputDir + String.format(BATCH_VCF_TO_BQ_TEMP_FILES_PATTERN, reference, index));
+            blobs.forEach(blobId -> gcsService.copy(blobId, BlobId.of(destDir.getBucket(),
+                    destDir.getName() + new FileUtils().getFilenameFromPath(blobId.getName()))));
             c.output(KV.of(reference, gcsService.getUriFromBlob(destDir) + "*"));
         }
 

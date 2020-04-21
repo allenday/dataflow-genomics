@@ -76,10 +76,6 @@ public class StagingPathsBulder implements Serializable {
                 VCF_TO_BQ_PROCESSED_LIST_FILENAME);
     }
 
-    public String buildVcfToBqDirPath() {
-        return stagingDir + "/" + VCF_TO_BQ_PATH;
-    }
-
     public String getExistenceCsvUri() {
         return String.format("gs://%s/%s", stagingBucket, stagingDir + "/" + EXISTENCE_FILE_NAME);
     }

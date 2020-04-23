@@ -71,13 +71,9 @@ public class StagingPathsBulder implements Serializable {
     }
 
     public BlobId getVcfToBqProcessedListFileBlobId() {
-        return BlobId.of(stagingBucket, stagingDir +
+        return BlobId.of(stagingBucket, stagingDir + "/" +
                 GenomicsProcessingParams.VCF_TO_BQ_PATH.replace("%s", "") +
                 VCF_TO_BQ_PROCESSED_LIST_FILENAME);
-    }
-
-    public String buildVcfToBqDirPath() {
-        return stagingDir + "/" + VCF_TO_BQ_PATH;
     }
 
     public String getExistenceCsvUri() {

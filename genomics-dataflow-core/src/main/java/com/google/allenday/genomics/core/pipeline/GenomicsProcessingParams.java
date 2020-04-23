@@ -154,7 +154,7 @@ public class GenomicsProcessingParams {
         return outputDir + FINAL_PREFIX + VARIANT_CALLING_OUTPUT_PATH_PATTERN;
     }
 
-    public String getVcfToBqOutputDir() {
+    public String getVcfToBqOutputDirPattern() {
         return outputDir + INTERMEDIATE_PREFIX + VCF_TO_BQ_PATH;
     }
 

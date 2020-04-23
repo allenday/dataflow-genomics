@@ -266,7 +266,7 @@ public abstract class BatchProcessingModule extends AbstractModule {
                 lifeSciencesService,
                 String.format("%s:%s", project, genomicsParams.getVcfBqDatasetAndTablePattern()),
                 genomicsParams.getResultBucket(),
-                String.format(genomicsParams.getVcfToBqOutputDir(), nameProvider.getCurrentTimeInDefaultFormat()),
+                String.format(genomicsParams.getVcfToBqOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
                 nameProvider.getCurrentTimeInDefaultFormat());
         vcfToBqService.setRegion(region);
         return vcfToBqService;

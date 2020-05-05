@@ -1,12 +1,12 @@
 package com.google.allenday.genomics.core.example;
 
-import com.google.allenday.genomics.core.batch.BatchProcessingModule;
-import com.google.allenday.genomics.core.batch.BatchProcessingPipelineOptions;
-import com.google.allenday.genomics.core.batch.PreparingTransform;
-import com.google.allenday.genomics.core.io.BaseUriProvider;
-import com.google.allenday.genomics.core.io.DefaultBaseUriProvider;
-import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.SampleMetaData;
+import com.google.allenday.genomics.core.pipeline.batch.BatchProcessingModule;
+import com.google.allenday.genomics.core.pipeline.batch.BatchProcessingPipelineOptions;
+import com.google.allenday.genomics.core.pipeline.batch.PreparingTransform;
+import com.google.allenday.genomics.core.model.SampleRunMetaData;
+import com.google.allenday.genomics.core.preparing.runfile.FastqInputResource;
+import com.google.allenday.genomics.core.preparing.runfile.uriprovider.BaseUriProvider;
+import com.google.allenday.genomics.core.preparing.runfile.uriprovider.DefaultBaseUriProvider;
 import com.google.allenday.genomics.core.pipeline.GenomicsProcessingParams;
 import com.google.allenday.genomics.core.utils.NameProvider;
 import com.google.inject.Provides;
@@ -57,7 +57,7 @@ public class GiabExampleAppModule extends BatchProcessingModule {
     public PreparingTransform provideGroupByPairedReadsAndFilter(NameProvider nameProvider) {
         return new PreparingTransform() {
             @Override
-            public PCollection<KV<SampleMetaData, List<FileWrapper>>> expand(PCollection<KV<SampleMetaData, List<FileWrapper>>> input) {
+            public PCollection<KV<SampleRunMetaData, List<FastqInputResource>>> expand(PCollection<KV<SampleRunMetaData, List<FastqInputResource>>> input) {
                 return input;
             }
         };

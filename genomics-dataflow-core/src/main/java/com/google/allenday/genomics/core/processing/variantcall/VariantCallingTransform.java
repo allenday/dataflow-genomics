@@ -1,12 +1,12 @@
 package com.google.allenday.genomics.core.processing.variantcall;
 
 import com.google.allenday.genomics.core.model.BamWithIndexUris;
-import com.google.allenday.genomics.core.model.SamRecordsMetadaKey;
+import com.google.allenday.genomics.core.model.SamRecordsChunkMetadataKey;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
+import com.google.allenday.genomics.core.pipeline.transform.BreakFusion;
 import org.apache.beam.sdk.transforms.Filter;
 import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.transforms.ParDo;
-import org.apache.beam.sdk.transforms.Reshuffle;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 
@@ -14,7 +14,7 @@ import org.apache.beam.sdk.values.PCollection;
  * Apache Beam PTransform,
  * that provides <a href="https://www.ebi.ac.uk/training/online/course/human-genetic-variation-i-introduction-2019/variant-identification-and-analysis">Variant Calling</a> logic.
  */
-public class VariantCallingTransform extends PTransform<PCollection<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, BamWithIndexUris>>>, PCollection<KV<SamRecordsMetadaKey, KV<String, String>>>> {
+public class VariantCallingTransform extends PTransform<PCollection<KV<SamRecordsChunkMetadataKey, KV<ReferenceDatabaseSource, BamWithIndexUris>>>, PCollection<KV<SamRecordsChunkMetadataKey, KV<String, String>>>> {
 
     private VariantCallingFn variantCallingFn;
 
@@ -23,10 +23,10 @@ public class VariantCallingTransform extends PTransform<PCollection<KV<SamRecord
     }
 
     @Override
-    public PCollection<KV<SamRecordsMetadaKey, KV<String, String>>> expand(PCollection<KV<SamRecordsMetadaKey, KV<ReferenceDatabaseSource, BamWithIndexUris>>> input) {
+    public PCollection<KV<SamRecordsChunkMetadataKey, KV<String, String>>> expand(PCollection<KV<SamRecordsChunkMetadataKey, KV<ReferenceDatabaseSource, BamWithIndexUris>>> input) {
         return input
                 .apply(Filter.by(kv -> kv.getKey().getRegion().isMapped()))
-                .apply(Reshuffle.viaRandomKey())
+                .apply(BreakFusion.create())
                 .apply("Variant Calling Fn", ParDo.of(variantCallingFn));
     }
 }

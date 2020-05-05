@@ -1,8 +1,8 @@
 package com.google.allenday.genomics.core.main.io;
 
-import com.google.allenday.genomics.core.io.FastqReader;
-import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.processing.SamToolsService;
+import com.google.allenday.genomics.core.preparing.fastq.FastqReader;
+import com.google.allenday.genomics.core.utils.FileUtils;
+import com.google.allenday.genomics.core.processing.sam.SamToolsService;
 import org.junit.Assert;
 import org.junit.Test;
 

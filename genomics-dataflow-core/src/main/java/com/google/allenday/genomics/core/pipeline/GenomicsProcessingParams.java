@@ -1,7 +1,7 @@
 package com.google.allenday.genomics.core.pipeline;
 
-import com.google.allenday.genomics.core.model.Aligner;
-import com.google.allenday.genomics.core.model.VariantCaller;
+import com.google.allenday.genomics.core.processing.align.Aligner;
+import com.google.allenday.genomics.core.processing.variantcall.VariantCaller;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.javatuples.Pair;
 
@@ -20,7 +20,7 @@ public class GenomicsProcessingParams {
     public final static String FINAL_MERGED_PATH_PATTERN = "result_merged_bam/";
     public final static String MERGED_REGIONS_PATH_PATTERN = "merged_regions_bam/";
     public final static String VARIANT_CALLING_OUTPUT_PATH_PATTERN = "result_variant_calling/";
-    public final static String VCF_TO_BQ_PATH = "vcf_to_bq/";
+    public final static String VCF_TO_BQ_PATH = "vcftobq/";
     public final static String ANOMALY_PATH_PATTERN = "anomaly_samples/";
 
     private Aligner aligner;

@@ -1,9 +1,9 @@
 package com.google.allenday.genomics.core.processing.align;
 
-import com.google.allenday.genomics.core.cmd.CmdExecutor;
-import com.google.allenday.genomics.core.cmd.WorkerSetupService;
-import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.model.Instrument;
+import com.google.allenday.genomics.core.worker.cmd.CmdExecutor;
+import com.google.allenday.genomics.core.worker.cmd.Commands;
+import com.google.allenday.genomics.core.worker.WorkerSetupService;
+import com.google.allenday.genomics.core.utils.FileUtils;
 import org.javatuples.Triplet;
 
 import java.util.ArrayList;
@@ -14,16 +14,9 @@ import java.util.stream.Stream;
 public class BwaAlignService extends AlignService {
 
     public final static String BWA_DIR_NAME = "bwa-master";
+    private final static String BWA_ZIP_FILE_NAME = "master.zip";
+    private final static String BWA_ZIP_URL = String.format("https://github.com/lh3/bwa/archive/%s", BWA_ZIP_FILE_NAME);
 
-    private final static String CMD_APT_UPDATE = "apt-get update";
-    private final static String CMD_INSTALL_UNZIP = "apt-get install unzip -y";
-    private final static String CMD_INSTALL_WGET = "apt-get install wget -y";
-    private final static String CMD_DOWNLOAD_BWA = "wget https://github.com/lh3/bwa/archive/master.zip";
-    private final static String CMD_UNZIP_BWA = "unzip master.zip";
-    private final static String CMD_RM_BWA_ARCHIVE = "rm -f master.zip";
-    private final static String CMD_INSTALL_MAKE = "apt-get install build-essential -y";
-    private final static String CMD_INSTALL_ZLIB = "apt-get install zlib1g-dev -y";
-    private final static String CMD_MAKE = String.format("cd %s; make", BWA_DIR_NAME);
 
     private final static String ALIGN_COMMAND_ILLUMINA_SINGLE = "./bwa-master/bwa mem %1$s %2$s > %3$s";
     private final static String ALIGN_COMMAND_ILLUMINA_SINGLE_SHORT =
@@ -58,21 +51,20 @@ public class BwaAlignService extends AlignService {
     @Override
     public void setup() {
         workerSetupService.setupByCommands(new String[]{
-                CMD_APT_UPDATE,
-                CMD_INSTALL_WGET,
-                CMD_INSTALL_UNZIP,
-                CMD_DOWNLOAD_BWA,
-                CMD_UNZIP_BWA,
-                CMD_RM_BWA_ARCHIVE,
-                CMD_INSTALL_MAKE,
-                CMD_INSTALL_ZLIB,
-                CMD_MAKE,
+                Commands.CMD_APT_UPDATE,
+                Commands.CMD_INSTALL_WGET,
+                Commands.CMD_INSTALL_UNZIP,
+                Commands.wget(BWA_ZIP_URL),
+                Commands.unzip(BWA_ZIP_FILE_NAME),
+                Commands.CMD_INSTALL_BUILD_ESSENTIALS,
+                Commands.CMD_INSTALL_ZLIB1G_DEV,
+                Commands.cdAndMake(BWA_DIR_NAME),
         });
     }
 
     @Override
     public String alignFastq(String referencePath, List<String> localFastqPaths, String workDir,
-                             String outPrefix, String outSuffix, String readGroupName, String instrumentName) {
+                             String outPrefix, String outSuffix, String readGroupName, String instrumentName) throws AlignException {
 
         checkForRefIndexAndCreateIfNeed(referencePath);
 
@@ -99,10 +91,10 @@ public class BwaAlignService extends AlignService {
         return alignedSamPath;
     }
 
-    private void checkForRefIndexAndCreateIfNeed(String referencePath) {
+    private void checkForRefIndexAndCreateIfNeed(String referencePath) throws AlignException {
         boolean hasMissedIndexFiles = Stream.of(REFERENCES_BWA_INDEX_EXTENSION)
                 .map(refIndex -> fileUtils.exists(referencePath + refIndex)).anyMatch(exists -> !exists);
-        if (hasMissedIndexFiles){
+        if (hasMissedIndexFiles) {
             String command = String.format(BWA_REF_INDEX, referencePath);
             Triplet<Boolean, Integer, String> result = cmdExecutor.executeCommand(command);
             if (!result.getValue0()) {
@@ -111,7 +103,7 @@ public class BwaAlignService extends AlignService {
         }
     }
 
-    private List<String> buildCommands(Instrument instrument, String referencePath, List<String> localFastqPaths, String alignedSamPath) {
+    private List<String> buildCommands(Instrument instrument, String referencePath, List<String> localFastqPaths, String alignedSamPath) throws AlignException {
         if (instrument == Instrument.ILLUMINA || instrument == Instrument.LS454 || instrument == Instrument.MGISEQ) {
             if (localFastqPaths.size() == 1) {
                 return Collections.singletonList(

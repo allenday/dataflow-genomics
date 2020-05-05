@@ -1,10 +1,10 @@
 package com.google.allenday.genomics.core.processing.align;
 
-import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.io.GCSService;
-import com.google.allenday.genomics.core.io.TransformIoHandler;
+import com.google.allenday.genomics.core.gcp.GcsService;
+import com.google.allenday.genomics.core.utils.FileUtils;
+import com.google.allenday.genomics.core.pipeline.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.SampleMetaData;
+import com.google.allenday.genomics.core.model.SampleRunMetaData;
 import com.google.allenday.genomics.core.reference.ReferenceDatabase;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.allenday.genomics.core.reference.ReferenceProvider;
@@ -16,18 +16,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
-public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSource>, List<FileWrapper>>>,
-        KV<SampleMetaData, KV<ReferenceDatabaseSource, FileWrapper>>> {
+public class AlignFn extends DoFn<KV<SampleRunMetaData, KV<List<ReferenceDatabaseSource>, List<FileWrapper>>>,
+        KV<SampleRunMetaData, KV<ReferenceDatabaseSource, FileWrapper>>> {
 
 
     private Counter errorCounter = Metrics.counter(AlignFn.class, "align-error-counter");
     private Counter successCounter = Metrics.counter(AlignFn.class, "align-success-counter");
 
     private Logger LOG = LoggerFactory.getLogger(AlignFn.class);
-    private GCSService gcsService;
+    private GcsService gcsService;
 
     private AlignService alignService;
     private ReferenceProvider referencesProvider;
@@ -46,7 +46,7 @@ public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSo
 
     @Setup
     public void setUp() {
-        gcsService = GCSService.initialize(fileUtils);
+        gcsService = GcsService.initialize(fileUtils);
         alignService.setup();
     }
 
@@ -55,47 +55,48 @@ public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSo
 
         LOG.info(String.format("Start of processing with input: %s", c.element().toString()));
 
-        SampleMetaData geneSampleMetaData = c.element().getKey();
+        SampleRunMetaData geneSampleRunMetaData = c.element().getKey();
 
         KV<List<ReferenceDatabaseSource>, List<FileWrapper>> fnValue = c.element().getValue();
         List<ReferenceDatabaseSource> referenceDBSources = fnValue.getKey();
 
         List<FileWrapper> fileWrapperList = fnValue.getValue();
 
-        if (geneSampleMetaData == null || fileWrapperList.size() == 0 || referenceDBSources == null || referenceDBSources.size() == 0) {
+        if (geneSampleRunMetaData == null || fileWrapperList.size() == 0 || referenceDBSources == null || referenceDBSources.size() == 0) {
             LOG.error("Data error");
-            LOG.error("geneSampleMetaData: " + geneSampleMetaData);
+            LOG.error("geneSampleRunMetaData: " + geneSampleRunMetaData);
             LOG.error("fileWrapperList.size(): " + fileWrapperList.size());
             LOG.error("referenceDBSource: " + referenceDBSources);
             throw new RuntimeException("Broken data");
         }
 
-        String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneSampleMetaData.getRunId());
+        String workingDir = fileUtils.makeDirByCurrentTimestampAndSuffix(geneSampleRunMetaData.getRunId());
 
         try {
-            List<String> srcFilesPaths = fileWrapperList.stream()
-                    .map(geneData -> transformIoHandler.handleInputAsLocalFile(gcsService, geneData, workingDir))
-                    .collect(Collectors.toList());
+            List<String> srcFilesPaths = new ArrayList<>();
+            for (FileWrapper fileWrapper : fileWrapperList) {
+                srcFilesPaths.add(transformIoHandler.handleInputAsLocalFile(gcsService, fileWrapper, workingDir));
+            }
             for (ReferenceDatabaseSource referenceDBSource : referenceDBSources) {
                 ReferenceDatabase referenceDatabase =
                         referencesProvider.getReferenceDbWithDownload(gcsService, referenceDBSource);
                 String alignedSamPath = null;
                 try {
-                    String outPrefix = geneSampleMetaData.getRunId()
-                            + "_" + geneSampleMetaData.getPartIndex()
-                            + "_" + geneSampleMetaData.getSubPartIndex();
+                    String outPrefix = geneSampleRunMetaData.getRunId()
+                            + "_" + geneSampleRunMetaData.getPartIndex()
+                            + "_" + geneSampleRunMetaData.getSubPartIndex();
                     alignedSamPath = alignService.alignFastq(
                             referenceDatabase.getFastaLocalPath(),
                             srcFilesPaths,
                             workingDir, outPrefix,
                             referenceDatabase.getDbName(),
-                            geneSampleMetaData.getSraSample().getValue(),
-                            geneSampleMetaData.getPlatform());
+                            geneSampleRunMetaData.getSraSample().getValue(),
+                            geneSampleRunMetaData.getPlatform());
                     FileWrapper fileWrapper = transformIoHandler.handleFileOutput(gcsService, alignedSamPath);
                     fileUtils.deleteFile(alignedSamPath);
 
                     successCounter.inc();
-                    c.output(KV.of(geneSampleMetaData, KV.of(referenceDBSource, fileWrapper)));
+                    c.output(KV.of(geneSampleRunMetaData, KV.of(referenceDBSource, fileWrapper)));
                 } catch (IOException e) {
                     LOG.error(e.getMessage());
                     e.printStackTrace();
@@ -106,7 +107,7 @@ public class AlignFn extends DoFn<KV<SampleMetaData, KV<List<ReferenceDatabaseSo
                 }
             }
             fileUtils.deleteDir(workingDir);
-        } catch (RuntimeException e) {
+        } catch (IOException e) {
             LOG.error(e.getMessage());
             e.printStackTrace();
             fileUtils.deleteDir(workingDir);

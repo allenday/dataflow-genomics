@@ -1,8 +1,7 @@
 package com.google.allenday.genomics.core.main.io;
 
-import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.io.GCSService;
-import com.google.allenday.genomics.core.io.IoUtils;
+import com.google.allenday.genomics.core.gcp.GcsService;
+import com.google.allenday.genomics.core.utils.FileUtils;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.Blob;
@@ -23,7 +22,7 @@ public class GcsServiceTests {
         FileUtils fileUtilsMock = Mockito.mock(FileUtils.class);
         Storage storageMock = Mockito.mock(Storage.class);
 
-        GCSService gcsService = new GCSService(storageMock, fileUtilsMock);
+        GcsService gcsService = new GcsService(storageMock, fileUtilsMock);
 
 
         String bucketName = "bucketName";
@@ -47,7 +46,7 @@ public class GcsServiceTests {
         FileUtils fileUtilsMock = Mockito.mock(FileUtils.class);
         Storage storageMock = Mockito.mock(Storage.class);
 
-        GCSService gcsService = new GCSService(storageMock, fileUtilsMock);
+        GcsService gcsService = new GcsService(storageMock, fileUtilsMock);
 
         String bucketName = "bucketName";
         String blobName = "blobName";
@@ -55,32 +54,5 @@ public class GcsServiceTests {
 
         BlobId gcsServiceBlobIdFromUri = gcsService.getBlobIdFromUri(blobUri);
         Assert.assertEquals(BlobId.of(bucketName, blobName), gcsServiceBlobIdFromUri);
-    }
-
-    @Test
-    public void testReadBlob() throws Exception {
-        FileUtils fileUtilsMock = Mockito.mock(FileUtils.class);
-        Storage storageMock = Mockito.mock(Storage.class);
-        IoUtils ioUtilsMock = Mockito.mock(IoUtils.class);
-
-        GCSService gcsService = new GCSService(storageMock, fileUtilsMock);
-
-        String bucketName = "bucketName";
-        String blobName = "blobName";
-        String content = "content";
-        Integer firstCallContentLength = 10;
-
-        Blob blobMock = Mockito.mock(Blob.class);
-        ReadChannel readChannelMock = Mockito.mock(ReadChannel.class);
-
-        Mockito.when(blobMock.getBlobId()).thenReturn(BlobId.of(bucketName, blobName));
-        Mockito.when(storageMock.get(Mockito.eq(BlobId.of(bucketName, blobName)))).thenReturn(blobMock);
-        Mockito.when(storageMock.reader(blobMock.getBlobId())).thenReturn(readChannelMock);
-        Mockito.when(readChannelMock.read(Mockito.any())).thenReturn(firstCallContentLength).thenReturn(0);
-        Mockito.when(ioUtilsMock.getStringContentFromByteBuffer(Mockito.any())).thenReturn(content);
-        String result = gcsService.readBlob(BlobId.of(bucketName, blobName), ioUtilsMock);
-
-        Mockito.verify(ioUtilsMock, Mockito.times(1)).getStringContentFromByteBuffer(Mockito.any());
-        Assert.assertEquals(content, result);
     }
 }

@@ -1,9 +1,10 @@
 package com.google.allenday.genomics.core.processing.variantcall;
 
-import com.google.allenday.genomics.core.cmd.CmdExecutor;
-import com.google.allenday.genomics.core.cmd.WorkerSetupService;
+import com.google.allenday.genomics.core.gcp.ResourceProvider;
 import com.google.allenday.genomics.core.reference.ReferenceDatabase;
-import com.google.allenday.genomics.core.utils.ResourceProvider;
+import com.google.allenday.genomics.core.worker.WorkerSetupService;
+import com.google.allenday.genomics.core.worker.cmd.CmdExecutor;
+import com.google.allenday.genomics.core.worker.cmd.Commands;
 import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,12 +18,6 @@ public class GATKService extends VariantCallingService {
     private final static String GATK_ZIP_NAME = String.format("%s.zip", GATK_NAME);
     private final static String GATK_URI = String.format("https://github.com/broadinstitute/gatk/releases/download/%1$s/%2$s", GATK_VERSION, GATK_ZIP_NAME);
 
-    private final static String CMD_APT_UPDATE = "apt-get update";
-    private final static String CMD_INSTALL_UNZIP = "apt-get install unzip -y";
-    private final static String CMD_INSTALL_WGET = "apt-get install wget -y";
-    private final static String CMD_INSTALL_PYTHON_2_7 = "apt-get install python -y";
-    private final static String CMD_DOWNLOAD_GATK = String.format("wget %s", GATK_URI);
-    private final static String CMD_UNZIP_GATK = String.format("unzip -o %s", GATK_ZIP_NAME);
 
     private final static String DISABLE_GENERATION_OF_VCF_INDEX_PARAMETER = "--create-output-variant-index=False";
 
@@ -41,12 +36,12 @@ public class GATKService extends VariantCallingService {
     @Override
     public void setup() {
         workerSetupService.setupByCommands(new String[]{
-                CMD_APT_UPDATE,
-                CMD_INSTALL_UNZIP,
-                CMD_INSTALL_WGET,
-                CMD_DOWNLOAD_GATK,
-                CMD_UNZIP_GATK,
-                CMD_INSTALL_PYTHON_2_7
+                Commands.CMD_APT_UPDATE,
+                Commands.CMD_INSTALL_UNZIP,
+                Commands.CMD_INSTALL_WGET,
+                Commands.wget(GATK_URI),
+                Commands.unzip(GATK_ZIP_NAME),
+                Commands.CMD_INSTALL_PYTHON_2_7
         });
     }
 

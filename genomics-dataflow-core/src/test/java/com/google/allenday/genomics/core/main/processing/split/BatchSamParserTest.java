@@ -1,8 +1,8 @@
 package com.google.allenday.genomics.core.main.processing.split;
 
-import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.processing.split.BatchSamParser;
-import com.google.allenday.genomics.core.processing.SamToolsService;
+import com.google.allenday.genomics.core.utils.FileUtils;
+import com.google.allenday.genomics.core.processing.sam.split.BatchSamParser;
+import com.google.allenday.genomics.core.processing.sam.SamToolsService;
 import org.junit.Assert;
 import org.junit.Test;
 

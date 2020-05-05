@@ -1,7 +1,7 @@
 package com.google.allenday.genomics.core.reference;
 
-import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.io.GCSService;
+import com.google.allenday.genomics.core.gcp.GcsService;
+import com.google.allenday.genomics.core.utils.FileUtils;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.gson.JsonArray;
@@ -22,11 +22,11 @@ public interface ReferenceDatabaseSource extends Serializable {
     public final static String[] REFERENCE_FILE_EXTENSIONS = {".fa", ".fasta"};
     public final static String INDEX_SUFFIX = ".fai";
 
-    public abstract Optional<Blob> getReferenceBlob(GCSService gcsService, FileUtils fileUtils);
+    public abstract Optional<Blob> getReferenceBlob(GcsService gcsService, FileUtils fileUtils);
 
-    public abstract Optional<Blob> getReferenceIndexBlob(GCSService gcsService, FileUtils fileUtils);
+    public abstract Optional<Blob> getReferenceIndexBlob(GcsService gcsService, FileUtils fileUtils);
 
-    public abstract Optional<Blob> getCustomDatabaseFileByKey(GCSService gcsService, String key);
+    public abstract Optional<Blob> getCustomDatabaseFileByKey(GcsService gcsService, String key);
 
     public abstract String getName();
 
@@ -43,7 +43,7 @@ public interface ReferenceDatabaseSource extends Serializable {
             this.gcsDirUri = gcsDirUri;
         }
 
-        private List<Blob> getBlobsInDir(GCSService gcsService, FileUtils fileUtils, String uri, String name) {
+        private List<Blob> getBlobsInDir(GcsService gcsService, FileUtils fileUtils, String uri, String name) {
             BlobId blobIdFromUri = gcsService.getBlobIdFromUri(uri);
 
             return StreamSupport.stream(gcsService.getBlobsWithPrefix(blobIdFromUri.getBucket(), blobIdFromUri.getName())
@@ -53,20 +53,20 @@ public interface ReferenceDatabaseSource extends Serializable {
         }
 
         @Override
-        public Optional<Blob> getReferenceBlob(GCSService gcsService, FileUtils fileUtils) {
+        public Optional<Blob> getReferenceBlob(GcsService gcsService, FileUtils fileUtils) {
             List<Blob> dbFiles = getBlobsInDir(gcsService, fileUtils, gcsDirUri, name);
             return dbFiles.stream().filter(blob -> Stream.of(REFERENCE_FILE_EXTENSIONS)
                     .anyMatch(ext -> blob.getName().endsWith(ext))).findFirst();
         }
 
         @Override
-        public Optional<Blob> getReferenceIndexBlob(GCSService gcsService, FileUtils fileUtils) {
+        public Optional<Blob> getReferenceIndexBlob(GcsService gcsService, FileUtils fileUtils) {
             List<Blob> dbFiles = getBlobsInDir(gcsService, fileUtils, gcsDirUri, name);
             return dbFiles.stream().filter(blob -> blob.getName().endsWith(INDEX_SUFFIX)).findFirst();
         }
 
         @Override
-        public Optional<Blob> getCustomDatabaseFileByKey(GCSService gcsService, String key) {
+        public Optional<Blob> getCustomDatabaseFileByKey(GcsService gcsService, String key) {
             return Optional.empty();
         }
 
@@ -116,17 +116,17 @@ public interface ReferenceDatabaseSource extends Serializable {
         }
 
         @Override
-        public Optional<Blob> getReferenceBlob(GCSService gcsService, FileUtils fileUtils) {
+        public Optional<Blob> getReferenceBlob(GcsService gcsService, FileUtils fileUtils) {
             return getCustomDatabaseFileByKey(gcsService, FASTA_URI_JSON_KEY);
         }
 
         @Override
-        public Optional<Blob> getReferenceIndexBlob(GCSService gcsService, FileUtils fileUtils) {
+        public Optional<Blob> getReferenceIndexBlob(GcsService gcsService, FileUtils fileUtils) {
             return getCustomDatabaseFileByKey(gcsService, INDEX_URI_JSON_KEY);
         }
 
         @Override
-        public Optional<Blob> getCustomDatabaseFileByKey(GCSService gcsService, String key) {
+        public Optional<Blob> getCustomDatabaseFileByKey(GcsService gcsService, String key) {
             return Optional.ofNullable(new JsonParser().parse(refDataJsonString).getAsJsonObject().get(key))
                     .map(JsonElement::getAsString).map(gcsService::getBlobIdFromUri)
                     .map(blobId -> Optional.ofNullable(gcsService.isExists(blobId) ? gcsService.getBlob(blobId) : null))

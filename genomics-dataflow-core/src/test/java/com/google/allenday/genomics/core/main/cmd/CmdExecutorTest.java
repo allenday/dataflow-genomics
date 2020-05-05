@@ -1,7 +1,7 @@
 package com.google.allenday.genomics.core.main.cmd;
 
-import com.google.allenday.genomics.core.cmd.CmdExecutor;
-import com.google.allenday.genomics.core.io.FileUtils;
+import com.google.allenday.genomics.core.worker.cmd.CmdExecutor;
+import com.google.allenday.genomics.core.utils.FileUtils;
 import org.javatuples.Triplet;
 import org.junit.Assert;
 import org.junit.Test;

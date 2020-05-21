@@ -65,7 +65,8 @@ public class CreateBamIndexFn extends DoFn<KV<SamRecordsChunkMetadataKey, KV<Ref
         try {
             String inputFilePath = transformIoHandler.handleInputAsLocalFile(gcsService, fileWrapper, workingDir);
             String indexBamPath = samToolsService.createIndex(inputFilePath);
-            FileWrapper fileWrapperToOutput = transformIoHandler.saveFileToGcsOutput(gcsService, indexBamPath);
+            FileWrapper fileWrapperToOutput = transformIoHandler.saveFileToGcsOutput(gcsService, indexBamPath,
+                    input.getKey().getSraSampleId().getValue());
             fileUtils.deleteDir(workingDir);
             c.output(KV.of(input.getKey(), KV.of(referenceDatabaseSource, fileWrapperToOutput)));
             successCounter.inc();

@@ -78,7 +78,8 @@ public class MergeFn extends DoFn<KV<SamRecordsChunkMetadataKey, KV<ReferenceDat
                             samToolsService.generateMergedFileName(sraSampleId.getValue(),
                                     samRecordsChunkMetadataKey.generateFileSuffix());
                     FileWrapper fileWrapperMerged = transformIoHandler.handleInputAndCopyToGcs(
-                            firstFileWrapper.get(), gcsService, mergedFilename, workDir);
+                            firstFileWrapper.get(), gcsService, mergedFilename, workDir,
+                            samRecordsChunkMetadataKey.getSraSampleId().getValue());
                     fileUtils.deleteDir(workDir);
 
                     c.output(KV.of(samRecordsChunkMetadataKey, KV.of(referenceDatabaseSource, fileWrapperMerged)));
@@ -92,7 +93,8 @@ public class MergeFn extends DoFn<KV<SamRecordsChunkMetadataKey, KV<ReferenceDat
 
                 String mergedFileName = samToolsService.mergeBamFiles(localBamPaths, workDir,
                         sraSampleId.getValue(), samRecordsChunkMetadataKey.generateFileSuffix());
-                FileWrapper fileWrapperMerged = transformIoHandler.saveFileToGcsOutput(gcsService, mergedFileName);
+                FileWrapper fileWrapperMerged = transformIoHandler.saveFileToGcsOutput(gcsService, mergedFileName,
+                        sraSampleId.getValue());
                 fileUtils.deleteDir(workDir);
 
                 c.output(KV.of(samRecordsChunkMetadataKey, KV.of(referenceDatabaseSource, fileWrapperMerged)));

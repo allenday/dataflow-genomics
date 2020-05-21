@@ -1,9 +1,9 @@
 package com.google.allenday.genomics.core.preparing.sra;
 
+import com.google.allenday.genomics.core.utils.FileUtils;
+import com.google.allenday.genomics.core.worker.WorkerSetupService;
 import com.google.allenday.genomics.core.worker.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.worker.cmd.Commands;
-import com.google.allenday.genomics.core.worker.WorkerSetupService;
-import com.google.allenday.genomics.core.utils.FileUtils;
 import org.javatuples.Triplet;
 
 import java.io.IOException;
@@ -47,7 +47,8 @@ public class SraToolsService implements Serializable {
 
     public List<String> retrieveSraFromFastq(String accession, String outputDir) throws IOException {
         Triplet<Boolean, Integer, String> results =
-                cmdExecutor.executeCommand(String.format(CMD_FASTQ_DUMP_WITH_SPLIT_AND_SKIP_TECHNICAL, accession, outputDir));
+                cmdExecutor.executeCommand(String.format(CMD_FASTQ_DUMP_WITH_SPLIT_AND_SKIP_TECHNICAL, accession, outputDir),
+                        0, false);
         if (results.getValue0()) {
             return fileUtils.listOfFilesInDir(outputDir);
         } else {

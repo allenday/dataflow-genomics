@@ -62,7 +62,8 @@ public class SortFn extends DoFn<KV<SampleRunMetaData, KV<ReferenceDatabaseSourc
                     + "_" + geneSampleRunMetaData.getSubPartIndex();
             String alignedSortedBamPath = samToolsService.sortSam(
                     inputFilePath, workingDir, outPrefix, referenceDatabaseSource.getName());
-            FileWrapper fileWrapperToOutput = transformIoHandler.handleFileOutput(gcsService, alignedSortedBamPath);
+            FileWrapper fileWrapperToOutput = transformIoHandler.handleFileOutput(gcsService, alignedSortedBamPath,
+                    input.getKey().getRunId());
             fileUtils.deleteDir(workingDir);
 
             c.output(KV.of(input.getKey(), KV.of(referenceDatabaseSource, fileWrapperToOutput)));

@@ -1,7 +1,7 @@
 package com.google.allenday.genomics.core.preparing.runfile;
 
-import com.google.allenday.genomics.core.utils.FileUtils;
 import com.google.allenday.genomics.core.gcp.GcsService;
+import com.google.allenday.genomics.core.utils.FileUtils;
 import com.google.cloud.storage.BlobId;
 
 import java.io.IOException;
@@ -21,7 +21,16 @@ public class GcsFastqInputResource extends FastqInputResource {
     }
 
     @Override
+    public boolean exists(GcsService gcsService) {
+        return gcsService.isExists(blobId);
+    }
+
+    @Override
     public String getName() {
         return blobId.getName();
+    }
+
+    public BlobId getBlobId() {
+        return blobId;
     }
 }

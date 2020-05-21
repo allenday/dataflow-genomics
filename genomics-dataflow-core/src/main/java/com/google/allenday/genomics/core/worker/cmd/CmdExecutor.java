@@ -26,6 +26,9 @@ public class CmdExecutor implements Serializable {
 
     private Logger LOG = LoggerFactory.getLogger(CmdExecutor.class);
 
+    public Triplet<Boolean, Integer, String> executeCommand(String cmdCommand, int retryCount, boolean throwError) {
+        return executeCommand(cmdCommand, true, retryCount, throwError);
+    }
 
     public Triplet<Boolean, Integer, String> executeCommand(String cmdCommand, boolean inheritIO, boolean throwError) {
         return executeCommand(cmdCommand, inheritIO, retryCount, throwError);

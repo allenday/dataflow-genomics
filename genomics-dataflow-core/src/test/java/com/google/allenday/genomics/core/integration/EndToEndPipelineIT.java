@@ -145,19 +145,19 @@ public class EndToEndPipelineIT implements Serializable {
         NameProvider nameProvider = injector.getInstance(NameProvider.class);
         List<BlobId> mergeResults = getBlobIdsWithDirAndEnding(gcsService, testBucket,
                 MAIN_TESTING_GCS_DIR + String.format(
-                        GenomicsProcessingParams.INTERMEDIATE_PREFIX + GenomicsProcessingParams.MERGED_REGIONS_PATH_PATTERN,
+                        GenomicsProcessingParams.INTERMEDIATE_PREFIX + GenomicsProcessingParams.MERGED_REGIONS_PATH_FORMAT,
                         nameProvider.getCurrentTimeInDefaultFormat()),
                 ".merged.sorted.bam");
         List<BlobId> indexResults = getBlobIdsWithDirAndEnding(gcsService, testBucket,
                 MAIN_TESTING_GCS_DIR + String.format(
-                        GenomicsProcessingParams.INTERMEDIATE_PREFIX + GenomicsProcessingParams.MERGED_REGIONS_PATH_PATTERN,
+                        GenomicsProcessingParams.INTERMEDIATE_PREFIX + GenomicsProcessingParams.MERGED_REGIONS_PATH_FORMAT,
                         nameProvider.getCurrentTimeInDefaultFormat())
                 , ".merged.sorted.bam.bai");
 
         BlobId finalMergeBlobId = BlobId.of(testBucket,
                 MAIN_TESTING_GCS_DIR + String.format(
-                        GenomicsProcessingParams.FINAL_PREFIX + GenomicsProcessingParams.FINAL_MERGED_PATH_PATTERN,
-                        nameProvider.getCurrentTimeInDefaultFormat()) +
+                        GenomicsProcessingParams.FINAL_PREFIX + GenomicsProcessingParams.FINAL_MERGED_PATH_FORMAT,
+                        nameProvider.getCurrentTimeInDefaultFormat()) + SraSampleId.create(TEST_SAMPLE_ID) + "/" +
                         new SamRecordsChunkMetadataKey(
                                 SraSampleId.create(TEST_SAMPLE_ID),
                                 TEST_REFERENCE_NAME,

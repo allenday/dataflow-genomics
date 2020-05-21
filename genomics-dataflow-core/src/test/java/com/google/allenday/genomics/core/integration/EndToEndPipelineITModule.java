@@ -1,7 +1,7 @@
 package com.google.allenday.genomics.core.integration;
 
 import com.google.allenday.genomics.core.pipeline.batch.BatchProcessingModule;
-import com.google.allenday.genomics.core.pipeline.batch.PreparingTransform;
+import com.google.allenday.genomics.core.preparing.custom.FastqInputResourcePreparingTransform;
 import com.google.allenday.genomics.core.model.SampleRunMetaData;
 import com.google.allenday.genomics.core.preparing.runfile.FastqInputResource;
 import com.google.allenday.genomics.core.preparing.runfile.uriprovider.BaseUriProvider;
@@ -38,8 +38,8 @@ public class EndToEndPipelineITModule extends BatchProcessingModule {
 
     @Provides
     @Singleton
-    public PreparingTransform provideGroupByPairedReadsAndFilter(NameProvider nameProvider) {
-        return new PreparingTransform() {
+    public FastqInputResourcePreparingTransform provideGroupByPairedReadsAndFilter(NameProvider nameProvider) {
+        return new FastqInputResourcePreparingTransform() {
             @Override
             public PCollection<KV<SampleRunMetaData, List<FastqInputResource>>> expand(PCollection<KV<SampleRunMetaData, List<FastqInputResource>>> input) {
                 return input;

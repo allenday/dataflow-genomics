@@ -37,32 +37,32 @@ public class StagingPathsBulder implements Serializable {
     }
 
     BlobId buildAlignedBlobId(String runId, String reference) {
-        String pathPattern = stagingDir + "/" + ALIGNED_OUTPUT_PATH_PATTERN + FILE_NAME_PATTERN
+        String pathPattern = stagingDir + "/" + ALIGNED_OUTPUT_PATH_FORMAT + FILE_NAME_PATTERN
                 + AlignService.SAM_FILE_PREFIX;
         return BlobId.of(stagingBucket, String.format(pathPattern, runId, reference));
     }
 
     BlobId buildSortedBlobId(String runId, String reference) {
-        String pathPattern = stagingDir + "/" + SORTED_OUTPUT_PATH_PATTERN + FILE_NAME_PATTERN
+        String pathPattern = stagingDir + "/" + SORTED_OUTPUT_PATH_FORMAT + FILE_NAME_PATTERN
                 + SamToolsService.SORTED_BAM_FILE_SUFFIX;
         return BlobId.of(stagingBucket, String.format(pathPattern, runId, reference));
     }
 
     BlobId buildMergedBlobId(String sraSample, String reference) {
-        String pathPattern = stagingDir + "/" + FINAL_MERGED_PATH_PATTERN + FILE_NAME_PATTERN
+        String pathPattern = stagingDir + "/" + FINAL_MERGED_PATH_FORMAT + FILE_NAME_PATTERN
                 + SamToolsService.MERGE_SORTED_FILE_SUFFIX;
         return BlobId.of(stagingBucket, String.format(pathPattern, sraSample, reference));
     }
 
     BlobId buildIndexBlobId(String sraSample, String reference) {
-        String pathPattern = stagingDir + "/" + FINAL_MERGED_PATH_PATTERN + FILE_NAME_PATTERN
+        String pathPattern = stagingDir + "/" + FINAL_MERGED_PATH_FORMAT + FILE_NAME_PATTERN
                 + SamToolsService.MERGE_SORTED_FILE_SUFFIX + SamToolsService.BAM_INDEX_SUFFIX;
         return BlobId.of(stagingBucket, String.format(pathPattern, sraSample, reference));
 
     }
 
     public String buildVcfDirPath() {
-        return stagingDir + "/" + VARIANT_CALLING_OUTPUT_PATH_PATTERN;
+        return stagingDir + "/" + VARIANT_CALLING_OUTPUT_PATH_FORMAT;
     }
 
     BlobId buildVcfFileBlobId(String sraSample, String reference) {

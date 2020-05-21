@@ -92,7 +92,8 @@ public class AlignFn extends DoFn<KV<SampleRunMetaData, KV<List<ReferenceDatabas
                             referenceDatabase.getDbName(),
                             geneSampleRunMetaData.getSraSample().getValue(),
                             geneSampleRunMetaData.getPlatform());
-                    FileWrapper fileWrapper = transformIoHandler.handleFileOutput(gcsService, alignedSamPath);
+                    FileWrapper fileWrapper = transformIoHandler.handleFileOutput(gcsService, alignedSamPath,
+                            geneSampleRunMetaData.getRunId());
                     fileUtils.deleteFile(alignedSamPath);
 
                     successCounter.inc();

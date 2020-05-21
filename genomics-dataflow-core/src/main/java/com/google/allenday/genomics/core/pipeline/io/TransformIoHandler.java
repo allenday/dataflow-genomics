@@ -55,10 +55,14 @@ public class TransformIoHandler implements Serializable {
         this.destGcsDir = dir;
     }
 
-    public FileWrapper handleContentOutput(GcsService gcsService, byte[] content, String filename) throws IOException {
+    private String destGcsDirWithSubDir(String subDirName){
+        return destGcsDir + subDirName + "/";
+    }
+
+    public FileWrapper handleContentOutput(GcsService gcsService, byte[] content, String filename, String subDirName) throws IOException {
         FileWrapper fileWrapper;
         if (content.length > fileUtils.mbToBytes(memoryOutputLimitMb)) {
-            fileWrapper = saveContentToGcsOutput(gcsService, content, filename);
+            fileWrapper = saveContentToGcsOutput(gcsService, content, filename, subDirName);
         } else {
             LOG.info(String.format("Pass %s file as CONTENT data", filename));
             fileWrapper = FileWrapper.fromByteArrayContent(content, filename);
@@ -66,8 +70,8 @@ public class TransformIoHandler implements Serializable {
         return fileWrapper;
     }
 
-    public FileWrapper saveContentToGcsOutput(GcsService gcsService, byte[] content, String filename) throws IOException {
-        String gcsFilePath = destGcsDir + filename;
+    public FileWrapper saveContentToGcsOutput(GcsService gcsService, byte[] content, String filename, String subDirName) throws IOException {
+        String gcsFilePath = destGcsDirWithSubDir(subDirName) + filename;
 
         LOG.info(String.format("Export %s content to GCS %s", filename, gcsFilePath));
 
@@ -75,10 +79,10 @@ public class TransformIoHandler implements Serializable {
         return FileWrapper.fromBlobUri(gcsService.getUriFromBlob(blob.getBlobId()), filename);
     }
 
-    public FileWrapper handleFileOutput(GcsService gcsService, String filepath) throws IOException {
+    public FileWrapper handleFileOutput(GcsService gcsService, String filepath, String subDirName) throws IOException {
         FileWrapper fileWrapper;
         if (fileUtils.getFileSizeMegaBytes(filepath) > memoryOutputLimitMb) {
-            fileWrapper = saveFileToGcsOutput(gcsService, filepath);
+            fileWrapper = saveFileToGcsOutput(gcsService, filepath, subDirName);
         } else {
             String fileName = fileUtils.getFilenameFromPath(filepath);
             LOG.info(String.format("Pass %s file as CONTENT data", filepath));
@@ -88,17 +92,17 @@ public class TransformIoHandler implements Serializable {
         return fileWrapper;
     }
 
-    public FileWrapper saveFileToGcsOutput(GcsService gcsService, String filepath, String gcsDestFilename) throws IOException {
-        String gcsFilePath = destGcsDir + gcsDestFilename;
+    public FileWrapper saveFileToGcsOutput(GcsService gcsService, String filepath, String gcsDestFilename, String subDirName) throws IOException {
+        String gcsFilePath = destGcsDirWithSubDir(subDirName) + gcsDestFilename;
 
         LOG.info(String.format("Export %s file to GCS %s", filepath, gcsFilePath));
         Blob blob = gcsService.writeToGcs(resultsBucket, gcsFilePath, filepath);
         return FileWrapper.fromBlobUri(gcsService.getUriFromBlob(blob.getBlobId()), gcsDestFilename);
     }
 
-    public FileWrapper saveFileToGcsOutput(GcsService gcsService, String filepath) throws IOException {
+    public FileWrapper saveFileToGcsOutput(GcsService gcsService, String filepath, String subDirName) throws IOException {
         String fileName = fileUtils.getFilenameFromPath(filepath);
-        return saveFileToGcsOutput(gcsService, filepath, fileName);
+        return saveFileToGcsOutput(gcsService, filepath, fileName, subDirName);
     }
 
     public String handleInputAsLocalFile(GcsService gcsService, FileWrapper fileWrapper, String workDir) throws IOException {
@@ -127,8 +131,9 @@ public class TransformIoHandler implements Serializable {
         return new byte[0];
     }
 
-    public FileWrapper handleInputAndCopyToGcs(FileWrapper fileWrapper, GcsService gcsService, String newFileName, String workDir) throws IOException {
-        String gcsFilePath = destGcsDir + newFileName;
+    public FileWrapper handleInputAndCopyToGcs(FileWrapper fileWrapper, GcsService gcsService, String newFileName,
+                                               String workDir, String subDirName) throws IOException {
+        String gcsFilePath = destGcsDirWithSubDir(subDirName) + newFileName;
         Blob resultBlob;
         if (fileWrapper.getDataType() == FileWrapper.DataType.CONTENT) {
             String filePath = workDir + newFileName;

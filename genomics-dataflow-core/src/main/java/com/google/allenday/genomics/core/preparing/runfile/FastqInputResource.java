@@ -13,4 +13,6 @@ public abstract class FastqInputResource implements Serializable {
 
     public abstract String getName();
 
+    public abstract boolean exists(GcsService gcsService);
+
 }

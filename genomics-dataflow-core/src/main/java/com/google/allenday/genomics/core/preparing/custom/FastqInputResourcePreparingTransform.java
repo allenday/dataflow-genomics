@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.pipeline.batch;
+package com.google.allenday.genomics.core.preparing.custom;
 
 import com.google.allenday.genomics.core.preparing.runfile.FastqInputResource;
 import com.google.allenday.genomics.core.model.SampleRunMetaData;
@@ -9,13 +9,13 @@ import org.apache.beam.sdk.values.PCollection;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public abstract class PreparingTransform extends PTransform<PCollection<KV<SampleRunMetaData, List<FastqInputResource>>>,
+public abstract class FastqInputResourcePreparingTransform extends PTransform<PCollection<KV<SampleRunMetaData, List<FastqInputResource>>>,
         PCollection<KV<SampleRunMetaData, List<FastqInputResource>>>> {
 
-    public PreparingTransform() {
+    public FastqInputResourcePreparingTransform() {
     }
 
-    public PreparingTransform(@Nullable String name) {
+    public FastqInputResourcePreparingTransform(@Nullable String name) {
         super(name);
     }
 }

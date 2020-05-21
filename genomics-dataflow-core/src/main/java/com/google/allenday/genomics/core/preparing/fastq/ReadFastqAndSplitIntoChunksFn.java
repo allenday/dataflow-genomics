@@ -1,15 +1,15 @@
 package com.google.allenday.genomics.core.preparing.fastq;
 
 import com.google.allenday.genomics.core.gcp.GcsService;
+import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleRunMetaData;
+import com.google.allenday.genomics.core.pipeline.io.TransformIoHandler;
 import com.google.allenday.genomics.core.preparing.runfile.FastqInputResource;
 import com.google.allenday.genomics.core.preparing.runfile.SraInputResource;
-import com.google.allenday.genomics.core.utils.FileUtils;
-import com.google.allenday.genomics.core.pipeline.io.TransformIoHandler;
-import com.google.allenday.genomics.core.model.FileWrapper;
+import com.google.allenday.genomics.core.preparing.sra.SraToolsService;
 import com.google.allenday.genomics.core.processing.align.Instrument;
 import com.google.allenday.genomics.core.processing.sam.SamToolsService;
-import com.google.allenday.genomics.core.preparing.sra.SraToolsService;
+import com.google.allenday.genomics.core.utils.FileUtils;
 import htsjdk.samtools.fastq.FastqConstants;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
@@ -65,7 +65,8 @@ public abstract class ReadFastqAndSplitIntoChunksFn<T>
                             "_" + index + FastqConstants.FastqExtensions.FASTQ.getExtension();
                     try {
                         FileWrapper indexedFileWrapper =
-                                splitFastqIntoBatchesIoHandler.handleContentOutput(gcsService, fastqPart.getBytes(), filename);
+                                splitFastqIntoBatchesIoHandler.handleContentOutput(gcsService, fastqPart.getBytes(), filename,
+                                        sampleRunMetaData.getRunId());
                         callback.onResult(KV.of(indexedSampleRunMetaData, KV.of(indexedFileWrapper, pairIndex)));
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -82,7 +83,8 @@ public abstract class ReadFastqAndSplitIntoChunksFn<T>
                 String filename = fileNameBase + "_" + index + FastqConstants.FastqExtensions.FASTQ.getExtension();
                 try {
                     FileWrapper indexedFileWrapper =
-                            splitFastqIntoBatchesIoHandler.handleContentOutput(gcsService, fastqPart.getBytes(), filename);
+                            splitFastqIntoBatchesIoHandler.handleContentOutput(gcsService, fastqPart.getBytes(), filename,
+                                    sampleRunMetaData.getRunId());
                     callback.onResult(KV.of(indexedSampleRunMetaData, KV.of(indexedFileWrapper, pairIndex)));
                 } catch (IOException e) {
                     e.printStackTrace();

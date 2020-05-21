@@ -8,6 +8,11 @@ import com.google.allenday.genomics.core.model.SampleRunMetaData;
 import com.google.allenday.genomics.core.pipeline.GenomicsProcessingParams;
 import com.google.allenday.genomics.core.pipeline.io.TransformIoHandler;
 import com.google.allenday.genomics.core.preparing.RetrieveFastqFromCsvTransform;
+import com.google.allenday.genomics.core.preparing.anomaly.DetectMissedFilesAndUnsupportedInstrumentTransform;
+import com.google.allenday.genomics.core.preparing.anomaly.RecognizeMissedRunFilesFn;
+import com.google.allenday.genomics.core.preparing.anomaly.RecognizeUnsupportedInstrumentFn;
+import com.google.allenday.genomics.core.preparing.custom.FastqInputResourcePreparingTransform;
+import com.google.allenday.genomics.core.preparing.custom.SraInputResourcePreparingTransform;
 import com.google.allenday.genomics.core.preparing.fastq.BuildFastqContentFn;
 import com.google.allenday.genomics.core.preparing.fastq.FastqReader;
 import com.google.allenday.genomics.core.preparing.fastq.ReadFastqAndSplitIntoChunksFn;
@@ -327,7 +332,10 @@ public abstract class BatchProcessingModule extends AbstractModule {
                                                                                       enrichWithFastqRunInputResourceFn,
                                                                               EnrichWithSraInputResourceFn
                                                                                       enrichWithSraInputResourceFn,
-                                                                              PreparingTransform preparingTransform,
+                                                                              FastqInputResourcePreparingTransform
+                                                                                          fastqInputResourcePreparingTransform,
+                                                                              SraInputResourcePreparingTransform
+                                                                                          sraInputResourcePreparingTransform,
                                                                               ReadFastqAndSplitIntoChunksFn.FromFastqInputResource
                                                                                       fromFastqInputResource,
                                                                               ReadFastqAndSplitIntoChunksFn.FromSraInputResource
@@ -343,7 +351,8 @@ public abstract class BatchProcessingModule extends AbstractModule {
                 maxFastqSizeMB > 0)
                 .withSraSamplesToFilter(sraSamplesToFilter)
                 .withSraSamplesToSkip(sraSamplesToSkip)
-                .withPreparingTransforms(preparingTransform);
+                .withFastqInputResourcePreparingTransforms(fastqInputResourcePreparingTransform)
+                .withSraInputResourcePreparingTransforms(sraInputResourcePreparingTransform);
     }
 
     @Provides
@@ -402,6 +411,33 @@ public abstract class BatchProcessingModule extends AbstractModule {
     @Singleton
     public PrepareAndExecuteVcfToBqTransform providePrepareAndExecuteVcfToBqTransform(VcfToBqFn vcfToBqFn) {
         return new PrepareAndExecuteVcfToBqTransform(vcfToBqFn);
+    }
+
+
+    @Provides
+    @Singleton
+    public RecognizeMissedRunFilesFn provideRecognizeMissedRunFilesFn(FileUtils fileUtils) {
+        return new RecognizeMissedRunFilesFn(fileUtils);
+    }
+
+    @Provides
+    @Singleton
+    public RecognizeUnsupportedInstrumentFn provideRecognizeUnsupportedInstrumentFn() {
+        return new RecognizeUnsupportedInstrumentFn();
+    }
+
+
+    @Provides
+    @Singleton
+    public DetectMissedFilesAndUnsupportedInstrumentTransform provideDetectMissedFilesAndUnsupportedInstrumentTransform(
+            NameProvider nameProvider,
+            RecognizeUnsupportedInstrumentFn recognizeUnsupportedInstrumentFn,
+            RecognizeMissedRunFilesFn recognizeMissedRunFilesFn
+    ) {
+        return new DetectMissedFilesAndUnsupportedInstrumentTransform(genomicsParams.getResultBucket(),
+                String.format(genomicsParams.getAnomalyOutputDirPattern(), nameProvider.getCurrentTimeInDefaultFormat()),
+                recognizeUnsupportedInstrumentFn,
+                recognizeMissedRunFilesFn);
     }
 
     @Retention(RUNTIME)

@@ -1,15 +1,15 @@
 package com.google.allenday.genomics.core.main.processing.align;
 
-import com.google.allenday.genomics.core.utils.FileUtils;
-import com.google.allenday.genomics.core.pipeline.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.model.SampleRunMetaData;
-import com.google.allenday.genomics.core.processing.align.Instrument;
+import com.google.allenday.genomics.core.pipeline.io.TransformIoHandler;
 import com.google.allenday.genomics.core.processing.align.AlignFn;
 import com.google.allenday.genomics.core.processing.align.AlignService;
+import com.google.allenday.genomics.core.processing.align.Instrument;
 import com.google.allenday.genomics.core.reference.ReferenceDatabase;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.allenday.genomics.core.reference.ReferenceProvider;
+import com.google.allenday.genomics.core.utils.FileUtils;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.testing.PAssert;
 import org.apache.beam.sdk.testing.TestPipeline;
@@ -58,7 +58,7 @@ public class AlignFnTest implements Serializable {
                     .thenReturn(new ReferenceDatabase.Builder(reference.getName(), reference.getName()).build());
         }
         Mockito.when(alignServiceMock.alignFastq(anyString(), any(), anyString(), anyString(), anyString(), anyString(), any())).thenReturn(resultName);
-        Mockito.when(transformIoHandlerMock.handleFileOutput(any(), Mockito.eq(resultName)))
+        Mockito.when(transformIoHandlerMock.handleFileOutput(any(), Mockito.eq(resultName), any()))
                 .thenReturn(FileWrapper.fromBlobUri("result_uri", resultName));
 
         List<FileWrapper> fileWrapperList = new ArrayList<FileWrapper>() {{

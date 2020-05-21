@@ -44,7 +44,8 @@ public class BuildFastqContentFn extends DoFn<KV<SampleRunMetaData, Iterable<Ite
                     + String.format("_subpart_%d", currentSubPartIndex)
                     + String.format("__%d", i + 1) + FastqConstants.FastqExtensions.FASTQ.getExtension();
             try {
-                FileWrapper fileWrapper = buildFastqContentIoHandler.handleContentOutput(gcsService, contents.get(i).toString().getBytes(), filename);
+                FileWrapper fileWrapper = buildFastqContentIoHandler.handleContentOutput(gcsService, contents.get(i).toString().getBytes(), filename,
+                        sampleRunMetaData.getRunId());
                 fileWrappersForOutput.add(fileWrapper);
             } catch (IOException e) {
                 LOG.error(e.getMessage());

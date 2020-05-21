@@ -9,6 +9,7 @@ import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.allenday.genomics.core.preparing.fastq.BuildFastqContentFn;
 import com.google.allenday.genomics.core.preparing.fastq.ReadFastqAndSplitIntoChunksFn;
 import com.google.allenday.genomics.core.pipeline.transform.BreakFusion;
+import com.google.allenday.genomics.core.preparing.runfile.SraInputResource;
 import org.apache.beam.sdk.transforms.*;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PBegin;
@@ -45,8 +46,11 @@ public class RetrieveFastqFromCsvTransform extends PTransform<PBegin, PCollectio
 
     private List<String> sraSamplesToFilter;
     private List<String> sraSamplesToSkip;
+
     private PTransform<PCollection<KV<SampleRunMetaData, List<FastqInputResource>>>,
-            PCollection<KV<SampleRunMetaData, List<FastqInputResource>>>> preparingTransforms;
+            PCollection<KV<SampleRunMetaData, List<FastqInputResource>>>> fastqInputResourcePreparingTransforms;
+    private PTransform<PCollection<KV<SampleRunMetaData, SraInputResource>>,
+            PCollection<KV<SampleRunMetaData, SraInputResource>>> sraInputResourcePreparingTransforms;
 
     public RetrieveFastqFromCsvTransform(String csvGcsUri,
                                          SampleRunMetaData.Parser csvParser,
@@ -77,10 +81,17 @@ public class RetrieveFastqFromCsvTransform extends PTransform<PBegin, PCollectio
         return this;
     }
 
-    public RetrieveFastqFromCsvTransform withPreparingTransforms(
+    public RetrieveFastqFromCsvTransform withFastqInputResourcePreparingTransforms(
             PTransform<PCollection<KV<SampleRunMetaData, List<FastqInputResource>>>,
-                    PCollection<KV<SampleRunMetaData, List<FastqInputResource>>>> preparingTransforms) {
-        this.preparingTransforms = preparingTransforms;
+                    PCollection<KV<SampleRunMetaData, List<FastqInputResource>>>> fastqInputResourcePreparingTransforms) {
+        this.fastqInputResourcePreparingTransforms = fastqInputResourcePreparingTransforms;
+        return this;
+    }
+
+    public RetrieveFastqFromCsvTransform withSraInputResourcePreparingTransforms(
+            PTransform<PCollection<KV<SampleRunMetaData, SraInputResource>>,
+                    PCollection<KV<SampleRunMetaData, SraInputResource>>> sraInputResourcePreparingTransforms) {
+        this.sraInputResourcePreparingTransforms = sraInputResourcePreparingTransforms;
         return this;
     }
 
@@ -98,7 +109,7 @@ public class RetrieveFastqFromCsvTransform extends PTransform<PBegin, PCollectio
         PCollection<KV<SampleRunMetaData, KV<FileWrapper, Integer>>> fastqChanksFromFastqInputResource =
                 input.apply(createParseMetadataCsvIntoSampleMetadataTransform(SampleRunMetaData.DataSource.Type.allExceptSra()))
                         .apply(ParDo.of(enrichWithFastqRunInputResourceFn))
-                        .apply(preparingTransforms)
+                        .apply(fastqInputResourcePreparingTransforms)
                         .apply("Split pairs files into separate threads", FlatMapElements
                                 .via(new IntoIndexedKvValues<>()))
                         .apply("Group by fastq URL", GroupByKey.create())
@@ -108,9 +119,12 @@ public class RetrieveFastqFromCsvTransform extends PTransform<PBegin, PCollectio
         PCollection<KV<SampleRunMetaData, KV<FileWrapper, Integer>>> fastqChanksFromSraInputResource =
                 input.apply(createParseMetadataCsvIntoSampleMetadataTransform(SampleRunMetaData.DataSource.Type.onlySra()))
                         .apply(ParDo.of(enrichWithSraInputResourceFn))
+                        .apply(sraInputResourcePreparingTransforms)
                         .apply(ParDo.of(fromSraInputResourceTransform));
 
-        PCollection<KV<SampleRunMetaData, Iterable<KV<FileWrapper, Integer>>>> grouppedByChunks = PCollectionList.of(fastqChanksFromFastqInputResource).and(fastqChanksFromSraInputResource).apply(Flatten.pCollections())
+        PCollection<KV<SampleRunMetaData, Iterable<KV<FileWrapper, Integer>>>> grouppedByChunks =
+                PCollectionList.of(fastqChanksFromFastqInputResource)
+                        .and(fastqChanksFromSraInputResource).apply(Flatten.pCollections())
                 .apply("Group by part index", GroupByKey.create());
         if (hasFastqChunkByteSizeLimitation) {
             return grouppedByChunks

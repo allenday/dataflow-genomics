@@ -25,7 +25,6 @@ def csv_schema_from_file(filepath):
         csv_schema = json.load(schema_file)
         return [field["name"] for field in csv_schema["fields"]]
 
-
 DATA_SOURCE_TYPE_FIELD_NAME = "DataSourceType"
 
 if __name__ == "__main__":
@@ -41,7 +40,7 @@ if __name__ == "__main__":
     parser.add_argument("--parse_schema_from_src_headers", action="store_true",
                         help="Parse result file headers from source file")
     parser.add_argument("--skip_headers_lines", default=0, type=int, help="Numbers of headers lines in src file")
-    parser.add_argument("--default_data_source_type", choices=['gcs_uri_provider', 'sra'])
+    parser.add_argument("--override_data_source_type", choices=['gcs_uri_provider', 'sra'])
     parser.add_argument("--src_delimiter", default="TAB", choices=['COMMA', 'TAB'])
     parser.add_argument("--dest_delimiter", default="TAB", choices=['COMMA', 'TAB'])
 
@@ -87,7 +86,7 @@ if __name__ == "__main__":
                 if args.src_csv:
                     line_count = 0
 
-                    skip_headers_lines = 1 if args.parse_schema_from_src_headers else  args.skip_headers_lines
+                    skip_headers_lines = 1 if args.parse_schema_from_src_headers else args.skip_headers_lines
                     for read_line in src_csv_reader:
                         if line_count == 0:
                             if args.src_csv_schema:
@@ -98,16 +97,15 @@ if __name__ == "__main__":
                                 logging.info('Please provide --src_csv_schema argument or --parse_schema_from_src_headers args')
                                 exit(1)
                             convert_schema = generate_convert_schema(src_headers, dest_headers)
-                        if line_count >= args.skip_headers_lines:
+                        if line_count >= skip_headers_lines:
                             new_line_elements = [read_line[convert_schema[header]] if header in convert_schema and len(read_line)>convert_schema[header] else '' for header in dest_headers]
                             new_line_elements = [el.replace('NULL', '') for el in new_line_elements]
 
-                            if data_source_type_index >=0 and not new_line_elements[data_source_type_index]:
-                                if args.default_data_source_type:
-                                    new_line_elements[data_source_type_index] = args.default_data_source_type
-                                else:
-                                    logging.info('Please provide --default_data_source_type argument')
-                                    exit(1)
+                            if args.override_data_source_type:
+                                new_line_elements[data_source_type_index] = args.override_data_source_type
+                            elif data_source_type_index >=0 and not new_line_elements[data_source_type_index]:
+                                logging.info('Please provide --override_data_source_type argument')
+                                exit(1)
                             writer.writerow(new_line_elements)
 
                         line_count += 1
@@ -135,11 +133,11 @@ if __name__ == "__main__":
                 exit(1)
             new_line_metadata[args.is_paired_field_name] = "PAIRED" if args.paired else "SINGLE"
 
-            if args.data_source_type or args.default_data_source_type:
+            if args.data_source_type or args.override_data_source_type:
                 new_line_metadata[args.data_source_links_field_name] = args.data_source_type \
-                    if args.data_source_type else args.default_data_source_type
+                    if args.data_source_type else args.override_data_source_type
             else:
-                logging.info('Please provide --default_data_source_type or --data_source_type argument')
+                logging.info('Please provide --override_data_source_type or --data_source_type argument')
                 exit(1)
             if args.data_source_links:
                 new_line_metadata[args.data_source_links_field_name] = args.data_source_links

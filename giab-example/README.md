@@ -90,7 +90,7 @@ If you are going to use [GATK Haplotaype Caller](https://gatk.broadinstitute.org
     ```
 4. JSON string with reference data should be created for running pipeline : 
     ```
-    REFERENCE_SHORT_NAME=$(echo $REFERENCE_NAME| cut -f 5 -d '/' | cut -f 1 -d '.')
+    REFERENCE_SHORT_NAME=$(echo $REFERENCE_URI| cut -f 5 -d '/' | cut -f 1 -d '.')
     REFERENCE_DATA_JSON_STRING='[{"name":"'$REFERENCE_SHORT_NAME'","fastaUri":"'$REFERENCE_URI'","indexUri":"'$REFERENCE_INDEX_URI'"}]'
     ```
 

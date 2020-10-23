@@ -1,6 +1,6 @@
 package com.google.allenday.genomics.core.main.utils;
 
-import com.google.allenday.genomics.core.utils.ValueIterableToValueListTransform;
+import com.google.allenday.genomics.core.pipeline.transform.ValueIterableToValueListTransform;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.testing.PAssert;
 import org.apache.beam.sdk.testing.TestPipeline;

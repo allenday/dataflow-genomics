@@ -1,7 +1,7 @@
 package com.google.allenday.genomics.core.pipeline;
 
-import com.google.allenday.genomics.core.model.Aligner;
-import com.google.allenday.genomics.core.model.VariantCaller;
+import com.google.allenday.genomics.core.processing.align.Aligner;
+import com.google.allenday.genomics.core.processing.variantcall.VariantCaller;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.javatuples.Pair;
 
@@ -12,15 +12,15 @@ public class GenomicsProcessingParams {
     public final static String INTERMEDIATE_PREFIX = "%s/intermediate/";
     public final static String FINAL_PREFIX = "%s/final/";
 
-    public final static String CHUNKS_BY_COUNT_OUTPUT_PATH_PATTERN = "chunked_fastq_by_count/";
-    public final static String CHUNKS_BY_SIZE_OUTPUT_PATH_PATTERN = "chunked_fastq_by_size/";
-    public final static String ALIGNED_OUTPUT_PATH_PATTERN = "aligned_sam/";
-    public final static String SORTED_OUTPUT_PATH_PATTERN = "sorted_bam/";
-    public final static String SORTED_AND_SPLITTED_PATH_PATTERN = "sorted_and_splitted_bam/";
-    public final static String FINAL_MERGED_PATH_PATTERN = "result_merged_bam/";
-    public final static String MERGED_REGIONS_PATH_PATTERN = "merged_regions_bam/";
-    public final static String VARIANT_CALLING_OUTPUT_PATH_PATTERN = "result_variant_calling/";
-    public final static String VCF_TO_BQ_PATH = "vcf_to_bq/";
+    public final static String CHUNKS_BY_COUNT_OUTPUT_PATH_FORMAT = "chunked_fastq_by_count/";
+    public final static String CHUNKS_BY_SIZE_OUTPUT_PATH_FORMAT = "chunked_fastq_by_size/";
+    public final static String ALIGNED_OUTPUT_PATH_FORMAT = "aligned_sam/";
+    public final static String SORTED_OUTPUT_PATH_FORMAT = "sorted_bam/";
+    public final static String SORTED_AND_SPLITTED_PATH_FORMAT = "sorted_and_splitted_bam/";
+    public final static String FINAL_MERGED_PATH_FORMAT = "result_merged_bam/";
+    public final static String MERGED_REGIONS_PATH_FORMAT = "merged_regions_bam/";
+    public final static String VARIANT_CALLING_OUTPUT_PATH_FORMAT = "result_variant_calling/";
+    public final static String VCF_TO_BQ_PATH = "vcftobq/";
     public final static String ANOMALY_PATH_PATTERN = "anomaly_samples/";
 
     private Aligner aligner;
@@ -119,31 +119,31 @@ public class GenomicsProcessingParams {
     }
 
     public String getChuncksByCountOutputDirPattern() {
-        return outputDir + INTERMEDIATE_PREFIX + CHUNKS_BY_COUNT_OUTPUT_PATH_PATTERN;
+        return outputDir + INTERMEDIATE_PREFIX + CHUNKS_BY_COUNT_OUTPUT_PATH_FORMAT;
     }
 
     public String getChuncksBySizeOutputDirPattern() {
-        return outputDir + INTERMEDIATE_PREFIX + CHUNKS_BY_SIZE_OUTPUT_PATH_PATTERN;
+        return outputDir + INTERMEDIATE_PREFIX + CHUNKS_BY_SIZE_OUTPUT_PATH_FORMAT;
     }
 
     public String getAlignedOutputDirPattern() {
-        return outputDir + INTERMEDIATE_PREFIX + ALIGNED_OUTPUT_PATH_PATTERN;
+        return outputDir + INTERMEDIATE_PREFIX + ALIGNED_OUTPUT_PATH_FORMAT;
     }
 
     public String getSortedOutputDirPattern() {
-        return outputDir + INTERMEDIATE_PREFIX + SORTED_OUTPUT_PATH_PATTERN;
+        return outputDir + INTERMEDIATE_PREFIX + SORTED_OUTPUT_PATH_FORMAT;
     }
 
     public String getSortedAndSplittedOutputDirPattern() {
-        return outputDir + INTERMEDIATE_PREFIX + SORTED_AND_SPLITTED_PATH_PATTERN;
+        return outputDir + INTERMEDIATE_PREFIX + SORTED_AND_SPLITTED_PATH_FORMAT;
     }
 
     public String getMergedRegionsDirPattern() {
-        return outputDir + INTERMEDIATE_PREFIX + MERGED_REGIONS_PATH_PATTERN;
+        return outputDir + INTERMEDIATE_PREFIX + MERGED_REGIONS_PATH_FORMAT;
     }
 
     public String getFinalMergedDirPattern() {
-        return outputDir + FINAL_PREFIX + FINAL_MERGED_PATH_PATTERN;
+        return outputDir + FINAL_PREFIX + FINAL_MERGED_PATH_FORMAT;
     }
 
     public String getAnomalyOutputDirPattern() {
@@ -151,7 +151,7 @@ public class GenomicsProcessingParams {
     }
 
     public String getVariantCallingOutputDirPattern() {
-        return outputDir + FINAL_PREFIX + VARIANT_CALLING_OUTPUT_PATH_PATTERN;
+        return outputDir + FINAL_PREFIX + VARIANT_CALLING_OUTPUT_PATH_FORMAT;
     }
 
     public String getVcfToBqOutputDirPattern() {

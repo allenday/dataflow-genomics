@@ -1,7 +1,7 @@
 package com.google.allenday.genomics.core.processing.variantcall;
 
 import com.google.allenday.genomics.core.reference.ReferenceDatabase;
-import com.google.allenday.genomics.core.utils.ResourceProvider;
+import com.google.allenday.genomics.core.gcp.ResourceProvider;
 import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

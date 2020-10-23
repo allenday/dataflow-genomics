@@ -1,9 +1,9 @@
 package com.google.allenday.genomics.core.processing.align;
 
-import com.google.allenday.genomics.core.cmd.CmdExecutor;
-import com.google.allenday.genomics.core.cmd.WorkerSetupService;
-import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.model.Instrument;
+import com.google.allenday.genomics.core.worker.cmd.CmdExecutor;
+import com.google.allenday.genomics.core.worker.cmd.Commands;
+import com.google.allenday.genomics.core.worker.WorkerSetupService;
+import com.google.allenday.genomics.core.utils.FileUtils;
 import org.javatuples.Pair;
 import org.javatuples.Triplet;
 
@@ -15,16 +15,9 @@ public class Minimap2AlignService extends AlignService {
     private final static String MINIMAP_VERSION = "2.17";
     public final static String MINIMAP_NAME = String.format("minimap2-%s_x64-linux", MINIMAP_VERSION);
     private final static String MINIMAP_ARCHIVE_FILE_NAME = String.format("%s.tar.bz2", MINIMAP_NAME);
-
-    private final static String CMD_APT_UPDATE = "apt-get update";
-    private final static String CMD_INSTALL_WGET = "apt-get install wget -y";
-    private final static String CMD_INSTALL_BZIP2 = "apt-get install bzip2 -y";
-    private final static String CMD_DOWNLOAD_MONIMAP =
-            String.format("wget https://github.com/lh3/minimap2/releases/download/v%s/%s",
-                    MINIMAP_VERSION,
-                    MINIMAP_ARCHIVE_FILE_NAME);
-    private final static String CMD_UNTAR_MINIMAP_PATTERN = "tar -xvjf %s -C %s";
-    private final static String CMD_RM_MINIMAP_ARCHIVE = String.format("rm -f %s", MINIMAP_ARCHIVE_FILE_NAME);
+    private final static String MINIMAP_ARCHIVE_URL = String.format("https://github.com/lh3/minimap2/releases/download/v%s/%s",
+            MINIMAP_VERSION,
+            MINIMAP_ARCHIVE_FILE_NAME);
 
     private final static String ALIGN_COMMAND_PATTERN = "./%s/minimap2" +
             " -ax %s %s %s" +
@@ -46,12 +39,12 @@ public class Minimap2AlignService extends AlignService {
     public void setup() {
         ArrayList<Pair<String, Boolean>> commands = new ArrayList<Pair<String, Boolean>>() {
             {
-                add(Pair.with(CMD_APT_UPDATE, false));
-                add(Pair.with(CMD_INSTALL_WGET, false));
-                add(Pair.with(CMD_INSTALL_BZIP2, false));
-                add(Pair.with(CMD_DOWNLOAD_MONIMAP, true));
-                add(Pair.with(String.format(CMD_UNTAR_MINIMAP_PATTERN, MINIMAP_ARCHIVE_FILE_NAME, fileUtils.getCurrentPath()), true));
-                add(Pair.with(CMD_RM_MINIMAP_ARCHIVE, true));
+                add(Pair.with(Commands.CMD_APT_UPDATE, false));
+                add(Pair.with(Commands.CMD_INSTALL_WGET, false));
+                add(Pair.with(Commands.CMD_INSTALL_BZIP2, false));
+                add(Pair.with(Commands.wget(MINIMAP_ARCHIVE_URL), true));
+                add(Pair.with(Commands.untar(MINIMAP_ARCHIVE_FILE_NAME, fileUtils.getCurrentPath()), true));
+                add(Pair.with(Commands.rm(MINIMAP_ARCHIVE_FILE_NAME), true));
             }
         };
         workerSetupService.setupByCommands(commands);
@@ -60,13 +53,12 @@ public class Minimap2AlignService extends AlignService {
 
     @Override
     public String alignFastq(String referencePath, List<String> localFastqPaths, String workDir,
-                             String outPrefix, String outSuffix, String readGroupName, String instrumentName) {
+                             String outPrefix, String outSuffix, String readGroupName, String instrumentName) throws AlignException {
         Instrument instrument = null;
         try {
             instrument = Instrument.valueOf(instrumentName);
         } catch (IllegalArgumentException e) {
             throw new RuntimeException(String.format("Instrument %s is not supported", instrumentName));
-
         }
         String alignedSamName = outPrefix + "_" + outSuffix + SAM_FILE_PREFIX;
         String alignedSamPath = workDir + alignedSamName;
@@ -82,7 +74,7 @@ public class Minimap2AlignService extends AlignService {
         return alignedSamPath;
     }
 
-    private String getInstrumentMinimapFlag(Instrument instrument) {
+    private String getInstrumentMinimapFlag(Instrument instrument) throws AlignException {
         if (instrument == Instrument.ILLUMINA || instrument == Instrument.LS454 || instrument == Instrument.MGISEQ) {
             return MINIMAP_SHORT_READ_FLAG;
         } else if (instrument == Instrument.OXFORD_NANOPORE) {

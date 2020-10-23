@@ -1,17 +1,21 @@
 package com.google.allenday.genomics.core.integration;
 
-import com.google.allenday.genomics.core.csv.ParseSourceCsvTransform;
-import com.google.allenday.genomics.core.io.BaseUriProvider;
-import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.io.GCSService;
-import com.google.allenday.genomics.core.model.*;
+import com.google.allenday.genomics.core.gcp.GcsService;
+import com.google.allenday.genomics.core.gcp.ResourceProvider;
+import com.google.allenday.genomics.core.model.SamRecordsChunkMetadataKey;
+import com.google.allenday.genomics.core.model.SampleRunMetaData;
+import com.google.allenday.genomics.core.model.SraSampleId;
 import com.google.allenday.genomics.core.pipeline.GenomicsProcessingParams;
+import com.google.allenday.genomics.core.preparing.RetrieveFastqFromCsvTransform;
+import com.google.allenday.genomics.core.preparing.runfile.uriprovider.BaseUriProvider;
 import com.google.allenday.genomics.core.processing.AlignAndSamProcessingTransform;
-import com.google.allenday.genomics.core.processing.SamToolsService;
-import com.google.allenday.genomics.core.processing.SplitFastqIntoBatches;
+import com.google.allenday.genomics.core.processing.align.Aligner;
+import com.google.allenday.genomics.core.processing.align.Instrument;
 import com.google.allenday.genomics.core.processing.align.Minimap2AlignService;
+import com.google.allenday.genomics.core.processing.sam.SamToolsService;
+import com.google.allenday.genomics.core.processing.variantcall.VariantCaller;
+import com.google.allenday.genomics.core.utils.FileUtils;
 import com.google.allenday.genomics.core.utils.NameProvider;
-import com.google.allenday.genomics.core.utils.ResourceProvider;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.inject.Guice;
@@ -44,11 +48,12 @@ import java.util.stream.StreamSupport;
 public class EndToEndPipelineIT implements Serializable {
     private Logger LOG = LoggerFactory.getLogger(EndToEndPipelineIT.class);
 
-    private final static String DEFAULT_TEST_BUCKET = "human1000-results";
+    private final static String DEFAULT_TEST_BUCKET = "genomics-dataflow-core-tests";
     private final static String DEFAULT_TEST_REGION = "us-central1";
     private final static String REFERENCE_LOCAL_DIR = "reference/";
 
-    private final static String TEST_EXAMPLE_SRA = "SRS0000001";
+    private final static String TEST_SAMPLE_ID = "SRS0000001";
+    private final static String TEST_PROJECT_ID = "SRP0000001";
 
     private final static String MAIN_TESTING_GCS_DIR = "testing/";
 
@@ -76,8 +81,6 @@ public class EndToEndPipelineIT implements Serializable {
     private final static String TEST_CSV_FILE = "source.csv";
     private final static String EXPECTED_SINGLE_END_RESULT_CONTENT_FILE = "expected_result_15k.merged.sorted.bam";
 
-    private final static String CSV_LINE_TEMPLATE = "\t\t\t\t\t\t%1$s\t\t\t\t%2$s\t%3$s\t\t\t\t\t\t\t\t\t\t\t\t%4$s\t\t ";
-
 
     @Test
     public void testEndToEndPipeline() throws IOException {
@@ -97,7 +100,7 @@ public class EndToEndPipelineIT implements Serializable {
                 .orElse(DEFAULT_TEST_REGION);
 
         FileUtils fileUtils = new FileUtils();
-        GCSService gcsService = GCSService.initialize(fileUtils);
+        GcsService gcsService = GcsService.initialize(fileUtils);
         ResourceProvider resourceProvider = ResourceProvider.initialize();
         Pair<String, BaseUriProvider> inputCsvUriAndProvider =
                 prepareInputData(gcsService, fileUtils, testBucket, TEST_INPUT_FILES, TEST_CSV_FILE);
@@ -130,9 +133,8 @@ public class EndToEndPipelineIT implements Serializable {
         Injector injector = Guice.createInjector(endToEndPipelineITModule);
 
         pipeline
-                .apply("Parse data", injector.getInstance(ParseSourceCsvTransform.class))
-                .apply("Split large FASTQ into chunks", injector.getInstance(SplitFastqIntoBatches.class))
-                .apply("Align reads and prepare for DV", injector.getInstance(AlignAndSamProcessingTransform.class));
+                .apply("Retrieve runfile files", injector.getInstance(RetrieveFastqFromCsvTransform.class))
+                .apply("Align reads and preparing for DV", injector.getInstance(AlignAndSamProcessingTransform.class));
 
         /*TODO DeepVeariant temporary excluded from end-to-end tests*/
         /*.apply(ParDo.of(new VariantCallingFn(deepVariantService, dvResultGcsPath)))*/
@@ -143,30 +145,30 @@ public class EndToEndPipelineIT implements Serializable {
         NameProvider nameProvider = injector.getInstance(NameProvider.class);
         List<BlobId> mergeResults = getBlobIdsWithDirAndEnding(gcsService, testBucket,
                 MAIN_TESTING_GCS_DIR + String.format(
-                        GenomicsProcessingParams.INTERMEDIATE_PREFIX + GenomicsProcessingParams.MERGED_REGIONS_PATH_PATTERN,
+                        GenomicsProcessingParams.INTERMEDIATE_PREFIX + GenomicsProcessingParams.MERGED_REGIONS_PATH_FORMAT,
                         nameProvider.getCurrentTimeInDefaultFormat()),
                 ".merged.sorted.bam");
         List<BlobId> indexResults = getBlobIdsWithDirAndEnding(gcsService, testBucket,
                 MAIN_TESTING_GCS_DIR + String.format(
-                        GenomicsProcessingParams.INTERMEDIATE_PREFIX + GenomicsProcessingParams.MERGED_REGIONS_PATH_PATTERN,
+                        GenomicsProcessingParams.INTERMEDIATE_PREFIX + GenomicsProcessingParams.MERGED_REGIONS_PATH_FORMAT,
                         nameProvider.getCurrentTimeInDefaultFormat())
                 , ".merged.sorted.bam.bai");
 
         BlobId finalMergeBlobId = BlobId.of(testBucket,
                 MAIN_TESTING_GCS_DIR + String.format(
-                        GenomicsProcessingParams.FINAL_PREFIX + GenomicsProcessingParams.FINAL_MERGED_PATH_PATTERN,
-                        nameProvider.getCurrentTimeInDefaultFormat()) +
-                        new SamRecordsMetadaKey(
-                                SraSampleId.create(TEST_EXAMPLE_SRA),
+                        GenomicsProcessingParams.FINAL_PREFIX + GenomicsProcessingParams.FINAL_MERGED_PATH_FORMAT,
+                        nameProvider.getCurrentTimeInDefaultFormat()) + SraSampleId.create(TEST_SAMPLE_ID) + "/" +
+                        new SamRecordsChunkMetadataKey(
+                                SraSampleId.create(TEST_SAMPLE_ID),
                                 TEST_REFERENCE_NAME,
-                                SamRecordsMetadaKey.Region.UNDEFINED
+                                SamRecordsChunkMetadataKey.Region.UNDEFINED
                         ).generateSlug() + ".merged.sorted.bam");
 
         Assert.assertEquals(mergeResults.size(), indexResults.size());
         checkResultContent(gcsService, fileUtils, finalMergeBlobId);
     }
 
-    private Pair<String, BaseUriProvider> prepareInputData(GCSService gcsService,
+    private Pair<String, BaseUriProvider> prepareInputData(GcsService gcsService,
                                                            FileUtils fileUtils,
                                                            String bucketName,
                                                            List<Pair<List<String>, String>> testInputDataFiles,
@@ -191,8 +193,9 @@ public class EndToEndPipelineIT implements Serializable {
             }
             String libraryLayout = pair.getValue1();
 
-            String csvLine = String.format(CSV_LINE_TEMPLATE,
-                    libraryLayout, fileNameBase, TEST_EXAMPLE_SRA, Instrument.ILLUMINA.name());
+            String csvLine = String.join("\t", Arrays.asList(fileNameBase, TEST_SAMPLE_ID, TEST_PROJECT_ID,
+                    libraryLayout, Instrument.ILLUMINA.name(), SampleRunMetaData.DataSource.Type.GCS_URI_PROVIDER.name()));
+
             csvLines.append(csvLine).append("\n");
 
         });
@@ -205,7 +208,7 @@ public class EndToEndPipelineIT implements Serializable {
         return Pair.with(gcsService.getUriFromBlob(blob.getBlobId()), baseUriProvider);
     }
 
-    private String prepareReference(GCSService gcsService, String bucketName) throws IOException {
+    private String prepareReference(GcsService gcsService, String bucketName) throws IOException {
         String refName = TEST_REFERENCE_FILE;
         String refIndexName = TEST_REFERENCE_FILE + ".fai";
 
@@ -216,12 +219,12 @@ public class EndToEndPipelineIT implements Serializable {
         return gcsService.getUriFromBlob(BlobId.of(bucketName, TEST_GCS_REFERENCE_DIR));
     }
 
-    private void checkExists(GCSService gcsService, BlobId expectedResultBlob) throws IOException {
+    private void checkExists(GcsService gcsService, BlobId expectedResultBlob) throws IOException {
         boolean resultExists = gcsService.isExists(expectedResultBlob);
         Assert.assertTrue(String.format("File %s not exists", expectedResultBlob.toString()), resultExists);
     }
 
-    private void checkResultContent(GCSService gcsService, FileUtils fileUtils, BlobId expectedResultBlob) throws IOException {
+    private void checkResultContent(GcsService gcsService, FileUtils fileUtils, BlobId expectedResultBlob) throws IOException {
         checkExists(gcsService, expectedResultBlob);
         String destFileName = TEMP_DIR + expectedResultBlob.getName();
         fileUtils.mkdirFromUri(destFileName);
@@ -238,7 +241,7 @@ public class EndToEndPipelineIT implements Serializable {
         Assert.assertTrue("Result content is not equals with expected", isTwoEqual);
     }
 
-    private List<BlobId> getBlobIdsWithDirAndEnding(GCSService gcsService, String bucket, String dir, String ending) {
+    private List<BlobId> getBlobIdsWithDirAndEnding(GcsService gcsService, String bucket, String dir, String ending) {
         return StreamSupport.stream(gcsService.getBlobsWithPrefix(bucket, dir).spliterator(), false)
                 .map(Blob::getBlobId).filter(blobId -> blobId.getName().endsWith(ending)).collect(Collectors.toList());
     }
@@ -251,7 +254,7 @@ public class EndToEndPipelineIT implements Serializable {
         fileUtils.deleteDir(TEMP_DIR);
         fileUtils.deleteDir(REFERENCE_LOCAL_DIR);
 
-        GCSService gcsService = GCSService.initialize(fileUtils);
+        GcsService gcsService = GcsService.initialize(fileUtils);
         String testBucket = Optional
                 .ofNullable(System.getenv("TEST_BUCKET"))
                 .orElse(DEFAULT_TEST_BUCKET);

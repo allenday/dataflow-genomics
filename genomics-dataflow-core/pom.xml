@@ -11,10 +11,8 @@
     </parent>
 
     <artifactId>genomics-dataflow-core</artifactId>
-    <version>0.0.17-SNAPSHOT</version>
-
+    <version>0.1.5</version>
     <packaging>jar</packaging>
-
     <name>Genomics Dataflow Core Components</name>
     <description>Components for implementation Google Cloud Dataflow piplines to solve genomics processing tasks
     </description>
@@ -232,7 +230,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
-                <version>1.5</version>
+                <version>1.6</version>
                 <executions>
                     <execution>
                         <id>sign-artifacts</id>
@@ -270,3 +268,4 @@
         </plugins>
     </build>
 </project>
+

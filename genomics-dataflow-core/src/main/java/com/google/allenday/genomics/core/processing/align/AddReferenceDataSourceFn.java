@@ -1,7 +1,7 @@
 package com.google.allenday.genomics.core.processing.align;
 
 import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.SampleMetaData;
+import com.google.allenday.genomics.core.model.SampleRunMetaData;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -10,8 +10,8 @@ import org.apache.beam.sdk.values.KV;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public abstract class AddReferenceDataSourceFn extends DoFn<KV<SampleMetaData, List<FileWrapper>>,
-        KV<SampleMetaData, KV<List<ReferenceDatabaseSource>, List<FileWrapper>>>> {
+public abstract class AddReferenceDataSourceFn extends DoFn<KV<SampleRunMetaData, List<FileWrapper>>,
+        KV<SampleRunMetaData, KV<List<ReferenceDatabaseSource>, List<FileWrapper>>>> {
 
     public static class FromNameAndDirPath extends AddReferenceDataSourceFn {
 

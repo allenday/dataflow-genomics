@@ -1,15 +1,14 @@
 package com.google.allenday.genomics.core.processing.align;
 
-import com.google.allenday.genomics.core.cmd.CmdExecutor;
-import com.google.allenday.genomics.core.cmd.WorkerSetupService;
+import com.google.allenday.genomics.core.worker.WorkerSetupService;
+import com.google.allenday.genomics.core.worker.cmd.CmdExecutor;
+import com.google.allenday.genomics.core.worker.cmd.Commands;
 import org.javatuples.Triplet;
 
+import java.io.IOException;
 import java.io.Serializable;
 
 public class KAlignService implements Serializable {
-    public final static String FASTA_FILE_EXTENSION = ".fasta";
-
-    private final static String CMD_APT_UPDATE = "apt-get update";
     private final static String KALIGN_COMMAND_PATTERN = "kalign < %s > %s";
 
     private WorkerSetupService workerSetupService;
@@ -22,14 +21,14 @@ public class KAlignService implements Serializable {
 
     public void setupKAlign2() {
         workerSetupService.setupByCommands(new String[]{
-                CMD_APT_UPDATE,
-                "apt-get install kalign -y"
+                Commands.CMD_APT_UPDATE,
+                String.format(Commands.CMD_APT_GET_INSTALL_FORMAT, "kalign")
         });
     }
 
     public String kAlignFasta(String localFastaFilePath, String workDir,
-                              String outPrefix, String outSuffix) {
-        String kAlignedSamName = outPrefix + "_" + outSuffix + FASTA_FILE_EXTENSION;
+                              String outPrefix, String outSuffix) throws IOException {
+        String kAlignedSamName = outPrefix + "_" + outSuffix + AlignService.SAM_FILE_PREFIX;
         String kAlignedSamPath = workDir + kAlignedSamName;
 
         String kAlignCommand = String.format(KALIGN_COMMAND_PATTERN, localFastaFilePath, kAlignedSamPath);
@@ -41,7 +40,7 @@ public class KAlignService implements Serializable {
         return kAlignedSamPath;
     }
 
-    public static class KAlignException extends RuntimeException {
+    public static class KAlignException extends IOException {
 
         public KAlignException(String command, int code) {
             super(String.format("KAlign command %s failed with code %d", command, code));

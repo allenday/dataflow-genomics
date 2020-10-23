@@ -1,8 +1,8 @@
 package com.google.allenday.genomics.core.main.io;
 
-import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.io.GCSService;
-import com.google.allenday.genomics.core.io.TransformIoHandler;
+import com.google.allenday.genomics.core.gcp.GcsService;
+import com.google.allenday.genomics.core.utils.FileUtils;
+import com.google.allenday.genomics.core.pipeline.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
 import com.google.cloud.storage.Blob;
 import org.junit.Assert;
@@ -20,9 +20,9 @@ public class TransformIoHandlerTests {
     private final static String BLOB_URI = "blobUri";
 
     @Test
-    public void testHandleInputAsLocalFileResult() {
+    public void testHandleInputAsLocalFileResult() throws IOException{
         FileUtils fileUtilsMock = Mockito.mock(FileUtils.class, Mockito.withSettings().serializable());
-        GCSService gcsServiceMock = Mockito.mock(GCSService.class, Mockito.withSettings().serializable());
+        GcsService gcsServiceMock = Mockito.mock(GcsService.class, Mockito.withSettings().serializable());
         FileWrapper fileWrapperMock = Mockito.mock(FileWrapper.class, Mockito.withSettings().serializable());
 
         Mockito.when(fileWrapperMock.getFileName()).thenReturn(FILE_NAME);
@@ -35,9 +35,9 @@ public class TransformIoHandlerTests {
     }
 
     @Test
-    public void testHandleInputAsLocalFileBlobUriBranch() {
+    public void testHandleInputAsLocalFileBlobUriBranch() throws IOException{
         FileUtils fileUtilsMock = Mockito.mock(FileUtils.class, Mockito.withSettings().serializable());
-        GCSService gcsServiceMock = Mockito.mock(GCSService.class, Mockito.withSettings().serializable());
+        GcsService gcsServiceMock = Mockito.mock(GcsService.class, Mockito.withSettings().serializable());
         FileWrapper fileWrapperMock = Mockito.mock(FileWrapper.class, Mockito.withSettings().serializable());
         Blob blobMock = Mockito.mock(Blob.class, Mockito.withSettings().serializable());
 
@@ -57,7 +57,7 @@ public class TransformIoHandlerTests {
     @Test
     public void testHandleInputAsLocalFileContentBranch() throws IOException {
         FileUtils fileUtilsMock = Mockito.mock(FileUtils.class, Mockito.withSettings().serializable());
-        GCSService gcsServiceMock = Mockito.mock(GCSService.class, Mockito.withSettings().serializable());
+        GcsService gcsServiceMock = Mockito.mock(GcsService.class, Mockito.withSettings().serializable());
         FileWrapper fileWrapperMock = Mockito.mock(FileWrapper.class, Mockito.withSettings().serializable());
 
         byte[] byteArray = "content".getBytes();

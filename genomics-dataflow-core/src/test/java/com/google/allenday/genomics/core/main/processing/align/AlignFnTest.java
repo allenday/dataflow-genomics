@@ -1,15 +1,15 @@
 package com.google.allenday.genomics.core.main.processing.align;
 
-import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.model.FileWrapper;
-import com.google.allenday.genomics.core.model.Instrument;
-import com.google.allenday.genomics.core.model.SampleMetaData;
+import com.google.allenday.genomics.core.model.SampleRunMetaData;
+import com.google.allenday.genomics.core.pipeline.io.TransformIoHandler;
 import com.google.allenday.genomics.core.processing.align.AlignFn;
 import com.google.allenday.genomics.core.processing.align.AlignService;
+import com.google.allenday.genomics.core.processing.align.Instrument;
 import com.google.allenday.genomics.core.reference.ReferenceDatabase;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.allenday.genomics.core.reference.ReferenceProvider;
+import com.google.allenday.genomics.core.utils.FileUtils;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.testing.PAssert;
 import org.apache.beam.sdk.testing.TestPipeline;
@@ -58,26 +58,26 @@ public class AlignFnTest implements Serializable {
                     .thenReturn(new ReferenceDatabase.Builder(reference.getName(), reference.getName()).build());
         }
         Mockito.when(alignServiceMock.alignFastq(anyString(), any(), anyString(), anyString(), anyString(), anyString(), any())).thenReturn(resultName);
-        Mockito.when(transformIoHandlerMock.handleFileOutput(any(), Mockito.eq(resultName)))
+        Mockito.when(transformIoHandlerMock.handleFileOutput(any(), Mockito.eq(resultName), any()))
                 .thenReturn(FileWrapper.fromBlobUri("result_uri", resultName));
 
         List<FileWrapper> fileWrapperList = new ArrayList<FileWrapper>() {{
-            add(FileWrapper.fromByteArrayContent("1".getBytes(), "input_1.fastq"));
-            add(FileWrapper.fromByteArrayContent("2".getBytes(), "input_2.fastq"));
+            add(FileWrapper.fromByteArrayContent("1".getBytes(), "input_1.runfile"));
+            add(FileWrapper.fromByteArrayContent("2".getBytes(), "input_2.runfile"));
         }};
 
-        SampleMetaData geneSampleMetaData = new SampleMetaData("tes_sra_sample", "test_run",
-                "Single", Instrument.ILLUMINA.name(), "");
+        SampleRunMetaData geneSampleRunMetaData = new SampleRunMetaData("tes_sra_sample", "test_run",
+                "Single", Instrument.ILLUMINA.name(), SampleRunMetaData.DataSource.sra());
 
-        PCollection<KV<SampleMetaData, KV<ReferenceDatabaseSource, FileWrapper>>> alignedData = testPipeline
-                .apply(Create.of(KV.of(geneSampleMetaData, KV.of(referenceList, fileWrapperList))))
+        PCollection<KV<SampleRunMetaData, KV<ReferenceDatabaseSource, FileWrapper>>> alignedData = testPipeline
+                .apply(Create.of(KV.of(geneSampleRunMetaData, KV.of(referenceList, fileWrapperList))))
                 .apply(ParDo.of(new AlignFn(alignServiceMock, referencesProvider, transformIoHandlerMock, fileUtilsMock)));
 
         PAssert.that(alignedData)
-                .satisfies(new SimpleFunction<Iterable<KV<SampleMetaData, KV<ReferenceDatabaseSource, FileWrapper>>>, Void>() {
+                .satisfies(new SimpleFunction<Iterable<KV<SampleRunMetaData, KV<ReferenceDatabaseSource, FileWrapper>>>, Void>() {
                     @Override
-                    public Void apply(Iterable<KV<SampleMetaData, KV<ReferenceDatabaseSource, FileWrapper>>> input) {
-                        List<KV<SampleMetaData, KV<ReferenceDatabaseSource, FileWrapper>>> outputList = StreamSupport.stream(input.spliterator(), false)
+                    public Void apply(Iterable<KV<SampleRunMetaData, KV<ReferenceDatabaseSource, FileWrapper>>> input) {
+                        List<KV<SampleRunMetaData, KV<ReferenceDatabaseSource, FileWrapper>>> outputList = StreamSupport.stream(input.spliterator(), false)
                                 .collect(Collectors.toList());
 
                         Assert.assertEquals("Output list equals to reference list", referenceList.size(), outputList.size());

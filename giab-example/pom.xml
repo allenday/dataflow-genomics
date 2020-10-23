@@ -18,7 +18,7 @@
         <dependency>
             <groupId>com.google.allenday</groupId>
             <artifactId>genomics-dataflow-core</artifactId>
-            <version>0.0.15</version>
+            <version>0.1.4</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

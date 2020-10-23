@@ -1,7 +1,7 @@
 package com.google.allenday.genomics.core.main.reference;
 
-import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.io.GCSService;
+import com.google.allenday.genomics.core.utils.FileUtils;
+import com.google.allenday.genomics.core.gcp.GcsService;
 import com.google.allenday.genomics.core.reference.ReferenceDatabase;
 import com.google.allenday.genomics.core.reference.ReferenceDatabaseSource;
 import com.google.allenday.genomics.core.reference.ReferenceProvider;
@@ -12,12 +12,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.io.IOException;
 import java.util.Optional;
 
 public class ReferenceProviderTests {
 
     private FileUtils fileUtilsMock;
-    private GCSService gcsServiceMock;
+    private GcsService gcsServiceMock;
     private ReferenceDatabaseSource refDBSourceMock;
     private ReferenceProvider referenceProvider;
     private String testFastaUri;
@@ -30,7 +31,7 @@ public class ReferenceProviderTests {
     @Before
     public void prepareTest() {
         fileUtilsMock = Mockito.mock(FileUtils.class, Mockito.withSettings().serializable());
-        gcsServiceMock = Mockito.mock(GCSService.class, Mockito.withSettings().serializable());
+        gcsServiceMock = Mockito.mock(GcsService.class, Mockito.withSettings().serializable());
 
         refDBSourceMock = Mockito.mock(ReferenceDatabaseSource.class, Mockito.withSettings().serializable());
         Blob refBlobMock = Mockito.mock(Blob.class, Mockito.withSettings().serializable());
@@ -74,7 +75,7 @@ public class ReferenceProviderTests {
     }
 
     @Test
-    public void testReferenceDbRemote() {
+    public void testReferenceDbRemote() throws IOException {
         ReferenceDatabase referenceDd = referenceProvider.getReferenceDd(gcsServiceMock, refDBSourceMock);
 
         Mockito.verify(refDBSourceMock).getReferenceBlob(gcsServiceMock, fileUtilsMock);
@@ -86,7 +87,7 @@ public class ReferenceProviderTests {
     }
 
     @Test
-    public void testReferenceDbWithDownload() {
+    public void testReferenceDbWithDownload() throws IOException {
         ReferenceDatabase referenceDd = referenceProvider.getReferenceDbWithDownload(gcsServiceMock, refDBSourceMock);
 
         Mockito.verify(refDBSourceMock).getReferenceBlob(gcsServiceMock, fileUtilsMock);

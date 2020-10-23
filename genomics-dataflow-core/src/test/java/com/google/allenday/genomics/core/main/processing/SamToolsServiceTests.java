@@ -1,7 +1,7 @@
 package com.google.allenday.genomics.core.main.processing;
 
-import com.google.allenday.genomics.core.processing.SamToolsService;
-import com.google.allenday.genomics.core.io.FileUtils;
+import com.google.allenday.genomics.core.processing.sam.SamToolsService;
+import com.google.allenday.genomics.core.utils.FileUtils;
 import htsjdk.samtools.SAMRecord;
 import org.junit.Assert;
 import org.junit.Test;

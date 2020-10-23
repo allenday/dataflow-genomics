@@ -1,18 +1,16 @@
 package com.google.allenday.genomics.core.example;
 
+import com.google.allenday.genomics.core.pipeline.GenomicsProcessingParams;
 import com.google.allenday.genomics.core.pipeline.batch.BatchProcessingModule;
 import com.google.allenday.genomics.core.pipeline.batch.BatchProcessingPipelineOptions;
-import com.google.allenday.genomics.core.pipeline.batch.PreparingTransform;
-import com.google.allenday.genomics.core.model.SampleRunMetaData;
-import com.google.allenday.genomics.core.preparing.runfile.FastqInputResource;
+import com.google.allenday.genomics.core.preparing.anomaly.DetectMissedFilesAndUnsupportedInstrumentTransform;
+import com.google.allenday.genomics.core.preparing.custom.FastqInputResourcePreparingTransform;
+import com.google.allenday.genomics.core.preparing.custom.PassPreparingTransform;
+import com.google.allenday.genomics.core.preparing.custom.SraInputResourcePreparingTransform;
 import com.google.allenday.genomics.core.preparing.runfile.uriprovider.BaseUriProvider;
 import com.google.allenday.genomics.core.preparing.runfile.uriprovider.DefaultBaseUriProvider;
-import com.google.allenday.genomics.core.pipeline.GenomicsProcessingParams;
-import com.google.allenday.genomics.core.utils.NameProvider;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import org.apache.beam.sdk.values.KV;
-import org.apache.beam.sdk.values.PCollection;
 
 import java.util.List;
 
@@ -54,13 +52,15 @@ public class GiabExampleAppModule extends BatchProcessingModule {
 
     @Provides
     @Singleton
-    public PreparingTransform provideGroupByPairedReadsAndFilter(NameProvider nameProvider) {
-        return new PreparingTransform() {
-            @Override
-            public PCollection<KV<SampleRunMetaData, List<FastqInputResource>>> expand(PCollection<KV<SampleRunMetaData, List<FastqInputResource>>> input) {
-                return input;
-            }
-        };
+    public FastqInputResourcePreparingTransform provideFastqInputResourcePreparingTransform(
+            DetectMissedFilesAndUnsupportedInstrumentTransform transform) {
+        return transform;
+    }
+
+    @Provides
+    @Singleton
+    public SraInputResourcePreparingTransform provideSraInputResourcePreparingTransform() {
+        return new PassPreparingTransform();
     }
 
     @Provides

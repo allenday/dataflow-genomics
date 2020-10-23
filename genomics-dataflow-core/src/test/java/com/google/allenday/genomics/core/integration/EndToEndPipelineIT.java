@@ -48,7 +48,7 @@ import java.util.stream.StreamSupport;
 public class EndToEndPipelineIT implements Serializable {
     private Logger LOG = LoggerFactory.getLogger(EndToEndPipelineIT.class);
 
-    private final static String DEFAULT_TEST_BUCKET = "human1000-results";
+    private final static String DEFAULT_TEST_BUCKET = "genomics-dataflow-core-tests";
     private final static String DEFAULT_TEST_REGION = "us-central1";
     private final static String REFERENCE_LOCAL_DIR = "reference/";
 

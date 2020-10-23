@@ -16,17 +16,17 @@ import java.util.*;
 public class VcfToBqService implements Serializable {
     private Logger LOG = LoggerFactory.getLogger(VcfToBqService.class);
 
-    private final static String VCF_TO_BQ_SCRIPT_PATH = "/opt/gcp_variant_transforms/bin/vcftobq";
+    private final static String VCF_TO_BQ_SCRIPT_PATH = "/opt/gcp_variant_transforms/bin/vcf_to_bq";
     private final static String DEFAULT_VCF_TO_BQ_LOCATION_REGION = "us-central1";
     private final static String DEFAULT_VCF_TO_BQ_DATAFLOW_RUNNER = "DataflowRunner";
     private final static String VCF_TO_BQ_JOB_NAME_PREFIX = "vcf-to-bq-";
 
 
-    private final static String VCF_TO_BQ_IMAGE_URI = "gcr.io/cloud-gcp/gcp-variant-transforms";
+    private final static String VCF_TO_BQ_IMAGE_URI = "gcr.io/cloud-lifesciences/gcp-variant-transforms";
     private final static String VCF_TO_BQ_MACHINE_TYPE = "n1-standard-1";
 
 
-    private Boolean append = true;
+    private Boolean append = false;
     private String region;
 
     public enum DeepVariantArguments {

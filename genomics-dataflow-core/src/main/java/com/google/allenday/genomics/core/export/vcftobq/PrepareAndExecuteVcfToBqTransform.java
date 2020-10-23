@@ -15,6 +15,8 @@ import java.util.stream.StreamSupport;
  */
 public class PrepareAndExecuteVcfToBqTransform extends PTransform<PCollection<KV<SamRecordsChunkMetadataKey, KV<String, String>>>, PCollection<KV<String, String>>> {
 
+    private final static String VCF_EXT = ".vcf";
+
     private VcfToBqFn vcfToBqFn;
 
     public PrepareAndExecuteVcfToBqTransform(VcfToBqFn vcfToBqFn) {
@@ -36,7 +38,7 @@ public class PrepareAndExecuteVcfToBqTransform extends PTransform<PCollection<KV
                         .into(TypeDescriptors.kvs(TypeDescriptors.strings(), TypeDescriptors.strings()))
                         .via(kv ->
                                 StreamSupport.stream(kv.getValue().spliterator(), false)
-                                        .map(dir -> KV.of(kv.getKey(), dir + "*")).collect(Collectors.toList())))
+                                        .map(dir -> KV.of(kv.getKey(), dir + "*" + VCF_EXT)).collect(Collectors.toList())))
                 .apply("Vcf to Bq ", ParDo.of(vcfToBqFn));
     }
 }
